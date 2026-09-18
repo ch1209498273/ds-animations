@@ -83,6 +83,12 @@ table.panel td:first-child{color:var(--muted);width:36%}
 #catalog .ovbtns button{border:1px solid var(--line);background:#f8fafc;border-radius:6px;padding:3px 10px;
   font-size:12px;cursor:pointer;color:var(--ink)}
 #catalog .ovbtns button:hover{border-color:var(--blue);color:var(--blue)}
+/* 二维码浮层 */
+#qrbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;border-radius:14px;
+  padding:14px 18px;z-index:70;box-shadow:0 10px 40px rgba(15,28,50,.35)}
+#qrbox .qrt{display:flex;align-items:baseline;gap:10px;font-size:14px;margin-bottom:8px}
+#qrbox .qrt button{margin-left:auto;border:1px solid var(--line);background:#f8fafc;border-radius:6px;padding:2px 10px;cursor:pointer}
+#qrbox .qrb svg{width:200px;height:200px;display:block}
 /* 投影模式：全局放大 */
 body.proj{font-size:17px}
 body.proj header.top h1{font-size:24px}
@@ -111,7 +117,7 @@ body.proj .msg{font-size:16px}
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.0 · 构建 2026-09-19 01:12</span>
+  <span class="ver">v2.1 · 构建 2026-09-19 02:16</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -127,6 +133,7 @@ body.proj .msg{font-size:16px}
       <button id="btnNext">下一步 ▶</button>
       <button id="btnPlay">▶ 自动播放</button>
       <button id="btnShot" title="把当前画面导出为 PNG 图片（可插入课件/试卷）">📷 截图</button>
+      <button id="btnHandout" title="取当前动画 6 个关键帧拼成讲义 PNG（可打印/插入PPT）">🖨 讲义</button>
       <button id="btnLink" title="复制当前页面链接（可直达本模块本帧）">🔗 链接</button>
       <button id="btnPractice" title="练习模式：隐藏解说，先预测下一步再揭示">🎯 练习</button>
       <button id="btnGuide" title="显示/隐藏使用引导">? 引导</button>
@@ -439,6 +446,7 @@ body.proj .msg{font-size:16px}
     });
     $('btnShot').onclick = exportFrame;
     $('btnLink').onclick = copyLink;
+    $('btnHandout').onclick = exportHandout;
     $('btnPractice').onclick = togglePractice;
     $('btnProj').onclick = toggleProject;
     $('btnCatalog').onclick = openCatalog;
@@ -532,6 +540,7 @@ body.proj .msg{font-size:16px}
         html += '<div class="ovcard" data-id="' + m.id + '"><b>' + esc(m.disp || m.name) + '</b>' +
           '<span>' + esc(m.note || '') + '</span>' +
           '<div class="ovbtns"><button data-act="go">打开 ▶</button>' +
+          '<button data-act="qr">二维码</button>' +
           '<button data-act="copy">复制链接</button></div></div>';
       });
       html += '</div>';
@@ -550,12 +559,67 @@ body.proj .msg{font-size:16px}
         document.body.removeChild(ov);
         location.hash = '#m=' + m.id;
         applyHash(parseHash());
+      } else if (act === 'qr') {
+        var old = document.getElementById('qrbox');
+        if (old) old.parentNode.removeChild(old);
+        var qb = document.createElement('div');
+        qb.id = 'qrbox';
+        qb.innerHTML = '<div class="qrt"><b>' + esc(m.disp || m.name) + '</b> 手机扫码直达<button id="qrx">✕</button></div><div class="qrb"></div>';
+        document.body.appendChild(qb);
+        try {
+          var qr = window.qrcode ? window.qrcode(0, 'M') : null;
+          if (qr) {
+            qr.addData(moduleURL(m));
+            qr.make();
+            qb.querySelector('.qrb').innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+          } else {
+            qb.querySelector('.qrb').textContent = '二维码组件未加载';
+          }
+        } catch (e) { qb.querySelector('.qrb').textContent = '链接过长，请用复制链接'; }
+        qb.addEventListener('click', function (ev) { if (ev.target.id === 'qrx' || ev.target === qb) qb.parentNode.removeChild(qb); });
       } else if (act === 'copy') {
         var url = moduleURL(m);
         if (navigator.clipboard && navigator.clipboard.writeText)
           navigator.clipboard.writeText(url).then(function () { toast('已复制：' + (m.disp || m.name)); }, function () { window.prompt('全选复制：', url); });
         else window.prompt('全选复制：', url);
       }
+    });
+  }
+  /* ---------- 讲义导出：当前动画取 6 个关键帧拼成 2×3 网格 PNG ---------- */
+  function exportHandout() {
+    if (!frames.length || !cur) { toast('当前没有可导出的动画'); return; }
+    var idxs = [];
+    for (var k = 0; k < 6; k++) idxs.push(Math.round(k * (frames.length - 1) / 5));
+    var done = 0;
+    var cellW = 980, cellH = 490, cols = 2, rows = 3;
+    var canvas = document.createElement('canvas');
+    canvas.width = cols * cellW; canvas.height = rows * cellH + 60;
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#0f2c5c';
+    ctx.font = 'bold 30px "Microsoft YaHei",sans-serif';
+    ctx.fillText((cur.disp || cur.name) + ' — 关键帧讲义（' + frames.length + ' 帧选 6）', 24, 42);
+    idxs.forEach(function (fi, k2) {
+      var svgStr = cur.render(frames[fi].snap);
+      var xml = new XMLSerializer().serializeToString(new DOMParser().parseFromString(svgStr, 'image/svg+xml').documentElement);
+      var img = new Image();
+      img.onload = function () {
+        var cx = (k2 % cols) * cellW, cy = 60 + Math.floor(k2 / cols) * cellH;
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(cx, cy, cellW, cellH);
+        ctx.drawImage(img, cx, cy, cellW * 0.98, cellH * 0.94);
+        ctx.fillStyle = '#5f6b76'; ctx.font = '20px Consolas,monospace';
+        ctx.fillText('第 ' + (fi + 1) + ' / ' + frames.length + ' 帧', cx + 18, cy + cellH - 10);
+        done++;
+        if (done === 6) {
+          var a = document.createElement('a');
+          a.download = '数据结构-' + (cur.disp || cur.name).replace(CIRC_RE, '') + '-讲义.png';
+          a.href = canvas.toDataURL('image/png');
+          a.click();
+          toast('讲义已导出 PNG（6 关键帧）');
+        }
+      };
+      img.onerror = function () { done++; };
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
     });
   }
   function keys(e) {
@@ -575,6 +639,111 @@ body.proj .msg{font-size:16px}
 
 </script>
 <script>
+/* ==================== ch1/01complexity.js ==================== */
+/* 动画：时间复杂度可视化——常见阶的增长曲线与逐 n 数值对比（教材 1.4） */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C;
+
+  var CODE = [
+    '常见时间复杂度（n 为问题规模）：',
+    '  O(1)      常数阶：与 n 无关（顺序表取值）',
+    '  O(log n)  对数阶：每次折半（折半查找）',
+    '  O(n)      线性阶：扫一遍（顺序查找）',
+    '  O(n log n)：分治一层 O(n) × log n 层（归并/快排平均）',
+    '  O(n²)     平方阶：双重循环（简单排序）',
+    '  O(2ⁿ)     指数阶：子集枚举——n 稍大就不可行'
+  ];
+
+  var FNS = [
+    { name: 'O(1)', f: function () { return 1; }, color: '#16a34a' },
+    { name: 'O(log n)', f: function (n) { return Math.log2(n); }, color: '#2563eb' },
+    { name: 'O(n)', f: function (n) { return n; }, color: '#9333ea' },
+    { name: 'O(n log n)', f: function (n) { return n * Math.log2(Math.max(n, 1.5)); }, color: '#d97706' },
+    { name: 'O(n²)', f: function (n) { return n * n; }, color: '#dc2626' },
+    { name: 'O(2ⁿ)', f: function (n) { return Math.pow(2, n); }, color: '#0f172a' }
+  ];
+
+  DSC.reg({
+    id: 'complexity', ch: 1, name: '时间复杂度可视化',
+    note: '教材 1.4 算法与算法分析（增长速度分级、渐近符号）',
+    guide: [
+      '拖动 n（或自动播放）：看各阶曲线如何随问题规模"起飞"——复杂度比较的是**增长速度**，不是某一点的值',
+      'n=10 时 n² 与 n log n 只差几倍；n=50 已经差一个数量级；n 再大，O(2ⁿ) 直接跳出图表',
+      '结论：机器快 1000 倍也救不了 O(2ⁿ)——选对复杂度才是算法设计的核心',
+      '面试/考试常问：把各阶从低到高排序 O(1) < O(log n) < O(n) < O(n log n) < O(n²) < O(2ⁿ)'
+    ],
+    inputs: [
+      { key: 'n', label: '问题规模 n', type: 'number', value: 16, min: 1, max: 64 }
+    ],
+    run: function (v) {
+      var NMAX = 32;
+      var frames = [];
+      for (var n = 1; n <= NMAX; n++) {
+        var vals = FNS.map(function (f) { return { name: f.name, v: f.f(n), color: f.color }; });
+        frames.push({
+          line: [n % 6 + 1], msg: 'n = ' + n + '：' + vals.map(function (x) { return x.name + ' = ' + fmt(x.v); }).join('，') + (n === 1 ? '。拖动进度条或自动播放观察增长。' : n === NMAX ? '。注意 O(2³²) 已是天文数字。' : ''),
+          panel: (function () {
+            var p = {};
+            vals.forEach(function (x) { p[x.name] = fmt(x.v); });
+            return p;
+          })(),
+          snap: { n: n, vals: vals, mark: n === NMAX ? 'final' : undefined }
+        });
+      }
+      function fmt(x) { return x < 1e6 ? (Math.round(x * 10) / 10 + '') : x.toExponential(2); }
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var W = 980, H = 500;
+      var n = s.n, NMAX = 32, CAP = 200;
+      var ox = 90, oy = 60, pw = W - ox - 70, ph = H - oy - 130;
+      var g = '';
+      g += h.txt(W / 2, 32, '常见时间复杂度增长曲线（当前 n = ' + n + '）', { size: 17, w: 600 });
+      /* 网格 */
+      for (var gy = 0; gy <= 4; gy++) {
+        var y = oy + ph * gy / 4;
+        g += h.line(ox, y, ox + pw, y, { stroke: '#eef2f7', sw: 1 });
+        g += h.txt(ox - 8, y + 4, String(CAP - CAP * gy / 4), { size: 10, fill: C.muted, anchor: 'end' });
+      }
+      for (var gx = 0; gx <= 4; gx++) {
+        var x = ox + pw * gx / 4;
+        g += h.line(x, oy, x, oy + ph, { stroke: '#eef2f7', sw: 1 });
+        g += h.txt(x, oy + ph + 16, String(NMAX * gx / 4), { size: 10, fill: C.muted });
+      }
+      g += h.txt(ox + pw / 2, oy + ph + 34, 'n', { size: 12, fill: C.muted });
+      /* 曲线 */
+      FNS.forEach(function (f) {
+        var pts = [];
+        for (var k = 1; k <= 64; k++) {
+          var nn = 1 + (NMAX - 1) * k / 64;
+          var val = Math.min(f.f(nn), CAP);
+          pts.push([ox + pw * (nn - 1) / (NMAX - 1), oy + ph * (1 - val / CAP)]);
+        }
+        g += '<path d="M' + pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' L') + '" fill="none" stroke="' + f.color + '" stroke-width="2.2" opacity="0.9"/>';
+      });
+      /* 当前 n 竖线 + 数值点 */
+      var cx = ox + pw * (n - 1) / (NMAX - 1);
+      g += h.line(cx, oy, cx, oy + ph, { stroke: C.ink, sw: 1.6, dash: '5,4' });
+      FNS.forEach(function (f) {
+        var val = Math.min(f.f(n), CAP);
+        var y = oy + ph * (1 - val / CAP);
+        g += h.circle(cx, y, 5.5, { fill: f.color, stroke: '#fff', sw: 1.5 });
+      });
+      /* 图例（按当前值排序） */
+      var sorted = FNS.map(function (f) { return { name: f.name, v: f.f(n), color: f.color }; }).sort(function (a, b) { return a.v - b.v; });
+      sorted.forEach(function (it, i) {
+        var y = oy + ph + 58 + i * 0;
+        var x = ox + i * 150;
+        g += h.rect(x, y - 12, 14, 14, { fill: it.color, rx: 3 });
+        g += h.txt(x + 20, y, it.name + ' = ' + (it.v < 1e6 ? Math.round(it.v * 10) / 10 : it.v.toExponential(1)), { size: 12.5, anchor: 'start', family: 'Consolas,monospace' });
+      });
+      g += h.txt(W / 2, H - 8, '纵轴截断于 200：n² 在 n≈15 出图、O(2ⁿ) 在 n=8 就触顶——指数阶不可行', { size: 12.5, fill: C.muted });
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
 /* ==================== ch2/01seqList.js ==================== */
 /* 动画1：顺序表的插入与删除（教材算法2.3/2.5思路，默认数据取自 cp2-01 PPT 例 25,12,47,89,36,14） */
 (function () {
@@ -1020,6 +1189,582 @@ body.proj .msg{font-size:16px}
 })();
 
 
+/* ==================== ch2/03seqOps.js ==================== */
+/* 动画：顺序表基本操作合集——按值查找/取值/求表长/求最大值/遍历（教材 2.4） */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C;
+
+  var CODE = [
+    'int LocateElem(SqList L, ElemType e) {   // 按值查找',
+    '    for (i = 0; i < L.length; ++i)',
+    '        if (L.elem[i] == e)  return i+1;  // 返回位序',
+    '    return 0;                              // 未找到',
+    '}',
+    'ElemType GetElem(SqList L, int i) { return L.elem[i-1]; }  // 取值 O(1)',
+    'int MaxElem(SqList L) {                   // 求最大值',
+    '    max = L.elem[0];',
+    '    for (i = 1; i < L.length; ++i)',
+    '        if (L.elem[i] > max)  max = L.elem[i];',
+    '    return max;',
+    '}'
+  ];
+
+  DSC.reg({
+    id: 'seqOps', ch: 2, name: '顺序表基本操作合集',
+    note: '教材 2.4 基本操作（查找/取值/表长/最值，随机存取特性）',
+    guide: [
+      '按值查找：逐格比较（黄色=正在比较），失败要扫满全表 O(n)',
+      '取值：位序 i 直接映射下标 i−1，**一步到位 O(1)**——顺序表随机存取的核心优势',
+      '求最大值：带"当前最大"标记扫一遍，n 个元素比较 n−1 次',
+      '求表长直接读 L.length；这些操作都没有元素移动——移动只发生在插入/删除时'
+    ],
+    inputs: [
+      { key: 'op', label: '操作', type: 'select', options: [
+        ['find', '按值查找 LocateElem'], ['get', '取值 GetElem'], ['len', '求表长 Length'],
+        ['max', '求最大值 MaxElem'], ['trav', '遍历输出 Traverse']
+      ], value: 'find' },
+      { key: 'key', label: 'e / 位序 i', type: 'number', value: 47, min: -999, max: 999 },
+      { key: 'data', label: '初始序列', type: 'text', value: '25,12,47,89,36,14' }
+    ],
+    run: function (v) {
+      var arr = h.parse(v.data);
+      if (arr.length < 1 || arr.length > 12) throw Error('请输入 1~12 个整数');
+      var n = arr.length, op = v.op, k = +v.key || 0;
+      var frames = [], cmp = 0;
+      function colors(hl) {
+        hl = hl || {};
+        var cs = [];
+        for (var i = 0; i < n; i++) cs.push('N');
+        (hl.done || []).forEach(function (i2) { cs[i2] = 'D'; });
+        if (hl.c != null) cs[hl.c] = 'C';
+        if (hl.hit != null) cs[hl.hit] = 'S';
+        if (hl.m != null) cs[hl.m] = 'P';
+        return cs;
+      }
+      function F(line, msg, extra, mk) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { 比较: cmp + ' 次', 表长: 'n = ' + n, 结果: extra.res || '…' },
+          snap: { arr: arr.slice(), colors: colors(extra), tag: extra.tag || '', res: extra.res || null, mark: mk }
+        });
+      }
+      F(0, '顺序表 L =（' + arr.join(', ') + '），n = ' + n + '。位序 i 从 1 起，下标 = i−1。', {});
+
+      if (op === 'find') {
+        var found = -1;
+        for (var i = 0; i < n; i++) {
+          cmp++;
+          if (arr[i] === k) { found = i; F([2], 'elem[' + i + ']=' + arr[i] + ' = ' + k + '，命中！返回位序 ' + (i + 1) + '。', { hit: i, res: '位序 ' + (i + 1) }, 'found'); break; }
+          F([2], 'elem[' + i + ']=' + arr[i] + ' ≠ ' + k + '，继续。', { c: i });
+        }
+        if (found < 0) F([3], '扫描全表未找到 ' + k + ' → 返回 0。共比较 ' + n + ' 次——最坏情形 O(n)。', { res: '未找到' }, 'fail');
+        F(0, '小结：按值查找 O(n)。等概率成功 ASL=(n+1)/2=' + ((n + 1) / 2).toFixed(1) + '。想 O(1) 查找 → 第 7 章散列表。', { hit: found >= 0 ? found : undefined, res: found >= 0 ? '位序 ' + (found + 1) : '未找到' });
+      } else if (op === 'get') {
+        if (k < 1 || k > n) F(0, 'i = ' + k + ' 不合法（合法范围 1 ≤ i ≤ ' + n + '）→ 返回 ERROR。', { res: 'ERROR：i 越界' }, 'err');
+        else F(5, 'elem[' + (k - 1) + '] = ' + arr[k - 1] + '。位序 ' + k + ' 直接映射下标 ' + (k - 1) + '，**一次寻址 O(1)**，与 n 无关。', { hit: k - 1, res: '第 ' + k + ' 个 = ' + arr[k - 1] }, 'ok');
+      } else if (op === 'len') {
+        F(0, 'L.length 是顺序表结构体里现成的字段：n = ' + n + '，**O(1) 直接读**（链表则要数一遍 O(n)）。', { done: arr.map(function (_, i) { return i; }), res: 'n = ' + n }, 'ok');
+      } else if (op === 'max') {
+        var mx = 0;
+        for (var i2 = 1; i2 < n; i2++) {
+          cmp++;
+          if (arr[i2] > arr[mx]) { mx = i2; F([8], 'elem[' + i2 + ']=' + arr[i2] + ' > 当前最大 elem[' + (mx === i2 ? i2 : mx) + '] → 更新最大值候选。', { m: i2, c: i2 }); }
+          else F([8], 'elem[' + i2 + ']=' + arr[i2] + ' ≤ 当前最大 ' + arr[mx] + '，不更新。', { m: mx, c: i2 });
+        }
+        F([6], '最大值 = elem[' + (mx + 1) + '] 位置的 ' + arr[mx] + '（位序 ' + (mx + 1) + '），共比较 ' + (n - 1) + ' 次。', { m: mx, res: 'max = ' + arr[mx] }, 'ok');
+      } else {
+        var out = [];
+        for (var i3 = 0; i3 < n; i3++) {
+          out.push(arr[i3]);
+          F(0, '输出第 ' + (i3 + 1) + ' 个：' + arr[i3] + '（已输出 ' + out.join(', ') + '）', { done: out.map(function (_, j) { return j; }) });
+        }
+        F(0, '遍历完成：L =（' + out.join(', ') + '）。遍历 O(n)。', { done: out.map(function (_, j) { return j; }), res: '共 ' + n + ' 个' }, 'ok');
+      }
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var W = 980, H = 470, n = s.arr.length;
+      var cw = Math.min(84, Math.floor((W - 140) / n) - 10), x0 = (W - n * cw - (n - 1) * 10) / 2, y = 200;
+      var g = '';
+      g += h.txt(W / 2, 90, '顺序表 L（MAXSIZE = 12）', { size: 18, w: 600 });
+      for (var i = 0; i < n; i++) {
+        var x = x0 + i * (cw + 10), key = s.colors[i] || 'N';
+        var cm = { N: ['#fff', C.grey], C: [C.amberBg, C.amber], S: [C.greenBg, C.green], D: ['#f8fafc', C.line], P: [C.blueBg, C.blue] }[key];
+        g += h.rect(x, y, cw, 56, { fill: cm[0], stroke: cm[1], sw: key === 'N' ? 1.5 : 2.4, rx: 7 });
+        g += h.txt(x + cw / 2, y + 34, String(s.arr[i]), { size: 17, w: 700 });
+        g += h.txt(x + cw / 2, y + 76, '下标 ' + i, { size: 11, fill: C.muted });
+        g += h.txt(x + cw / 2, y + 94, '位序 ' + (i + 1), { size: 11, fill: C.muted });
+      }
+      for (var j = n; j < 12; j++) g += h.rect(x0 + j * (cw + 10), y, cw, 56, { fill: '#fbfcfe', stroke: C.line, sw: 1, rx: 7, dash: '5,4' });
+      if (s.tag) g += h.txt(W / 2, 350, s.tag, { size: 15, w: 700, fill: C.blue });
+      g += h.txt(W / 2, 400, '蓝=当前最大  黄=比较  绿=命中  灰虚线=空闲空间', { size: 12.5, fill: C.muted });
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
+/* ==================== ch2/04linkOps.js ==================== */
+/* 动画：单链表基本操作合集——按值查找/求表长/取值（p 指针逐结点后移，教材 2.5） */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C;
+
+  var CODE = [
+    'LNode* LocateElem(LinkList L, ElemType e) {  // 按值查找',
+    '    p = L->next;',
+    '    while (p && p->data != e)  p = p->next;  // 逐结点后移',
+    '    return p;                                 // NULL 即未找到',
+    '}',
+    'int Length(LinkList L) {                     // 求表长',
+    '    n = 0;  p = L->next;',
+    '    while (p) { ++n;  p = p->next; }',
+    '    return n;                                 // O(n)：链表没有"长度字段"捷径',
+    '}',
+    'ElemType GetElem(LinkList L, int i) {        // 取第 i 个',
+    '    p = L->next;  j = 1;',
+    '    while (p && j < i) { p = p->next;  ++j; }',
+    '    return p ? p->data : ERROR;               // 必须从头数：O(n)',
+    '}'
+  ];
+
+  DSC.reg({
+    id: 'linkOps', ch: 2, name: '单链表基本操作合集',
+    note: '教材 2.5 基本操作（无随机存取，全靠 p 后移）',
+    guide: [
+      '链表没有下标：任何"定位"都要从表头出发，让 p 沿 next 逐结点后移',
+      '按值查找：边走边比较；取第 i 个：边走边数 j——两者都是 O(n)',
+      '求表长也要数完整条链 O(n)——对比顺序表直接读 length 字段 O(1)',
+      '这正是"顺序表取值快、链表插删快"的原因：链表定位慢，但定位后改指针不搬元素'
+    ],
+    inputs: [
+      { key: 'op', label: '操作', type: 'select', options: [
+        ['find', '按值查找 LocateElem'], ['len', '求表长 Length'], ['get', '取值 GetElem']
+      ], value: 'find' },
+      { key: 'key', label: 'e / 位序 i', type: 'number', value: 47, min: -999, max: 999 },
+      { key: 'data', label: '初始序列', type: 'text', value: '25,12,47,89,36,14' }
+    ],
+    run: function (v) {
+      var arr = h.parse(v.data);
+      if (arr.length < 1 || arr.length > 10) throw Error('请输入 1~10 个整数');
+      var n = arr.length, op = v.op, k = +v.key || 0;
+      var frames = [], cmp = 0;
+      function F(msg, extra, mk) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(extra.line) ? extra.line : (extra.line != null ? [extra.line] : [2]), msg: msg,
+          panel: { 比较计数: cmp + ' 次', 'p 位置': extra.at != null ? '第 ' + (extra.at + 1) + ' 个结点' : '表头 L', 结果: extra.res || '…' },
+          snap: { arr: arr.slice(), at: extra.at, hit: extra.hit, res: extra.res || null, mark: mk, hops: extra.hops != null ? extra.hops : (extra.at != null ? extra.at + 1 : 0) }
+        });
+      }
+      F('p 指向头结点 L（头结点不存数据，只是入口）。', { at: -1 });
+
+      if (op === 'find') {
+        var found = -1;
+        for (var i = 0; i < n; i++) {
+          cmp++;
+          if (arr[i] === k) { found = i; F('p->data = ' + arr[i] + ' = ' + k + '，命中！返回结点指针。', { at: i, hit: i, res: '找到（第 ' + (i + 1) + ' 个结点）', line: 3 }, 'found'); break; }
+          F('p->data = ' + arr[i] + ' ≠ ' + k + ' → p = p->next，后移。', { at: i, line: 3 });
+        }
+        if (found < 0) F('p 走到 NULL——链上没有 ' + k + '，查找失败。共比较 ' + n + ' 次。', { at: n, res: '未找到', line: 3 }, 'fail');
+        F('按值查找 O(n)：链表必须顺着指针走，无法像顺序表那样按下标直达。', { at: found >= 0 ? found : n, hit: found >= 0 ? found : undefined, res: found >= 0 ? '找到' : '未找到' });
+      } else if (op === 'len') {
+        var cnt = 0;
+        for (var i2 = 0; i2 < n; i2++) { cnt++; cmp++; F('第 ' + cnt + ' 次计数：p->data = ' + arr[i2] + '，n = ' + cnt + ' → p 后移。', { at: i2, line: 7 }); }
+        F('p 到 NULL，链表长 n = ' + n + '。求表长 O(n)——对比顺序表 O(1) 读字段。', { at: n, res: 'n = ' + n }, 'ok');
+      } else {
+        if (k < 1 || k > n) F('i = ' + k + ' 不合法（1 ≤ i ≤ ' + n + '）→ 返回 ERROR。', { at: n, res: 'ERROR', line: 11 }, 'err');
+        else {
+          for (var i3 = 0; i3 < k; i3++) { cmp++; if (i3 < k - 1) F('j = ' + (i3 + 1) + ' < ' + k + ' → p 后移到第 ' + (i3 + 2) + ' 个结点。', { at: i3, line: 11 }); }
+          F('j = ' + k + ' 到达：p->data = ' + arr[k - 1] + '。取第 ' + k + ' 个元素走了 ' + k + ' 步——O(n)！顺序表同样操作只要 1 步。', { at: k - 1, hit: k - 1, res: '第 ' + k + ' 个 = ' + arr[k - 1] }, 'ok');
+        }
+      }
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var W = 980, H = 470, n = s.arr.length;
+      var cw = Math.min(76, Math.floor((W - 200) / n) - 14), gap = Math.max(26, Math.floor((W - 240) / n - cw) + 8);
+      var x0 = 130, y = 200;
+      var g = '';
+      g += h.txt(W / 2, 80, '单链表（头结点 L + ' + n + ' 个数据结点）', { size: 18, w: 600 });
+      /* 头结点 */
+      g += h.rect(40, y, 60, 46, { fill: '#eef2ff', stroke: C.blue, rx: 6 });
+      g += h.txt(70, y + 28, 'L', { size: 15, w: 700, fill: C.blue });
+      g += h.txt(70, y + 62, '头结点', { size: 10.5, fill: C.muted });
+      for (var i = 0; i < n; i++) {
+        var x = x0 + i * (cw + gap);
+        var key = s.hit === i ? 'S' : (s.at === i ? 'C' : 'N');
+        var cm = { N: ['#fff', C.grey], C: [C.amberBg, C.amber], S: [C.greenBg, C.green] }[key];
+        g += h.rect(x, y, cw, 46, { fill: cm[0], stroke: cm[1], sw: key === 'N' ? 1.5 : 2.4, rx: 6 });
+        g += h.txt(x + cw / 2, y + 28, String(s.arr[i]), { size: 16, w: 700 });
+        g += h.txt(x + cw / 2, y + 62, '结点' + (i + 1), { size: 10.5, fill: C.muted });
+        g += h.arrow(x + cw + 2, y + 23, x + cw + gap - 4, y + 23, { stroke: C.grey, sw: 1.8, head: 7 });
+        g += h.txt(x + cw + gap / 2, y + 14, 'next', { size: 9.5, fill: C.muted });
+      }
+      var xe = x0 + n * (cw + gap) - gap;
+      g += h.arrow(xe + 2, y + 23, xe + gap - 10, y + 23, { stroke: C.grey, sw: 1.8, head: 7 });
+      g += h.txt(xe + gap + 2, y + 28, '∧', { size: 16, fill: C.muted, w: 700 });
+      /* p 指针 */
+      if (s.at != null) {
+        var px = s.at < 0 ? 70 : (s.at < n ? x0 + s.at * (cw + gap) + cw / 2 : xe + gap);
+        var py = s.at < 0 ? y : y;
+        g += h.arrow(px, py - 44, px, py - 8, { stroke: C.red, sw: 2.6, head: 8 });
+        g += h.txt(px, py - 52, 'p', { size: 15, fill: C.red, w: 700 });
+      }
+      g += h.txt(W / 2, 360, '黄=p 当前结点（比较/计数中）  绿=命中  红=p 指针', { size: 12.5, fill: C.muted });
+      g += h.txt(W / 2, 396, '链表定位只能从头开始"顺藤摸瓜"——没有下标，没有捷径', { size: 13, fill: C.ink });
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
+/* ==================== ch2/05mergeList.js ==================== */
+/* 动画：合并有序表 LA/LB→LC（双指针归并，教材 2.7 应用，为归并排序铺垫） */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C;
+
+  var CODE = [
+    'void MergeList(SqList La, SqList Lb, SqList &Lc) {',
+    '    // La、Lb 非递减有序',
+    '    i = j = 1;  k = 0;',
+    '    while (i <= La.len && j <= Lb.len) {     // 两表都还有剩余',
+    '        if (La[i] <= Lb[j])  Lc[++k] = La[i++];   // 取较小者（相等取A，稳定）',
+    '        else                 Lc[++k] = Lb[j++];',
+    '    }',
+    '    while (i <= La.len)  Lc[++k] = La[i++];  // 收尾：A 剩余',
+    '    while (j <= Lb.len)  Lc[++k] = Lb[j++];  // 收尾：B 剩余',
+    '}'
+  ];
+
+  function parseSorted(s, name) {
+    var a = DSC.h.parse(s);
+    for (var i = 1; i < a.length; i++) if (a[i] < a[i - 1]) throw Error(name + ' 必须非递减有序（' + a[i - 1] + ' 后出现 ' + a[i] + '）');
+    if (a.length < 1 || a.length > 8) throw Error(name + ' 请输入 1~8 个整数');
+    return a;
+  }
+
+  DSC.reg({
+    id: 'mergeList', ch: 2, name: '合并有序表 LA+LB→LC',
+    note: '教材 2.7 线性表应用（双指针归并，O(m+n)）',
+    guide: [
+      '两个有序表各出一个指针 i、j：每次比较，**较小者**进入 LC，对应指针后移',
+      '相等时取 LA（黄色提示）——归并是稳定操作，这个细节决定了归并排序的稳定性',
+      '某表用尽后，另一表的剩余**整体接上**（已有序，无需再比）',
+      '只比较 m+n−1 次以内，O(m+n)——归并排序的每一层就是这个过程'
+    ],
+    inputs: [
+      { key: 'la', label: 'LA（有序）', type: 'text', value: '3,5,8,11' },
+      { key: 'lb', label: 'LB（有序）', type: 'text', value: '2,6,8,9,15' }
+    ],
+    run: function (v) {
+      var A = parseSorted(v.la, 'LA'), B = parseSorted(v.lb, 'LB');
+      var frames = [], cmp = 0;
+      var LC = [];
+      function colors(a, hl) {
+        hl = hl || {};
+        var cs = [];
+        for (var i = 0; i < a; i++) cs.push('N');
+        if (hl.ai != null && hl.which !== 'B') cs[hl.ai] = 'C';
+        if (hl.bi != null && hl.which === 'B') cs[hl.bi] = 'C';
+        return cs;
+      }
+      function F(line, msg, extra, mk) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { 比较: cmp + ' 次', 'LC 当前': LC.join(', ') || '（空）' },
+          snap: { A: A, B: B, LC: LC.slice(), ca: extra.ca, cb: extra.cb, ai: extra.ai, bi: extra.bi, mark: mk }
+        });
+      }
+      F(0, 'LA =（' + A.join(', ') + '），LB =（' + B.join(', ') + '），i、j 分别指向两表开头。', { ca: 0, cb: 0 });
+      var i = 0, j = 0;
+      while (i < A.length && j < B.length) {
+        cmp++;
+        if (A[i] <= B[j]) {
+          LC.push(A[i]);
+          F([4], 'LA[' + (i + 1) + ']=' + A[i] + (A[i] === B[j] ? ' = ' : ' < ') + 'LB[' + (j + 1) + ']=' + B[j] + (A[i] === B[j] ? '（相等 → 取 LA，保证稳定）' : '') + ' → 进 LC[' + LC.length + ']，i 后移。', { ai: i, which: 'A' });
+          i++;
+        } else {
+          LC.push(B[j]);
+          F([5], 'LA[' + (i + 1) + ']=' + A[i] + ' > LB[' + (j + 1) + ']=' + B[j] + ' → LB[' + (j + 1) + '] 进 LC[' + LC.length + ']，j 后移。', { bi: j, which: 'B' });
+          j++;
+        }
+      }
+      F([6, 7], '某表已用尽（i=' + (i + 1) + '，j=' + (j + 1) + '）：剩余元素整体接上。', {});
+      while (i < A.length) { LC.push(A[i]); F(7, 'LA 剩余 ' + A[i] + ' 直接接入 LC。', { ai: i }); i++; }
+      while (j < B.length) { LC.push(B[j]); F(8, 'LB 剩余 ' + B[j] + ' 直接接入 LC。', { bi: j }); j++; }
+      F(0, '合并完成：LC =（' + LC.join(', ') + '），共 ' + LC.length + ' 个元素、仅比较 ' + cmp + ' 次。LC 天然有序——归并的两个输入都有序，每次只挑"当前最小"。', {}, 'final');
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var W = 980, H = 520;
+      var g = '';
+      function row(y, label, arr, ci, done, color) {
+        var out = h.txt(60, y + 26, label, { size: 14, fill: C.muted, anchor: 'start', w: 700 });
+        var cw = Math.min(56, Math.floor((W - 220) / Math.max(arr.length, 1)) - 8);
+        arr.forEach(function (val, k) {
+          var x = 130 + k * (cw + 8);
+          var f = '#fff', st = C.grey, sw = 1.4;
+          if (ci === k) { f = C.amberBg; st = C.amber; sw = 2.4; }
+          out += h.rect(x, y, cw, 44, { fill: f, stroke: st, sw: sw, rx: 6 });
+          out += h.txt(x + cw / 2, y + 27, String(val), { size: 15, w: 700 });
+        });
+        return out;
+      }
+      g += h.txt(W / 2, 34, '合并两个有序表（双指针归并）', { size: 18, w: 600 });
+      g += row(66, 'LA', s.A, s.ai);
+      g += row(134, 'LB', s.B, s.bi);
+      g += h.txt(W / 2, 216, '↓ 每次取两表当前头部的较小者 ↓', { size: 13, fill: C.muted });
+      g += row(238, 'LC', s.LC, -1);
+      if (s.mark === 'final') {
+        g += h.rect(W / 2 - 250, 330, 500, 54, { fill: C.greenBg, stroke: C.green, rx: 9 });
+        g += h.txt(W / 2, 363, '✓ 有序合并完成，比较 ' + (s.LC.length - 1) + ' 次以内', { size: 15, w: 700, fill: C.green });
+      }
+      g += h.txt(W / 2, 430, '黄=该表当前比较位 ｜ 相等取 LA 保稳定 ｜ 一表用尽后另一表整体接上', { size: 12.5, fill: C.muted });
+      g += h.txt(W / 2, 462, '这个过程就是归并排序每一层的 merge()——先在这里看懂，第 8 章就轻松了', { size: 12.5, fill: C.muted });
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
+/* ==================== ch2/06dualList.js ==================== */
+/* 动画：双向链表与循环链表——双向插入四步/删除两步/循环遍历（教材 2.5） */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C;
+
+  var CODE_I = [
+    's->prior = p->prior;        // ① 新结点 s 的 prior 指向 p 的前驱',
+    'p->prior->next = s;         // ② 前驱的 next 改指 s',
+    's->next = p;                // ③ s 的 next 指向 p',
+    'p->prior = s;               // ④ 最后才改 p 的 prior（顺序不能乱！）'
+  ];
+  var CODE_D = [
+    'p->prior->next = p->next;   // ① 前驱跨过 p',
+    'p->next->prior = p->prior;  // ② 后继跨过 p',
+    'free(p);                    // 双向链表删除只需两步改链'
+  ];
+
+  var BASE = [10, 20, 30, 40];
+
+  DSC.reg({
+    id: 'dualList', ch: 2, name: '双向链表与循环链表',
+    note: '教材 2.5 双向链表（prior/next 对称改链）、循环链表',
+    guide: [
+      '双向链表每个结点两个指针：prior 指前驱、next 指后继——可以 O(1) 找到前驱，单链表不行',
+      '**插入顺序不能乱**：必须先用 s->prior 记住前驱、改前驱的 next，最后才动 p->prior——顺序错了链就断',
+      '删除只需两步"跨过 p"；对比单链表删除要额外维护前驱',
+      '循环链表：尾结点 next 指回头结点——从任一结点出发都能走完全表（场景③演示）'
+    ],
+    inputs: [
+      { key: 'op', label: '场景', type: 'select', options: [
+        ['ins', '双向插入：在 30 前插入 25'], ['del', '双向删除：删除 20'], ['cyc', '循环链表：从尾回到头']
+      ], value: 'ins' }
+    ],
+    run: function (v) {
+      var frames = [];
+      var list = BASE.slice();
+      function F(msg, extra, mk, line) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : (line != null ? [line] : [1]), msg: msg,
+          panel: { 链表: list.join(' ⇄ ') || '（空）' },
+          snap: { list: list.slice(), stage: extra.stage || '', s: extra.s, cur: extra.cur, broken: extra.broken || null, op: v.op, mark: mk }
+        });
+      }
+      if (v.op === 'ins') {
+        var pos = 2;   // 在 list[2]=30 前插 25
+        F('在结点 30 前插入 25：新结点 s 已创建，p 指向 30。', { cur: 30, s: 25, stage: 'start' });
+        F('① s->prior = p->prior：先把 s 的前驱指针指向 20（记住它！）。', { cur: 30, s: 25, stage: 'step1' }, 0);
+        F('② p->prior->next = s：前驱 20 的 next 改指 s。此时 20 ⇄ s 已连好，p 还挂在 s 后面。', { cur: 30, s: 25, stage: 'step2' }, 1);
+        F('③ s->next = p：s 的 next 指向 30。', { cur: 30, s: 25, stage: 'step3' }, 2);
+        list.splice(pos, 0, 25);
+        F('④ p->prior = s：最后才改 30 的 prior。四步完成：10 ⇄ 20 ⇄ 25 ⇄ 30 ⇄ 40。', { cur: 30, s: 25, stage: 'done' }, 3, 3);
+        F('若先执行④再执行①：p->prior 已被覆盖，前驱 20 的信息丢失——链直接断掉。这就是"先连后断"在双向链表里的版本。', { stage: 'warn' }, 'warn');
+      } else if (v.op === 'del') {
+        F('删除结点 20：双向链表不需要找前驱的"遍历"，p->prior 直接就是它。', { cur: 20, stage: 'start' });
+        F('① p->prior->next = p->next：前驱 10 的 next 跨过 20，直接指向 30。', { cur: 20, stage: 'step1' }, 0);
+        list.splice(1, 1);
+        F('② p->next->prior = p->prior：后继 30 的 prior 跨过 20，指向 10。释放 p → 链表 10 ⇄ 30 ⇄ 40。', { cur: 30, stage: 'done' }, 1, 2);
+        F('两步改链完成，O(1)——单链表要做到这件事得先遍历找前驱 O(n)。', { stage: 'ok' }, 'done');
+      } else {
+        F('循环链表：尾结点 40 的 next 不指向 NULL，而是指回头结点 L。', { stage: 'start' });
+        F('从表头出发遍历：10 → 20 → 30 → 40。', { cur: 0, stage: 'walk' });
+        F('40 的 next 回到 L——遍历终止条件不再是 p≠NULL，而是**回到出发点**。', { cur: 3, stage: 'done' }, 3, 3);
+        F('好处：从任意结点出发都能访问全表；让"尾指针 rear"存在，rear->next->next 就是表头，**头尾操作都 O(1)**。', { stage: 'ok' }, 'ok');
+      }
+      F(0, '双向链表以每个结点多一个 prior 指针的空间为代价，换来 O(1) 找前驱与对称的双向操作。', { mark: 'final' });
+      return { code: v.op === 'del' ? CODE_D : CODE_I, frames: frames };
+    },
+    render: function (s) {
+      var W = 980, H = 440;
+      var list = s.list.slice();
+      var ins25 = s.stage === 'step1' || s.stage === 'step2' || s.stage === 'step3';
+      if (ins25) { list.splice(2, 0, 25); }
+      var n = list.length;
+      var cw = Math.min(64, Math.floor((W - 180) / n) - 12), gap = Math.max(30, Math.floor((W - 220) / n - cw) + 6);
+      var x0 = 90, y = 170;
+      var g = '';
+      g += h.txt(W / 2, 40, v_opTitle(), { size: 17, w: 600 });
+      for (var i = 0; i < n; i++) {
+        var x = x0 + i * (cw + gap);
+        var isNew = list[i] === 25 && ins25;
+        var isCur = s.cur != null && list[i] === s.cur && (s.stage.indexOf('step') < 0 || (s.stage === 'step3' && false));
+        var del = s.stage === 'step1' && list[i] === 20;
+        g += h.rect(x, y, cw, 50, { fill: isNew ? C.blueBg : del ? C.redBg : '#fff', stroke: isNew ? C.blue : del ? C.red : C.grey, sw: isNew || del ? 2.6 : 1.6, rx: 6 });
+        g += h.txt(x + cw / 2, y + 30, String(list[i]), { size: 16, w: 700 });
+        g += h.txt(x + cw / 2, y + 68, isNew ? '新结点 s' : '', { size: 10.5, fill: C.blue, w: 700 });
+        /* 双向箭头 */
+        if (i < n - 1) {
+          var x1 = x + cw, x2 = x + cw + gap;
+          g += h.arrow(x1 + 2, y + 16, x2 - 4, y + 16, { stroke: C.grey, sw: 1.8, head: 6 });
+          g += h.arrow(x2 - 2, y + 38, x1 + 4, y + 38, { stroke: C.grey, sw: 1.8, head: 6 });
+          g += h.txt(x1 + gap / 2, y + 10, 'next', { size: 9, fill: C.muted });
+          g += h.txt(x1 + gap / 2, y + 56, 'prior', { size: 9, fill: C.muted });
+        }
+      }
+      if (s.op === 'cyc') {
+        var xl = x0 + n * (cw + gap) - gap, xr = 50;
+        g += h.curve(xl, y + 25, xl + 40, y + 120, x0 + cw / 2, y + 60, { stroke: C.blue, sw: 2, dash: '5,4' });
+        g += h.txt(W / 2, y + 130, '尾结点 next 指回头结点 → 环', { size: 12.5, fill: C.blue });
+      }
+      if (s.broken) g += h.txt(W / 2, y + 130, '✗ 链已断：' + s.broken, { size: 13, fill: C.red, w: 700 });
+      g += h.txt(W / 2, 380, '上箭头=next（向右）  下箭头=prior（向左）  蓝=新结点  红=待删除', { size: 12.5, fill: C.muted });
+      return h.svg(W, H, g);
+
+      function v_opTitle() {
+        var t = { ins: '双向链表：在 30 前插入 25（四步改链）', del: '双向链表：删除 20（两步跨过）', cyc: '循环链表：尾结点指回头结点' };
+        return t[s.op || 'ins'];
+      }
+    }
+  });
+})();
+
+
+/* ==================== ch2/07polyAdd.js ==================== */
+/* 动画：一元多项式相加（有序链表应用）——教材 2.8 案例，例题 A=7+3x+9x⁸+5x¹⁷，B=8x+22x⁷−9x⁸ */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C;
+
+  var CODE = [
+    'void AddPolyn(Polynomial &Pa, Polynomial &Pb) {',
+    '    // Pa、Pb 均按指数升序（有序链表）',
+    '    while (pa && pb) {',
+    '        if (pa->exp  <  pb->exp) { qa = pa; pa = pa->next; }        // A 项小：直接保留',
+    '        else if (pa->exp == pb->exp) {                              // 指数相同：系数相加',
+    '            sum = pa->coef + pb->coef;',
+    '            if (sum != 0) { pa->coef = sum; qa = pa; }              // 和非零：并入 A',
+    '            else { /* 删除 A 项 */ }  DelFirst(pb, pb); ++m;        // 和为零：两都删',
+    '            pa = qa->next;  pb = pb->next;',
+    '        }',
+    '        else { /* B 项小：把 B 项插入 A */ }',
+    '    }',
+    '}'
+  ];
+
+  function parseTerms(s, name) {
+    var toks = String(s).trim().split(/[\s;；,，]+/).filter(function (x) { return x !== ''; });
+    if (toks.length % 2) throw Error(name + ' 格式应为「系数 指数 系数 指数 …」，如 7,0 3,1 9,8');
+    var ts = [];
+    for (var i = 0; i < toks.length; i += 2) {
+      var c = Number(toks[i]), e = Number(toks[i + 1]);
+      if (isNaN(c) || isNaN(e) || e < 0 || e > 30) throw Error(name + ' 系数/指数非法（指数 0~30）');
+      ts.push({ c: c, e: e });
+    }
+    ts.sort(function (a, b) { return a.e - b.e; });
+    for (var j = 1; j < ts.length; j++) if (ts[j].e === ts[j - 1].e) throw Error(name + ' 有重复指数 ' + ts[j].e);
+    return ts;
+  }
+  function fmt(ts) {
+    if (!ts.length) return '0';
+    return ts.map(function (t, i) {
+      var sign = t.c < 0 ? '−' : (i ? '+' : '');
+      var a = Math.abs(t.c);
+      var body = t.e === 0 ? String(a) : (a === 1 ? '' : a) + 'x' + (t.e > 1 ? 'ˆ' + t.e : '');
+      return sign + (i && t.c > 0 ? ' ' : '') + body;
+    }).join(' ');
+  }
+
+  var DEF_A = '7,0 3,1 9,8 5,17', DEF_B = '0,1 22,7 -9,8';
+
+  DSC.reg({
+    id: 'polyAdd', ch: 2, name: '一元多项式相加（有序链表）',
+    note: '教材 2.8 案例分析与实现（指数升序合并、同类项合并）',
+    guide: [
+      '多项式按指数**升序**存进链表：相加就变成"两个有序表归并"——第2章 mergeList 的直接应用',
+      '指数小的先输出；指数相同 → 系数相加，**和为 0 时两结点都删除**（观察 9x⁸ 与 −9x⁸）',
+      '某表用尽后另一表整体接上；整个过程 O(m+n)',
+      '可以自己改系数/指数（空格或逗号分隔的「系数,指数」对），看合并、抵消、接续三种情形'
+    ],
+    inputs: [
+      { key: 'a', label: 'A(x)「系数,指数」对', type: 'text', value: DEF_A },
+      { key: 'b', label: 'B(x)「系数,指数」对', type: 'text', value: DEF_B }
+    ],
+    run: function (v) {
+      var A = parseTerms(v.a, 'A(x)'), B = parseTerms(v.b, 'B(x)');
+      var frames = [], cmp = 0;
+      var R = [];
+      function F(line, msg, extra, mk) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { 比较: cmp + ' 次', 'A 剩': A.length + ' 项', 'B 剩': B.length + ' 项' },
+          snap: { A: A.map(function (t) { return { c: t.c, e: t.e }; }), B: B.map(function (t) { return { c: t.c, e: t.e }; }), R: R.map(function (t) { return { c: t.c, e: t.e }; }), hiA: extra.hiA, hiB: extra.hiB, mark: mk }
+        });
+      }
+      F(0, 'A(x) = ' + fmt(A) + '；B(x) = ' + fmt(B) + '。都按指数升序存放。', { hiA: 0, hiB: 0 });
+      var i = 0, j = 0;
+      while (i < A.length && j < B.length) {
+        cmp++;
+        if (A[i].e < B[j].e) { R.push(A[i]); F([3], 'A 指数 ' + A[i].e + ' < B 指数 ' + B[j].e + ' → A 的 ' + A[i].c + 'x^' + A[i].e + ' 直接并入结果。', { hiA: i, hiB: j }); i++; }
+        else if (A[i].e === B[j].e) {
+          var sum = A[i].c + B[j].c;
+          if (sum !== 0) {
+            R.push({ c: sum, e: A[i].e });
+            F([4, 5, 6], '指数相同（' + A[i].e + '）：系数 ' + A[i].c + ' + (' + B[j].c + ') = ' + sum + ' ≠ 0 → 合并为一项 x^' + A[i].e + '。', { hiA: i, hiB: j });
+          } else {
+            F([6, 7], '指数相同（' + A[i].e + '）：系数 ' + A[i].c + ' + (' + B[j].c + ') = 0 → **两项同时删除**，结果中消失。', { hiA: i, hiB: j });
+          }
+          i++; j++;
+        } else { R.push(B[j]); F([9], 'B 指数 ' + B[j].e + ' < A 指数 ' + A[i].e + ' → B 的 ' + B[j].c + 'x^' + B[j].e + ' 插入结果。', { hiA: i, hiB: j }); j++; }
+      }
+      while (i < A.length) { R.push(A[i]); F(0, 'B 已尽：A 剩余项 ' + A[i].c + 'x^' + A[i].e + ' 直接并入。', { hiA: i }); i++; }
+      while (j < B.length) { R.push(B[j]); F(0, 'A 已尽：B 剩余项 ' + B[j].c + 'x^' + B[j].e + ' 直接并入。', { hiB: j }); j++; }
+      F(0, 'A(x) + B(x) = ' + fmt(R) + '。多项式相加 = 有序表归并 + 同类项合并，O(m+n)。系数链表让"删除中间项"也不必搬动其他项。', { mark: 'final' });
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var W = 980, H = 520;
+      var g = '';
+      function polyRow(y, label, ts, hi, color) {
+        var out = h.txt(50, y + 24, label, { size: 13.5, fill: C.muted, anchor: 'start', w: 700 });
+        ts.forEach(function (t, k) {
+          var x = 140 + k * 130;
+          var f = hi === k ? C.amberBg : '#fff', st = hi === k ? C.amber : C.grey;
+          out += h.rect(x, y, 118, 40, { fill: f, stroke: st, sw: hi === k ? 2.4 : 1.5, rx: 6 });
+          out += h.txt(x + 59, y + 25, t.c + 'x' + String(t.e).split('').map(function (d) { return '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d] || d; }).join(''), { size: 14, w: 700, family: 'Consolas,monospace' });
+        });
+        if (!ts.length) out += h.txt(140, y + 25, '（空）', { size: 13, fill: C.muted, anchor: 'start' });
+        return out;
+      }
+      g += h.txt(W / 2, 34, '一元多项式相加：指数升序链表归并', { size: 17, w: 600 });
+      g += polyRow(66, 'A(x)', s.A, s.hiA, C.blue);
+      g += polyRow(126, 'B(x)', s.B, s.hiB, C.green);
+      g += h.txt(W / 2, 208, '↓ 指数小的先走；指数相同系数相加（和为 0 则两删） ↓', { size: 13, fill: C.muted });
+      g += polyRow(230, '和', s.R, -1, C.green);
+      if (s.mark === 'final') {
+        g += h.rect(W / 2 - 260, 320, 520, 54, { fill: C.greenBg, stroke: C.green, rx: 9 });
+        g += h.txt(W / 2, 353, '✓ 相加完成（同类项已合并）', { size: 15, w: 700, fill: C.green });
+      }
+      g += h.txt(W / 2, 440, '黄色 = 当前比较的两项 ｜ 观察例题中 9x⁸ 与 −9x⁸ 的"抵消删除"', { size: 12.5, fill: C.muted });
+      g += h.txt(W / 2, 472, '这就是"用有序链表表示多项式"的意义：合并/删项都不搬数据', { size: 12.5, fill: C.muted });
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
 /* ==================== ch3/01seqStack.js ==================== */
 /* 动画3：顺序栈的进栈与出栈
  * 三个独立场景（可切换）：①进栈演示——连续进栈直到栈满上溢；②出栈演示——从满栈连续出栈直到下溢；
@@ -1057,6 +1802,12 @@ body.proj .msg{font-size:16px}
   DSC.reg({
     id: 'seqStack', ch: 3, name: '③ 顺序栈：进栈与出栈',
     note: '教材 3.3 栈的表示和操作的实现（栈空/栈满判定、上溢/下溢）',
+    guide: [
+      '场景①进栈：观察 *S.top++ 两步——先放元素、top 再加 1；栈满判定 top−base==stacksize',
+      '场景②出栈：--S.top 后再取元素；栈空判定 top==base',
+      '场景③生命周期：完整走一遍"建栈→用栈→销毁栈"，理解栈空间的动态分配',
+      '每个操作前都有边界判断帧——上溢/下溢就是在这里被拦截的'
+    ],
     inputs: [
       {
         key: 'scene', label: '演示场景', type: 'select', options: [
@@ -1263,6 +2014,12 @@ body.proj .msg{font-size:16px}
   DSC.reg({
     id: 'circQueue', ch: 3, name: '④ 假溢出与循环队列：入队与出队',
     note: '教材 3.5 队列的表示和操作的实现（假溢出、队空/队满三方案）',
+    guide: [
+      '场景①假溢出：普通顺序队列 front 单向右移——前面明明有空位却"队满"，这就是必须循环的原因',
+      '场景②循环队列（少用一空间，教材主推）：指针取模后移，队满判定 (rear+1)%M == front',
+      '场景③/④ size 计数与 tag 标志：牺牲一个空间换一个变量，两方案的队空/队满判定各不相同',
+      '看右下面板：队长公式、队空/队满判定随每一步实时更新'
+    ],
     inputs: [
       {
         key: 'demo', label: '演示场景', type: 'select', options: [
@@ -2044,6 +2801,250 @@ body.proj .msg{font-size:16px}
         g += h.rect(W / 2 - 200, 440, 400, 36, { fill: C.redBg, stroke: C.red, rx: 8 });
         g += h.txt(W / 2, 463, '✗ ' + s.err, { size: 14.5, fill: C.red, w: 600 });
       }
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
+/* ==================== ch3/06baseConvert.js ==================== */
+/* 动画：数制转换（栈的应用）——教材 3.6 案例，N=(N div d)×d + N mod d，余数逆序读出 */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C;
+
+  var CODE = [
+    'void conversion(int N, int d) {          // N ≥ 0，2 ≤ d ≤ 16',
+    '    SqStack S;  InitStack(S);',
+    '    while (N) {',
+    '        Push(S, N % d);                  // 余数进栈（低位先进）',
+    '        N = N / d;                       // 商继续除',
+    '    }',
+    '    while (!StackEmpty(S))',
+    '        Pop(S);                          // 栈中余数从高到低弹出打印',
+    '}',
+    '// 例：1348 = (2504)₈  —— 栈让"先算出的低位"最后输出'
+  ];
+  var DIGITS = '0123456789ABCDEF';
+
+  DSC.reg({
+    id: 'baseConvert', ch: 3, name: '数制转换（栈的应用）',
+    note: '教材 3.6 案例分析与实现（余数进栈、逆序出栈）',
+    guide: [
+      '转换口诀：N 除以 d 取余数，商继续除，直到商为 0——余数**先得到的是低位**',
+      '问题：低位先算出来却要**最后**打印。栈的 LIFO 恰好把这个顺序倒过来',
+      '左半区演示除法步骤，右侧栈中余数逐个进栈；最后逐个弹出就是答案',
+      '例题：1348 ÷ 8 逐次取余 → 出栈顺序 2 5 0 4，即 1348=(2504)₈'
+    ],
+    inputs: [
+      { key: 'n', label: '十进制 N', type: 'number', value: 1348, min: 0, max: 65535 },
+      { key: 'base', label: '目标进制 d', type: 'select', options: [['2', '二进制 d=2'], ['8', '八进制 d=8'], ['16', '十六进制 d=16']], value: '8' }
+    ],
+    run: function (v) {
+      var N0 = Math.floor(+v.n || 0), d = +v.base;
+      if (N0 < 0) throw Error('N 需为非负整数');
+      var frames = [], stack = [];
+      if (N0 === 0) { frames.push({ line: [0], msg: 'N = 0 在任何进制下都写作 0——没有余数可产生，无需转换。', panel: { N: '0', 'N % d': '—', 栈深: '0' }, snap: { stack: [], n: 0, rem: null, pop: null, out: '0', base: d, mark: 'final' } }); return { code: CODE, frames: frames }; }
+      function F(line, msg, extra, mk) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { N: String(extra.n != null ? extra.n : N0), 'N % d': extra.rem != null ? String(extra.rem) : '—', 栈深: String(stack.length) },
+          snap: { stack: stack.slice(), n: extra.n != null ? extra.n : N0, rem: extra.rem, pop: extra.pop, out: extra.out || '', base: d, mark: mk }
+        });
+      }
+      F([0, 1], '转换 ' + N0 + ' → ' + (d === 2 ? '二' : d === 8 ? '八' : '十六') + '进制。原理：N = (N div d)×d + (N mod d)，每轮余数 = 当前最低位。', {});
+      var N = N0;
+      while (N > 0) {
+        var rem = N % d;
+        stack.push(rem);
+        F([3, 4], N + ' % ' + d + ' = ' + rem + '（余数入栈），N = ' + Math.floor(N / d) + '。', { n: N, rem: rem });
+        N = Math.floor(N / d);
+      }
+      var out = '';
+      while (stack.length) {
+        var top = stack[stack.length - 1];
+        out += DIGITS[top];
+        stack.pop();
+        F([6, 7], '弹出 ' + top + ' → 记作数字 ' + DIGITS[top] + '，拼在结果高位。', { pop: top, out: out });
+      }
+      var full = out;
+      F(0, '转换完成：(' + N0 + ')₁₀ = (' + full + ')' + (d === 2 ? '₂' : d === 8 ? '₈' : '₁₆') + '。除基取余 + 栈逆序——没有栈就得先把余数存数组再倒着读，栈刚好优雅地解决"顺序颠倒"。', { out: full, mark: 'final' });
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var W = 980, H = 470;
+      var g = '';
+      g += h.txt(W / 2, 34, '数制转换：除基取余，栈存余数（LIFO 逆序输出）', { size: 17, w: 600 });
+      /* 除法步骤区 */
+      g += h.txt(150, 90, '除法（低位先得）', { size: 13.5, fill: C.muted, w: 600 });
+      if (s.rem != null && s.pop == null) {
+        g += h.txt(150, 140, s.n + '  ÷  ' + s.base + '  =  商 ' + Math.floor(s.n / s.base) + ' … 余 ' + s.rem, { size: 15, anchor: 'start', family: 'Consolas,monospace' });
+      }
+      /* 栈区 */
+      var sx = 480, sw = 150, sh = 44;
+      g += h.txt(sx + sw / 2, 90, '余数栈（栈顶在上）', { size: 13.5, fill: C.muted, w: 600 });
+      for (var i = s.stack.length - 1; i >= 0; i--) {
+        var y = 340 - (s.stack.length - i) * (sh + 6);
+        if (y < 120) break;
+        var isPop = s.pop === s.stack[i] && s.pop != null;
+        g += h.rect(sx, y, sw, sh, { fill: isPop ? C.redBg : C.blueBg, stroke: isPop ? C.red : C.blue, sw: 2, rx: 6 });
+        g += h.txt(sx + sw / 2, y + 29, String(s.stack[i]) + (isPop ? ' ← 弹出' : ''), { size: 15, w: 700 });
+      }
+      if (!s.stack.length) g += h.txt(sx + sw / 2, 330, '（栈空）', { size: 13, fill: C.muted });
+      /* 结果 */
+      if (s.out) {
+        g += h.txt(150, 220, '已拼出的结果（高位在前）：', { size: 13.5, fill: C.muted, anchor: 'start' });
+        g += h.txt(150, 260, s.out, { size: 26, w: 700, fill: C.green, anchor: 'start', family: 'Consolas,monospace' });
+      }
+      g += h.txt(W / 2, 430, '余数先进栈的是低位 → 后出栈；出栈顺序即目标进制从高到低的各位', { size: 12.5, fill: C.muted });
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
+/* ==================== ch3/07maze.js ==================== */
+/* 动画：迷宫求解（栈的应用）——教材 3.6 案例，DFS 探索 + 回溯，位置足迹栈 */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C;
+
+  var CODE = [
+    'void MazePath(MazeType maze, PosType start, PosType end) {',
+    '    InitStack(S);  cur = start;',
+    '    do {',
+    '        if (Pass(cur)) {                     // 当前位置可通',
+    '            FootPrint(cur);  Push(S, cur);   // 留足迹，入栈',
+    '            if (cur == end)  return OK;      // 到达终点',
+    '            cur = NextPos(cur, 1);           // 按右→下→左→上试探下一位置',
+    '        } else {',
+    '            if (!StackEmpty(S)) {',
+    '                Pop(S, cur);                 // 死路：回溯到上一格',
+    '                while (cur.di == 4 && !StackEmpty(S))  Pop(S, cur);  // 四面都试过则再回退',
+    '                if (cur.di < 4) { cur.di++;  cur = NextPos(cur, cur.di); }',
+    '            }',
+    '        }',
+    '    } while (!StackEmpty(S));',
+    '    return FALSE;                            // 栈空仍未到终点：无通路',
+    '}'
+  ];
+
+  /* 8×8 迷宫：0=通路 1=墙。设计有唯一主路径（右→下优先可解） */
+  var MAZE = [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 1, 0, 0, 0, 1, 0, 1],
+    [1, 0, 0, 1, 0, 0, 0, 1, 0, 1],
+    [1, 0, 0, 0, 0, 1, 1, 0, 0, 1],
+    [1, 0, 1, 1, 1, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1, 0, 0, 1, 0, 1],
+    [1, 0, 1, 0, 0, 0, 1, 1, 0, 1],
+    [1, 0, 1, 1, 1, 0, 0, 0, 0, 1],
+    [1, 1, 0, 0, 0, 0, 0, 1, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 0, 1]
+  ];
+  /* 上面 10 列被压缩到 8×8 有效区（行列 1..8），边界全 1 */
+  var START = [1, 1], END = [8, 8];
+  var DIRS = [[0, 1], [1, 0], [0, -1], [-1, 0]];   // 右 下 左 上
+  var DNAME = ['右', '下', '左', '上'];
+
+  DSC.reg({
+    id: 'maze', ch: 3, name: '迷宫求解（栈与回溯）',
+    note: '教材 3.6 案例分析与实现（DFS 探索、足迹栈、死路回溯）',
+    guide: [
+      '从入口 (1,1) 出发按 **右→下→左→上** 的固定顺序试探：能走就留足迹入栈',
+      '走到死路（四面不通）→ 弹栈**回溯**到上一个岔路口换方向——红色虚线是退掉的脚印',
+      '栈里装的就是"从入口到当前位置的路径"——DFS 探索天然用栈（第 6 章图的 DFS 同理）',
+      '栈空仍未到终点 → 无通路。蓝色=当前路径，灰=探索过但放弃的位置'
+    ],
+    inputs: [
+      { key: 'start', label: '入口', type: 'select', options: [['1,1', '(1,1) 左上'], ['8,1', '(8,1) 左下']], value: '1,1' }
+    ],
+    run: function (v) {
+      var st = v.start === '8,1' ? [8, 1] : [1, 1];
+      var en = st[0] === 1 ? [8, 8] : [1, 8];
+      var frames = [];
+      var foot = {}, tried = {}, stack = [];
+      function key(r, c) { return r + ',' + c; }
+      function F(line, msg, extra, mk) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { 栈深: String(stack.length), 位置: extra.pos || (stack.length ? '(' + stack[stack.length - 1][0] + ',' + stack[stack.length - 1][1] + ')' : '—') },
+          snap: { foot: JSON.parse(JSON.stringify(foot)), tried: JSON.parse(JSON.stringify(tried)), stack: stack.map(function (x) { return x.slice(); }), cur: extra.cur || null, pop: extra.pop || null, start: st, end: en, mark: mk }
+        });
+      }
+      F(0, '迷宫（0=通路 1=墙），入口 (' + st[0] + ',' + st[1] + ')，出口 (' + en[0] + ',' + en[1] + ')。试探顺序：右 → 下 → 左 → 上。', {});
+
+      var cur = { r: st[0], c: st[1], di: 0 };
+      foot[key(cur.r, cur.c)] = 0;
+      stack.push([cur.r, cur.c, 0]);
+      F(1, '入口入栈，开始探索。', { cur: cur });
+      var guard = 0, solved = false;
+      while (stack.length && guard++ < 400) {
+        var top = stack[stack.length - 1];
+        var r = top[0], c = top[1], di = top[2];
+        var moved = false;
+        while (di < 4) {
+          var nr = r + DIRS[di][0], nc = c + DIRS[di][1];
+          if (nr >= 0 && nr < 10 && nc >= 0 && nc < 10 && MAZE[nr][nc] === 0 && !foot[key(nr, nc)] && !tried[key(nr, nc)]) {
+            /* 走这一步 */
+            stack[stack.length - 1][2] = di + 1;
+            foot[key(nr, nc)] = di;
+            stack.push([nr, nc, 0]);
+            cur = { r: nr, c: nc, di: 0 };
+            moved = true;
+            break;
+          }
+          di++;
+        }
+        if (moved === false && di >= 4) {
+          /* 没找到可走方向：回溯 */
+          var popped = stack.pop();
+          tried[key(popped[0], popped[1])] = 1;
+          delete foot[key(popped[0], popped[1])];
+          F([9, 10], '(' + popped[0] + ',' + popped[1] + ') 四面皆死路 → 弹栈回溯（红虚线足迹）。', { pop: popped, cur: { r: popped[0], c: popped[1] } });
+        } else {
+          var now = stack[stack.length - 1];
+          if (now[0] === en[0] && now[1] === en[1]) {
+            solved = true;
+            F([5], '到达出口 (' + en[0] + ',' + en[1] + ')！路径即栈中全部元素（' + stack.length + ' 格）。', { cur: { r: now[0], c: now[1] } }, 'found');
+            break;
+          }
+          F([3, 4, 5], '走到 (' + now[0] + ',' + now[1] + ')，足迹入栈（栈深 ' + stack.length + '）。', { cur: { r: now[0], c: now[1] } });
+        }
+      }
+      if (!solved) F(12, '栈空仍未到达出口 → 该迷宫从给定入口**无通路**。', {}, 'fail');
+      F(0, solved ? '结论：DFS 探索 + 栈回溯。栈中保存的正是"从入口到现在"的完整路径——这就是深度优先遍历的骨架（第 6 章 DFS(v) 与此同构）。' : '换一个入口再试试（左上 / 左下）。', { mark: 'final' });
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var W = 980, H = 520, cell = 44, ox = 70, oy = 66;
+      var g = '';
+      g += h.txt(W / 2 + 60, 36, '迷宫求解（蓝=路径足迹，灰=探索后放弃，红虚=回溯）', { size: 16, w: 600 });
+      for (var r = 0; r < 10; r++) for (var c = 0; c < 10; c++) {
+        var x = ox + c * cell, y = oy + r * cell;
+        var wall = MAZE[r][c] === 1;
+        var k = r + ',' + c;
+        var isFoot = s.foot[k] != null, isTried = s.tried[k];
+        var f = wall ? '#334155' : '#fff';
+        if (isFoot) f = C.blueBg;
+        if (isTried) f = '#f1f5f9';
+        g += h.rect(x, y, cell - 4, cell - 4, { fill: f, stroke: wall ? '#334155' : C.line, sw: 1.2, rx: 3 });
+        if (s.start[0] === r && s.start[1] === c) g += h.txt(x + cell / 2 - 2, y + cell / 2 + 5, '入', { size: 14, w: 700, fill: C.green });
+        if (s.end[0] === r && s.end[1] === c) g += h.txt(x + cell / 2 - 2, y + cell / 2 + 5, '出', { size: 14, w: 700, fill: C.amber });
+        if (isFoot) g += h.circle(x + cell / 2 - 2, y + cell / 2, 5, { fill: C.blue, stroke: C.blue });
+        if (s.cur && s.cur.r === r && s.cur.c === c) g += h.circle(x + cell / 2 - 2, y + cell / 2, 10, { fill: 'none', stroke: C.amber, sw: 3 });
+        if (s.pop && s.pop[0] === r && s.pop[1] === c) g += h.circle(x + cell / 2 - 2, y + cell / 2, 9, { fill: 'none', stroke: C.red, sw: 2.5, dash: '3,3' });
+      }
+      /* 栈视图 */
+      var sx = 540;
+      g += h.txt(sx + 80, 60, '足迹栈（底 → 顶）', { size: 13, fill: C.muted, w: 600 });
+      s.stack.forEach(function (p2, i2) {
+        var y2 = 76 + i2 * 30;
+        g += h.rect(sx, y2, 160, 26, { fill: '#fff', stroke: C.line, sw: 1, rx: 4 });
+        g += h.txt(sx + 80, y2 + 18, '(' + p2[0] + ',' + p2[1] + ')', { size: 12, family: 'Consolas,monospace' });
+      });
+      if (!s.stack.length) g += h.txt(sx + 80, 92, '（空）', { size: 12.5, fill: C.muted });
+      g += h.txt(W / 2 + 40, 505, '入口绿「入」出口黄「出」｜ 回溯就是"出栈+把该格标记为放弃"', { size: 12.5, fill: C.muted });
       return h.svg(W, H, g);
     }
   });
@@ -3226,6 +4227,247 @@ body.proj .msg{font-size:16px}
         if (!(s.decode.out || []).length) g += h.txt(ox + 64, dy + 20, '（暂无，读到叶子才输出）', { size: 12.5, fill: C.muted, anchor: 'start' });
         var atN = s.ht[s.decode.at];
         g += h.txt(W - 40, dy + 20, 'p → ' + (atN.ch ? '叶子 ' + atN.ch + '(' + atN.w + ')' : 'HT[' + s.decode.at + '] 权' + atN.w), { size: 13, fill: C.blue, w: 600, anchor: 'end' });
+      }
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
+/* ==================== ch5/04treeConvert.js ==================== */
+/* 动画：树 ↔ 二叉树转换（孩子兄弟表示法）——教材 5.6，加线/抹线/旋转三步 */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C;
+
+  var CODE = [
+    '// 树 → 二叉树（左孩子右兄弟）：',
+    '// ① 加线：所有相邻兄弟结点之间加一条线',
+    '// ② 抹线：只保留第一个孩子（左孩子），抹掉其余孩子连线',
+    '// ③ 旋转：以根为轴顺时针转 45°，层次分明 → 二叉树',
+    '// 二叉树 → 树：反操作（把右链视为兄弟）',
+    ' typedef struct CSNode {',
+    '     ElemType data;',
+    '     struct CSNode *firstchild, *nextsibling;   // 左=第一个孩子，右=下一个兄弟',
+    ' } CSNode;'
+  ];
+
+  /* 教材例树：A(B,E,F ; C,G ; D,H) 用 (根:孩子列表) 描述 */
+  var TREE = { v: 'A', kids: [
+    { v: 'B', kids: [{ v: 'E', kids: [] }, { v: 'F', kids: [] }] },
+    { v: 'C', kids: [{ v: 'G', kids: [] }] },
+    { v: 'D', kids: [{ v: 'H', kids: [] }] }
+  ] };
+
+  function toBinary(t) {   // 孩子兄弟转换
+    function conv(node) {
+      if (!node) return null;
+      var b = { v: node.v, l: null, r: null };
+      var kids = node.kids;
+      if (kids && kids.length) {
+        b.l = conv(kids[0]);
+        var p = b.l;
+        for (var i = 1; i < kids.length; i++) { p.r = conv(kids[i]); p = p.r; }
+      }
+      return b;
+    }
+    return conv(t);
+  }
+  function preorder(b, out) { if (!b) return; out.push(b.v); preorder(b.l, out); preorder(b.r, out); }
+  function inorder(b, out) { if (!b) return; inorder(b.l, out); out.push(b.v); inorder(b.r, out); }
+  function cloneT(n) { return n ? { v: n.v, l: cloneT(n.l), r: cloneT(n.r) } : null; }
+
+  DSC.reg({
+    id: 'treeConvert', ch: 5, name: '树 / 森林与二叉树转换',
+    note: '教材 5.6 树与森林（孩子兄弟表示、左孩子右兄弟）',
+    guide: [
+      '树用"二叉链表"就能存：**左指针=第一个孩子，右指针=下一个兄弟**（孩子兄弟表示法）',
+      '转换三步：① 兄弟之间加线 ② 只留与第一个孩子的线，其余抹掉 ③ 整体顺时针转 45°',
+      '右侧演示结果：A 的左孩子是 B（第一个孩子），B 的右链 B→C→D 恰是 A 的三个兄弟孩子',
+      '性质：树的**先根遍历** = 对应二叉树的先序遍历；树的**后根遍历** = 对应二叉树的中序遍历（左下面板可验）'
+    ],
+    inputs: [
+      { key: 'step', label: '演示步骤', type: 'select', options: [
+        ['0', '原树'], ['1', '① 加兄弟线'], ['2', '② 抹孩子线'], ['3', '③ 旋转成二叉树']
+      ], value: '3' }
+    ],
+    run: function (v) {
+      var step = +v.step;
+      var frames = [], bin = toBinary(TREE);
+      var pre = [], ino = [];
+      preorder(bin, pre); inorder(bin, ino);
+      function F(line, msg, s) {
+        frames.push({ line: [line], msg: msg, panel: { 二叉树先序: pre.join(' '), 二叉树中序: ino.join(' ') }, snap: { step: step, mark: s && s.mark } });
+      }
+      var msgs = [
+        '原树 T：A 有 3 个孩子 B、C、D；B 有 E、F；C 有 G；D 有 H。',
+        '① 加线：在所有相邻兄弟间加线 → B—C—D、E—F。',
+        '② 抹线：每个结点只保留与**第一个**孩子的连线（A—B、B—E、C—G、D—H），抹掉 A—C、A—D、B—F。',
+        '③ 旋转 45°：横着的兄弟线变成右指针，竖着的孩子线变成左指针——一棵二叉树！左链=第一个孩子，右链=兄弟。'
+      ];
+      for (var s = 0; s <= step; s++) F(s, msgs[s], s === step && s === 3 ? { mark: 'final' } : null);
+      F(0, '验证：二叉树先序 ' + pre.join(' ') + ' == 树的先根遍历；二叉树中序 ' + ino.join(' ') + ' == 树的后根遍历（E F B G C H D A 的后根序即 E F B G C H D A）。森林 = 每棵树转二叉树后，把根用右链串起来。', { mark: 'final' });
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var W = 980, H = 520;
+      var g = '';
+      /* 左：原树（含步骤视觉） */
+      var tpos = { A: [200, 100], B: [110, 200], C: [200, 200], D: [290, 200], E: [75, 300], F: [145, 300], G: [200, 300], H: [290, 300] };
+      g += h.txt(200, 60, '原树 T', { size: 15, w: 600, fill: C.muted });
+      var tEdges = [['A', 'B'], ['A', 'C'], ['A', 'D'], ['B', 'E'], ['B', 'F'], ['C', 'G'], ['D', 'H']];
+      var siblingPairs = [['B', 'C'], ['C', 'D'], ['E', 'F']];
+      var keepKids = [['A', 'B'], ['B', 'E'], ['C', 'G'], ['D', 'H']];
+      var droppedKids = [['A', 'C'], ['A', 'D'], ['B', 'F']];
+      tEdges.forEach(function (e) {
+        var p1 = tpos[e[0]], p2 = tpos[e[1]];
+        var isSibling = siblingPairs.some(function (x) { return x[0] === e[0] && x[1] === e[1]; });
+        var dropped = droppedKids.some(function (x) { return x[0] === e[0] && x[1] === e[1]; });
+        var st = C.grey, sw = 1.8, dash = null;
+        if (s.step >= 1 && isSibling) { st = C.blue; sw = 2.4; }
+        if (s.step >= 2 && dropped) { st = C.red; sw = 1.6; dash = '4,4'; }
+        g += h.line(p1[0], p1[1], p2[0], p2[1], { stroke: st, sw: sw, dash: dash });
+      });
+      if (s.step >= 1) siblingPairs.forEach(function (x) {
+        var p1 = tpos[x[0]], p2 = tpos[x[1]];
+        var mx = (p1[0] + p2[0]) / 2, my = (p1[1] + p2[1]) / 2;
+        g += h.txt(mx, my - 8, s.step >= 2 ? '抹' : '兄弟线', { size: 10.5, fill: s.step >= 2 ? C.red : C.blue, w: 700 });
+      });
+      Object.keys(tpos).forEach(function (k) {
+        var p = tpos[k];
+        g += h.circle(p[0], p[1], 20, { fill: '#fff', stroke: C.ink, sw: 1.8 });
+        g += h.txt(p[0], p[1] + 6, k, { size: 15, w: 700 });
+      });
+      /* 右：转换后的二叉树 */
+      var b = toBinary(TREE);
+      var nodes = [], pos = {};
+      (function walk(n2, d) { if (!n2) return; walk(n2.l, d + 1); nodes.push({ v: n2.v, d: d }); walk(n2.r, d + 1); })(b, 0);
+      nodes.forEach(function (n3, r) { pos[n3.v] = [610 + r * 34, 100 + n3.d * 88]; });
+      (function edges(n2) { if (!n2) return; if (n2.l) { var A = pos[n2.v], B = pos[n2.l.v]; g += h.line(A[0], A[1], B[0], B[1], { stroke: C.green, sw: 2.2 }); edges(n2.l); } if (n2.r) { var A2 = pos[n2.v], B2 = pos[n2.r.v]; g += h.line(A2[0], A2[1], B2[0], B2[1], { stroke: C.blue, sw: 2.2, dash: '5,3' }); edges(n2.r); } })(b);
+      nodes.forEach(function (n4) {
+        var P = pos[n4.v];
+        g += h.circle(P[0], P[1], 19, { fill: '#fff', stroke: C.ink, sw: 1.8 });
+        g += h.txt(P[0], P[1] + 6, n4.v, { size: 14, w: 700 });
+      });
+      g += h.txt(790, 60, s.step >= 3 ? '转换后的二叉树' : '二叉树（结果预览）', { size: 15, w: 600, fill: C.muted });
+      g += h.txt(640, 108, '左链=孩子', { size: 10.5, fill: C.green, anchor: 'start' });
+      g += h.txt(640, 126, '右虚链=兄弟', { size: 10.5, fill: C.blue, anchor: 'start' });
+      g += h.txt(W / 2, 480, '左孩子右兄弟：树 → 二叉树是"一一对应"的，任何树/森林都能这样存进二叉链表', { size: 12.5, fill: C.muted });
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
+/* ==================== ch5/05heapBuild.js ==================== */
+/* 动画：堆的建立与调整——教材 5.10/8.5 前置，自下而上建堆 + 单结点筛选，树数组双视图 */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C;
+
+  var CODE = [
+    'void HeapAdjust(SqList &L, int s, int m) {   // 把 a[s..m] 调成大根堆',
+    '    rc = L.r[s];',
+    '    for (j = 2*s; j <= m; j *= 2) {',
+    '        if (j < m && L.r[j] < L.r[j+1]) ++j; // j 指向较大孩子',
+    '        if (rc >= L.r[j])  break;',
+    '        L.r[s] = L.r[j];  s = j;',
+    '    }',
+    '    L.r[s] = rc;',
+    '}',
+    'void BuildHeap(SqList &L) {',
+    '    for (i = L.length/2; i >= 1; --i)        // 从最后个非叶结点起，',
+    '        HeapAdjust(L, i, L.length);          // 自下而上、自右向左逐棵调整',
+    '}'
+  ];
+
+  DSC.reg({
+    id: 'heapBuild', ch: 5, name: '堆的建立与调整',
+    note: '教材 5.10 / 8.5 前置（完全二叉树视角的建堆过程）',
+    guide: [
+      '堆 = 完全二叉树 + "父亲 ≥ 孩子"（大根堆）。a[i] 的孩子是 a[2i]、a[2i+1]',
+      '建堆从**最后一个非叶结点** a[⌊n/2⌋] 开始，自下而上对每个结点做一次"筛选"（大孩子上移）',
+      '树/数组双视图联动：黄色=孩子候选，蓝色=当前调整结点，红色=写入',
+      '建堆 O(n)；堆顶换出后只调一条根→叶路径 O(log n)——这是堆排序 O(n log n) 的来源'
+    ],
+    inputs: [
+      { key: 'w', label: '初始序列', type: 'text', value: '49,38,65,97,76,13,27,49' }
+    ],
+    run: function (v) {
+      var a = h.parse(v.w);
+      if (a.length < 3 || a.length > 12) throw Error('请输入 3~12 个整数');
+      var n = a.length;
+      a.unshift(0);
+      var frames = [], cmp = 0, mov = 0;
+      function colors(hl, heap) {
+        hl = hl || {}; heap = heap == null ? n : heap;
+        var cs = [];
+        for (var i = 1; i <= n; i++) cs.push('N');
+        if (hl.s != null && cs[hl.s - 1] === 'N') cs[hl.s - 1] = 'P';
+        if (hl.c != null && cs[hl.c - 1] === 'N') cs[hl.c - 1] = 'C';
+        if (hl.w != null) cs[hl.w - 1] = 'S';
+        return cs;
+      }
+      function F(line, msg, extra, mk) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { 比较: cmp + ' 次', 赋值: mov + ' 次', 调整结点: extra.s != null ? 'a[' + extra.s + ']' : '—' },
+          snap: { arr: a.slice(1), colors: colors(extra), s: extra.s, c: extra.c, w: extra.w, mark: mk }
+        });
+      }
+      F(0, '初始序列（完全二叉树视图）。从最后一个非叶结点 a[' + Math.floor(n / 2) + '] 开始建大根堆。', {});
+      function adjust(s, m, tag) {
+        var rc = a[s];
+        F(1, tag + '：调整 a[' + s + ']=' + rc + '（暂存 rc）。', { s: s });
+        for (var j = 2 * s; j <= m; j *= 2) {
+          if (j < m) {
+            cmp++;
+            if (a[j] < a[j + 1]) { F(3, '孩子 a[' + j + ']=' + a[j] + '、a[' + (j + 1) + ']=' + a[j + 1] + '：选大孩子 a[' + (j + 1) + ']。', { s: s, c: j + 1 }); j++; }
+            else { F(3, '孩子 a[' + j + ']=' + a[j] + '、a[' + (j + 1) + ']=' + a[j + 1] + '：选大孩子 a[' + j + ']。', { s: s, c: j }); }
+          }
+          cmp++;
+          if (rc >= a[j]) { F(4, 'rc=' + rc + ' ≥ 大孩子 ' + a[j] + ' → 合适，筛选结束。', { s: s, c: j }); break; }
+          a[s] = a[j]; mov++;
+          F(5, '大孩子 ' + a[j] + ' 上移到 a[' + s + ']，继续向下看。', { w: s, c: j });
+          s = j;
+        }
+        a[s] = rc; mov++;
+        F(6, 'rc=' + rc + ' 归位到 a[' + s + ']。', { w: s });
+      }
+      var idx = Math.floor(n / 2);
+      for (var i = idx; i >= 1; i--) { adjust(i, n, '建堆·第 ' + (idx - i + 1) + ' 棵子树'); F(10, 'a[' + i + '] 子树已满足堆性质。', { w: i }, 'b' + i); }
+      F(10, '建堆完成：a[1]=' + a[1] + ' 是最大值，每个父亲 ≥ 孩子。之后每次"输出堆顶+重建"只需 O(log n)——见第 8 章堆排序。', {}, 'final');
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var su = DSC.su;   // 运行时取（ch5 先于 ch8 的共享文件加载）
+      var W = 980, H = 560, n = s.arr.length;
+      var g = '';
+      g += h.txt(W / 2, 32, '建堆过程（蓝=调整结点，黄=孩子候选，红=写入）', { size: 17, w: 600 });
+      function pos(i) {
+        var d = Math.floor(Math.log(i) / Math.LN2), k = i - (1 << d), cnt = 1 << d;
+        var dx = Math.min(120, 880 / cnt);
+        return [W / 2 + (k - (cnt - 1) / 2) * dx, 92 + d * 104];
+      }
+      for (var i = 1; i <= n; i++) {
+        if (2 * i > n) continue;
+        var A = pos(i), B1 = pos(2 * i);
+        g += h.line(A[0], A[1] + 20, B1[0], B1[1] - 20, { stroke: C.line, sw: 1.6 });
+        if (2 * i + 1 <= n) { var B2 = pos(2 * i + 1); g += h.line(A[0], A[1] + 20, B2[0], B2[1] - 20, { stroke: C.line, sw: 1.6 }); }
+      }
+      for (var i2 = 1; i2 <= n; i2++) {
+        var P = pos(i2), key = s.colors[i2 - 1] || 'N', cm = su.COLORS[key];
+        g += h.circle(P[0], P[1], 21, { fill: cm[0], stroke: cm[1], sw: key === 'N' ? 1.8 : 2.4 });
+        g += h.txt(P[0], P[1] + 6, String(s.arr[i2 - 1]), { size: 15, w: 700 });
+        if (s.s === i2) g += h.txt(P[0], P[1] - 30, '调整中', { size: 11, fill: C.blue, w: 700 });
+        if (s.c === i2) g += h.txt(P[0], P[1] - 30, '候选孩子', { size: 11, fill: C.amber, w: 700 });
+      }
+      var bw = Math.min(60, Math.floor(880 / n) - 8), x0 = (W - n * bw - (n - 1) * 8) / 2, ay = 480;
+      for (var i3 = 1; i3 <= n; i3++) {
+        var x = x0 + (i3 - 1) * (bw + 8), key2 = s.colors[i3 - 1] || 'N', cm2 = su.COLORS[key2];
+        g += h.rect(x, ay, bw, 40, { fill: cm2[0], stroke: cm2[1], sw: 1.6, rx: 5 });
+        g += h.txt(x + bw / 2, ay + 26, String(s.arr[i3 - 1]), { size: 15, w: 700 });
+        g += h.txt(x + bw / 2, ay + 56, String(i3), { size: 10.5, fill: C.muted });
+        if (i3 === 1) g += h.txt(x + bw / 2, ay - 10, '堆顶', { size: 11, fill: C.blue, w: 700 });
       }
       return h.svg(W, H, g);
     }
@@ -4844,12 +6086,12 @@ body.proj .msg{font-size:16px}
     run: function (v) {
       var seq = SCEN[v.scen] || SCEN.LL;
       var frames = [], root = null;
-      function F(line, msg, hl) {
+      function F(line, msg, hl, mk) {
         hl = hl || {};
         frames.push({
           line: Array.isArray(line) ? line : [line], msg: msg,
           panel: (function () { var io = []; inorder(root, io); return { 中序: io.map(function (x) { return x.v; }).join(' ≤ ') || '（空）', '最大|bf|': String(io.reduce(function (m, x) { return Math.max(m, Math.abs(x.bf)); }, 0)) }; })(),
-          snap: { tree: cloneT(root), hl: hl, mark: hl.mark }
+          snap: { tree: cloneT(root), hl: hl, mark: mk || hl.mark }
         });
       }
       function insertAVL(val) {
@@ -6155,6 +7397,16 @@ body.proj .msg{font-size:16px}
   });
 })();
 
+
+/* ==================== core/qrcode.min.js ==================== */
+/**
+ * Minified by jsDelivr using Terser v5.37.0.
+ * Original file: /npm/qrcode-generator@1.4.4/qrcode.js
+ *
+ * Do NOT use SRI with dynamically generated files! More information: https://www.jsdelivr.com/using-sri-with-dynamic-files
+ */
+var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],f={},c=function(t,r){o=function(t){for(var r=new Array(t),e=0;e<t;e+=1){r[e]=new Array(t);for(var n=0;n<t;n+=1)r[e][n]=null}return r}(i=4*e+17),l(0,0),l(i-7,0),l(0,i-7),s(),h(),d(t,r),e>=7&&v(t),null==a&&(a=p(e,n,u)),w(a,r)},l=function(t,r){for(var e=-1;e<=7;e+=1)if(!(t+e<=-1||i<=t+e))for(var n=-1;n<=7;n+=1)r+n<=-1||i<=r+n||(o[t+e][r+n]=0<=e&&e<=6&&(0==n||6==n)||0<=n&&n<=6&&(0==e||6==e)||2<=e&&e<=4&&2<=n&&n<=4)},h=function(){for(var t=8;t<i-8;t+=1)null==o[t][6]&&(o[t][6]=t%2==0);for(var r=8;r<i-8;r+=1)null==o[6][r]&&(o[6][r]=r%2==0)},s=function(){for(var t=B.getPatternPosition(e),r=0;r<t.length;r+=1)for(var n=0;n<t.length;n+=1){var i=t[r],a=t[n];if(null==o[i][a])for(var u=-2;u<=2;u+=1)for(var f=-2;f<=2;f+=1)o[i+u][a+f]=-2==u||2==u||-2==f||2==f||0==u&&0==f}},v=function(t){for(var r=B.getBCHTypeNumber(e),n=0;n<18;n+=1){var a=!t&&1==(r>>n&1);o[Math.floor(n/3)][n%3+i-8-3]=a}for(n=0;n<18;n+=1){a=!t&&1==(r>>n&1);o[n%3+i-8-3][Math.floor(n/3)]=a}},d=function(t,r){for(var e=n<<3|r,a=B.getBCHTypeInfo(e),u=0;u<15;u+=1){var f=!t&&1==(a>>u&1);u<6?o[u][8]=f:u<8?o[u+1][8]=f:o[i-15+u][8]=f}for(u=0;u<15;u+=1){f=!t&&1==(a>>u&1);u<8?o[8][i-u-1]=f:u<9?o[8][15-u-1+1]=f:o[8][15-u-1]=f}o[i-8][8]=!t},w=function(t,r){for(var e=-1,n=i-1,a=7,u=0,f=B.getMaskFunction(r),c=i-1;c>0;c-=2)for(6==c&&(c-=1);;){for(var g=0;g<2;g+=1)if(null==o[n][c-g]){var l=!1;u<t.length&&(l=1==(t[u]>>>a&1)),f(n,c-g)&&(l=!l),o[n][c-g]=l,-1==(a-=1)&&(u+=1,a=7)}if((n+=e)<0||i<=n){n-=e,e=-e;break}}},p=function(t,r,e){for(var n=A.getRSBlocks(t,r),o=b(),i=0;i<e.length;i+=1){var a=e[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var u=0;for(i=0;i<n.length;i+=1)u+=n[i].dataCount;if(o.getLengthInBits()>8*u)throw"code length overflow. ("+o.getLengthInBits()+">"+8*u+")";for(o.getLengthInBits()+4<=8*u&&o.put(0,4);o.getLengthInBits()%8!=0;)o.putBit(!1);for(;!(o.getLengthInBits()>=8*u||(o.put(236,8),o.getLengthInBits()>=8*u));)o.put(17,8);return function(t,r){for(var e=0,n=0,o=0,i=new Array(r.length),a=new Array(r.length),u=0;u<r.length;u+=1){var f=r[u].dataCount,c=r[u].totalCount-f;n=Math.max(n,f),o=Math.max(o,c),i[u]=new Array(f);for(var g=0;g<i[u].length;g+=1)i[u][g]=255&t.getBuffer()[g+e];e+=f;var l=B.getErrorCorrectPolynomial(c),h=k(i[u],l.getLength()-1).mod(l);for(a[u]=new Array(l.getLength()-1),g=0;g<a[u].length;g+=1){var s=g+h.getLength()-a[u].length;a[u][g]=s>=0?h.getAt(s):0}}var v=0;for(g=0;g<r.length;g+=1)v+=r[g].totalCount;var d=new Array(v),w=0;for(g=0;g<n;g+=1)for(u=0;u<r.length;u+=1)g<i[u].length&&(d[w]=i[u][g],w+=1);for(g=0;g<o;g+=1)for(u=0;u<r.length;u+=1)g<a[u].length&&(d[w]=a[u][g],w+=1);return d}(o,n)};f.addData=function(t,r){var e=null;switch(r=r||"Byte"){case"Numeric":e=M(t);break;case"Alphanumeric":e=x(t);break;case"Byte":e=m(t);break;case"Kanji":e=L(t);break;default:throw"mode:"+r}u.push(e),a=null},f.isDark=function(t,r){if(t<0||i<=t||r<0||i<=r)throw t+","+r;return o[t][r]},f.getModuleCount=function(){return i},f.make=function(){if(e<1){for(var t=1;t<40;t++){for(var r=A.getRSBlocks(t,n),o=b(),i=0;i<u.length;i++){var a=u[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var g=0;for(i=0;i<r.length;i++)g+=r[i].dataCount;if(o.getLengthInBits()<=8*g)break}e=t}c(!1,function(){for(var t=0,r=0,e=0;e<8;e+=1){c(!0,e);var n=B.getLostPoint(f);(0==e||t>n)&&(t=n,r=e)}return r}())},f.createTableTag=function(t,r){t=t||2;var e="";e+='<table style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: "+(r=void 0===r?4*t:r)+"px;",e+='">',e+="<tbody>";for(var n=0;n<f.getModuleCount();n+=1){e+="<tr>";for(var o=0;o<f.getModuleCount();o+=1)e+='<td style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: 0px;",e+=" width: "+t+"px;",e+=" height: "+t+"px;",e+=" background-color: ",e+=f.isDark(n,o)?"#000000":"#ffffff",e+=";",e+='"/>';e+="</tr>"}return e+="</tbody>",e+="</table>"},f.createSvgTag=function(t,r,e,n){var o={};"object"==typeof arguments[0]&&(t=(o=arguments[0]).cellSize,r=o.margin,e=o.alt,n=o.title),t=t||2,r=void 0===r?4*t:r,(e="string"==typeof e?{text:e}:e||{}).text=e.text||null,e.id=e.text?e.id||"qrcode-description":null,(n="string"==typeof n?{text:n}:n||{}).text=n.text||null,n.id=n.text?n.id||"qrcode-title":null;var i,a,u,c,g=f.getModuleCount()*t+2*r,l="";for(c="l"+t+",0 0,"+t+" -"+t+",0 0,-"+t+"z ",l+='<svg version="1.1" xmlns="http://www.w3.org/2000/svg"',l+=o.scalable?"":' width="'+g+'px" height="'+g+'px"',l+=' viewBox="0 0 '+g+" "+g+'" ',l+=' preserveAspectRatio="xMinYMin meet"',l+=n.text||e.text?' role="img" aria-labelledby="'+y([n.id,e.id].join(" ").trim())+'"':"",l+=">",l+=n.text?'<title id="'+y(n.id)+'">'+y(n.text)+"</title>":"",l+=e.text?'<description id="'+y(e.id)+'">'+y(e.text)+"</description>":"",l+='<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>',l+='<path d="',a=0;a<f.getModuleCount();a+=1)for(u=a*t+r,i=0;i<f.getModuleCount();i+=1)f.isDark(a,i)&&(l+="M"+(i*t+r)+","+u+c);return l+='" stroke="transparent" fill="black"/>',l+="</svg>"},f.createDataURL=function(t,r){t=t||2,r=void 0===r?4*t:r;var e=f.getModuleCount()*t+2*r,n=r,o=e-r;return I(e,e,(function(r,e){if(n<=r&&r<o&&n<=e&&e<o){var i=Math.floor((r-n)/t),a=Math.floor((e-n)/t);return f.isDark(a,i)?0:1}return 1}))},f.createImgTag=function(t,r,e){t=t||2,r=void 0===r?4*t:r;var n=f.getModuleCount()*t+2*r,o="";return o+="<img",o+=' src="',o+=f.createDataURL(t,r),o+='"',o+=' width="',o+=n,o+='"',o+=' height="',o+=n,o+='"',e&&(o+=' alt="',o+=y(e),o+='"'),o+="/>"};var y=function(t){for(var r="",e=0;e<t.length;e+=1){var n=t.charAt(e);switch(n){case"<":r+="&lt;";break;case">":r+="&gt;";break;case"&":r+="&amp;";break;case'"':r+="&quot;";break;default:r+=n}}return r};return f.createASCII=function(t,r){if((t=t||1)<2)return function(t){t=void 0===t?2:t;var r,e,n,o,i,a=1*f.getModuleCount()+2*t,u=t,c=a-t,g={"██":"█","█ ":"▀"," █":"▄","  ":" "},l={"██":"▀","█ ":"▀"," █":" ","  ":" "},h="";for(r=0;r<a;r+=2){for(n=Math.floor((r-u)/1),o=Math.floor((r+1-u)/1),e=0;e<a;e+=1)i="█",u<=e&&e<c&&u<=r&&r<c&&f.isDark(n,Math.floor((e-u)/1))&&(i=" "),u<=e&&e<c&&u<=r+1&&r+1<c&&f.isDark(o,Math.floor((e-u)/1))?i+=" ":i+="█",h+=t<1&&r+1>=c?l[i]:g[i];h+="\n"}return a%2&&t>0?h.substring(0,h.length-a-1)+Array(a+1).join("▀"):h.substring(0,h.length-1)}(r);t-=1,r=void 0===r?2*t:r;var e,n,o,i,a=f.getModuleCount()*t+2*r,u=r,c=a-r,g=Array(t+1).join("██"),l=Array(t+1).join("  "),h="",s="";for(e=0;e<a;e+=1){for(o=Math.floor((e-u)/t),s="",n=0;n<a;n+=1)i=1,u<=n&&n<c&&u<=e&&e<c&&f.isDark(o,Math.floor((n-u)/t))&&(i=0),s+=i?g:l;for(o=0;o<t;o+=1)h+=s+"\n"}return h.substring(0,h.length-1)},f.renderTo2dContext=function(t,r){r=r||2;for(var e=f.getModuleCount(),n=0;n<e;n++)for(var o=0;o<e;o++)t.fillStyle=f.isDark(n,o)?"black":"white",t.fillRect(n*r,o*r,r,r)},f};t.stringToBytes=(t.stringToBytesFuncs={default:function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);r.push(255&n)}return r}}).default,t.createStringToBytes=function(t,r){var e=function(){for(var e=S(t),n=function(){var t=e.read();if(-1==t)throw"eof";return t},o=0,i={};;){var a=e.read();if(-1==a)break;var u=n(),f=n()<<8|n();i[String.fromCharCode(a<<8|u)]=f,o+=1}if(o!=r)throw o+" != "+r;return i}(),n="?".charCodeAt(0);return function(t){for(var r=[],o=0;o<t.length;o+=1){var i=t.charCodeAt(o);if(i<128)r.push(i);else{var a=e[t.charAt(o)];"number"==typeof a?(255&a)==a?r.push(a):(r.push(a>>>8),r.push(255&a)):r.push(n)}}return r}};var r,e,n,o,i,a=1,u=2,f=4,c=8,g={L:1,M:0,Q:3,H:2},l=0,h=1,s=2,v=3,d=4,w=5,p=6,y=7,B=(r=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],e=1335,n=7973,i=function(t){for(var r=0;0!=t;)r+=1,t>>>=1;return r},(o={}).getBCHTypeInfo=function(t){for(var r=t<<10;i(r)-i(e)>=0;)r^=e<<i(r)-i(e);return 21522^(t<<10|r)},o.getBCHTypeNumber=function(t){for(var r=t<<12;i(r)-i(n)>=0;)r^=n<<i(r)-i(n);return t<<12|r},o.getPatternPosition=function(t){return r[t-1]},o.getMaskFunction=function(t){switch(t){case l:return function(t,r){return(t+r)%2==0};case h:return function(t,r){return t%2==0};case s:return function(t,r){return r%3==0};case v:return function(t,r){return(t+r)%3==0};case d:return function(t,r){return(Math.floor(t/2)+Math.floor(r/3))%2==0};case w:return function(t,r){return t*r%2+t*r%3==0};case p:return function(t,r){return(t*r%2+t*r%3)%2==0};case y:return function(t,r){return(t*r%3+(t+r)%2)%2==0};default:throw"bad maskPattern:"+t}},o.getErrorCorrectPolynomial=function(t){for(var r=k([1],0),e=0;e<t;e+=1)r=r.multiply(k([1,C.gexp(e)],0));return r},o.getLengthInBits=function(t,r){if(1<=r&&r<10)switch(t){case a:return 10;case u:return 9;case f:case c:return 8;default:throw"mode:"+t}else if(r<27)switch(t){case a:return 12;case u:return 11;case f:return 16;case c:return 10;default:throw"mode:"+t}else{if(!(r<41))throw"type:"+r;switch(t){case a:return 14;case u:return 13;case f:return 16;case c:return 12;default:throw"mode:"+t}}},o.getLostPoint=function(t){for(var r=t.getModuleCount(),e=0,n=0;n<r;n+=1)for(var o=0;o<r;o+=1){for(var i=0,a=t.isDark(n,o),u=-1;u<=1;u+=1)if(!(n+u<0||r<=n+u))for(var f=-1;f<=1;f+=1)o+f<0||r<=o+f||0==u&&0==f||a==t.isDark(n+u,o+f)&&(i+=1);i>5&&(e+=3+i-5)}for(n=0;n<r-1;n+=1)for(o=0;o<r-1;o+=1){var c=0;t.isDark(n,o)&&(c+=1),t.isDark(n+1,o)&&(c+=1),t.isDark(n,o+1)&&(c+=1),t.isDark(n+1,o+1)&&(c+=1),0!=c&&4!=c||(e+=3)}for(n=0;n<r;n+=1)for(o=0;o<r-6;o+=1)t.isDark(n,o)&&!t.isDark(n,o+1)&&t.isDark(n,o+2)&&t.isDark(n,o+3)&&t.isDark(n,o+4)&&!t.isDark(n,o+5)&&t.isDark(n,o+6)&&(e+=40);for(o=0;o<r;o+=1)for(n=0;n<r-6;n+=1)t.isDark(n,o)&&!t.isDark(n+1,o)&&t.isDark(n+2,o)&&t.isDark(n+3,o)&&t.isDark(n+4,o)&&!t.isDark(n+5,o)&&t.isDark(n+6,o)&&(e+=40);var g=0;for(o=0;o<r;o+=1)for(n=0;n<r;n+=1)t.isDark(n,o)&&(g+=1);return e+=Math.abs(100*g/r/r-50)/5*10},o),C=function(){for(var t=new Array(256),r=new Array(256),e=0;e<8;e+=1)t[e]=1<<e;for(e=8;e<256;e+=1)t[e]=t[e-4]^t[e-5]^t[e-6]^t[e-8];for(e=0;e<255;e+=1)r[t[e]]=e;var n={glog:function(t){if(t<1)throw"glog("+t+")";return r[t]},gexp:function(r){for(;r<0;)r+=255;for(;r>=256;)r-=255;return t[r]}};return n}();function k(t,r){if(void 0===t.length)throw t.length+"/"+r;var e=function(){for(var e=0;e<t.length&&0==t[e];)e+=1;for(var n=new Array(t.length-e+r),o=0;o<t.length-e;o+=1)n[o]=t[o+e];return n}(),n={getAt:function(t){return e[t]},getLength:function(){return e.length},multiply:function(t){for(var r=new Array(n.getLength()+t.getLength()-1),e=0;e<n.getLength();e+=1)for(var o=0;o<t.getLength();o+=1)r[e+o]^=C.gexp(C.glog(n.getAt(e))+C.glog(t.getAt(o)));return k(r,0)},mod:function(t){if(n.getLength()-t.getLength()<0)return n;for(var r=C.glog(n.getAt(0))-C.glog(t.getAt(0)),e=new Array(n.getLength()),o=0;o<n.getLength();o+=1)e[o]=n.getAt(o);for(o=0;o<t.getLength();o+=1)e[o]^=C.gexp(C.glog(t.getAt(o))+r);return k(e,0).mod(t)}};return n}var A=function(){var t=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],r=function(t,r){var e={};return e.totalCount=t,e.dataCount=r,e},e={};return e.getRSBlocks=function(e,n){var o=function(r,e){switch(e){case g.L:return t[4*(r-1)+0];case g.M:return t[4*(r-1)+1];case g.Q:return t[4*(r-1)+2];case g.H:return t[4*(r-1)+3];default:return}}(e,n);if(void 0===o)throw"bad rs block @ typeNumber:"+e+"/errorCorrectionLevel:"+n;for(var i=o.length/3,a=[],u=0;u<i;u+=1)for(var f=o[3*u+0],c=o[3*u+1],l=o[3*u+2],h=0;h<f;h+=1)a.push(r(c,l));return a},e}(),b=function(){var t=[],r=0,e={getBuffer:function(){return t},getAt:function(r){var e=Math.floor(r/8);return 1==(t[e]>>>7-r%8&1)},put:function(t,r){for(var n=0;n<r;n+=1)e.putBit(1==(t>>>r-n-1&1))},getLengthInBits:function(){return r},putBit:function(e){var n=Math.floor(r/8);t.length<=n&&t.push(0),e&&(t[n]|=128>>>r%8),r+=1}};return e},M=function(t){var r=a,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+2<r.length;)t.put(o(r.substring(n,n+3)),10),n+=3;n<r.length&&(r.length-n==1?t.put(o(r.substring(n,n+1)),4):r.length-n==2&&t.put(o(r.substring(n,n+2)),7))}},o=function(t){for(var r=0,e=0;e<t.length;e+=1)r=10*r+i(t.charAt(e));return r},i=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);throw"illegal char :"+t};return n},x=function(t){var r=u,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+1<r.length;)t.put(45*o(r.charAt(n))+o(r.charAt(n+1)),11),n+=2;n<r.length&&t.put(o(r.charAt(n)),6)}},o=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);if("A"<=t&&t<="Z")return t.charCodeAt(0)-"A".charCodeAt(0)+10;switch(t){case" ":return 36;case"$":return 37;case"%":return 38;case"*":return 39;case"+":return 40;case"-":return 41;case".":return 42;case"/":return 43;case":":return 44;default:throw"illegal char :"+t}};return n},m=function(r){var e=f,n=t.stringToBytes(r),o={getMode:function(){return e},getLength:function(t){return n.length},write:function(t){for(var r=0;r<n.length;r+=1)t.put(n[r],8)}};return o},L=function(r){var e=c,n=t.stringToBytesFuncs.SJIS;if(!n)throw"sjis not supported.";!function(){var t=n("友");if(2!=t.length||38726!=(t[0]<<8|t[1]))throw"sjis not supported."}();var o=n(r),i={getMode:function(){return e},getLength:function(t){return~~(o.length/2)},write:function(t){for(var r=o,e=0;e+1<r.length;){var n=(255&r[e])<<8|255&r[e+1];if(33088<=n&&n<=40956)n-=33088;else{if(!(57408<=n&&n<=60351))throw"illegal char at "+(e+1)+"/"+n;n-=49472}n=192*(n>>>8&255)+(255&n),t.put(n,13),e+=2}if(e<r.length)throw"illegal char at "+(e+1)}};return i},D=function(){var t=[],r={writeByte:function(r){t.push(255&r)},writeShort:function(t){r.writeByte(t),r.writeByte(t>>>8)},writeBytes:function(t,e,n){e=e||0,n=n||t.length;for(var o=0;o<n;o+=1)r.writeByte(t[o+e])},writeString:function(t){for(var e=0;e<t.length;e+=1)r.writeByte(t.charCodeAt(e))},toByteArray:function(){return t},toString:function(){var r="";r+="[";for(var e=0;e<t.length;e+=1)e>0&&(r+=","),r+=t[e];return r+="]"}};return r},S=function(t){var r=t,e=0,n=0,o=0,i={read:function(){for(;o<8;){if(e>=r.length){if(0==o)return-1;throw"unexpected end of file./"+o}var t=r.charAt(e);if(e+=1,"="==t)return o=0,-1;t.match(/^\s$/)||(n=n<<6|a(t.charCodeAt(0)),o+=6)}var i=n>>>o-8&255;return o-=8,i}},a=function(t){if(65<=t&&t<=90)return t-65;if(97<=t&&t<=122)return t-97+26;if(48<=t&&t<=57)return t-48+52;if(43==t)return 62;if(47==t)return 63;throw"c:"+t};return i},I=function(t,r,e){for(var n=function(t,r){var e=t,n=r,o=new Array(t*r),i={setPixel:function(t,r,n){o[r*e+t]=n},write:function(t){t.writeString("GIF87a"),t.writeShort(e),t.writeShort(n),t.writeByte(128),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(255),t.writeByte(255),t.writeByte(255),t.writeString(","),t.writeShort(0),t.writeShort(0),t.writeShort(e),t.writeShort(n),t.writeByte(0);var r=a(2);t.writeByte(2);for(var o=0;r.length-o>255;)t.writeByte(255),t.writeBytes(r,o,255),o+=255;t.writeByte(r.length-o),t.writeBytes(r,o,r.length-o),t.writeByte(0),t.writeString(";")}},a=function(t){for(var r=1<<t,e=1+(1<<t),n=t+1,i=u(),a=0;a<r;a+=1)i.add(String.fromCharCode(a));i.add(String.fromCharCode(r)),i.add(String.fromCharCode(e));var f,c,g,l=D(),h=(f=l,c=0,g=0,{write:function(t,r){if(t>>>r!=0)throw"length over";for(;c+r>=8;)f.writeByte(255&(t<<c|g)),r-=8-c,t>>>=8-c,g=0,c=0;g|=t<<c,c+=r},flush:function(){c>0&&f.writeByte(g)}});h.write(r,n);var s=0,v=String.fromCharCode(o[s]);for(s+=1;s<o.length;){var d=String.fromCharCode(o[s]);s+=1,i.contains(v+d)?v+=d:(h.write(i.indexOf(v),n),i.size()<4095&&(i.size()==1<<n&&(n+=1),i.add(v+d)),v=d)}return h.write(i.indexOf(v),n),h.write(e,n),h.flush(),l.toByteArray()},u=function(){var t={},r=0,e={add:function(n){if(e.contains(n))throw"dup key:"+n;t[n]=r,r+=1},size:function(){return r},indexOf:function(r){return t[r]},contains:function(r){return void 0!==t[r]}};return e};return i}(t,r),o=0;o<r;o+=1)for(var i=0;i<t;i+=1)n.setPixel(i,o,e(i,o));var a=D();n.write(a);for(var u=function(){var t=0,r=0,e=0,n="",o={},i=function(t){n+=String.fromCharCode(a(63&t))},a=function(t){if(t<0);else{if(t<26)return 65+t;if(t<52)return t-26+97;if(t<62)return t-52+48;if(62==t)return 43;if(63==t)return 47}throw"n:"+t};return o.writeByte=function(n){for(t=t<<8|255&n,r+=8,e+=1;r>=6;)i(t>>>r-6),r-=6},o.flush=function(){if(r>0&&(i(t<<6-r),t=0,r=0),e%3!=0)for(var o=3-e%3,a=0;a<o;a+=1)n+="="},o.toString=function(){return n},o}(),f=a.toByteArray(),c=0;c<f.length;c+=1)u.writeByte(f[c]);return u.flush(),"data:image/gif;base64,"+u};return t}();qrcode.stringToBytesFuncs["UTF-8"]=function(t){return function(t){for(var r=[],e=0;e<t.length;e++){var n=t.charCodeAt(e);n<128?r.push(n):n<2048?r.push(192|n>>6,128|63&n):n<55296||n>=57344?r.push(224|n>>12,128|n>>6&63,128|63&n):(e++,n=65536+((1023&n)<<10|1023&t.charCodeAt(e)),r.push(240|n>>18,128|n>>12&63,128|n>>6&63,128|63&n))}return r}(t)},function(t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&(module.exports=t())}((function(){return qrcode}));
+//# sourceMappingURL=/sm/26b4b0d0b1e283d6b3ec9857ac597d7a60c76ac17be1ef4c965f03086de426bb.map
 </script>
 <span id="toast" hidden style="position:fixed;right:18px;bottom:18px;background:#0f2c5c;color:#fff;padding:9px 16px;border-radius:8px;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:99"></span>
 </body>
