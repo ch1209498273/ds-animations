@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>《数据结构》互动课件</title>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<header class="top">
+  <h1>《数据结构》互动课件</h1>
+  <span class="sub">教材：《数据结构（C语言版）第3版》（严蔚敏 · 李冬梅 · 吴伟民） ｜ 操作：← → 单步，空格 自动播放/暂停，可改输入后自动重新演示</span>
+  <span class="hbtns">
+    <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
+    <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
+  </span>
+  <span class="ver">__BUILD__</span>
+</header>
+<nav class="chapters" id="chapters"></nav>
+<div class="modbar" id="modbar"></div>
+<main>
+  <section class="card">
+    <div class="modtitle"><b id="modname"></b><span id="modnote2" class="modnote"></span></div>
+    <div id="guide" class="guidebox" hidden></div>
+    <div id="stage"></div>
+    <div class="controls">
+      <div id="inputs" class="inputs"></div>
+      <button id="btnReset">⟲ 重置</button>
+      <button id="btnPrev">◀ 上一步</button>
+      <button id="btnNext">下一步 ▶</button>
+      <button id="btnPlay">▶ 自动播放</button>
+      <button id="btnShot" title="把当前画面导出为 PNG 图片（可插入课件/试卷）">📷 截图</button>
+      <button id="btnLink" title="复制当前页面链接（可直达本模块本帧）">🔗 链接</button>
+      <button id="btnPractice" title="练习模式：隐藏解说，先预测下一步再揭示">🎯 练习</button>
+      <button id="btnGuide" title="显示/隐藏使用引导">? 引导</button>
+      <label class="inp">速度
+        <select id="speed">
+          <option value="0.5">0.5×</option>
+          <option value="1" selected>1×</option>
+          <option value="2">2×</option>
+          <option value="4">4×</option>
+        </select>
+      </label>
+      <input type="range" id="seek" min="0" max="0" value="0" title="拖动跳转到任意一步">
+      <span id="pos" class="pos"></span>
+    </div>
+  </section>
+  <aside class="side">
+    <div class="sidehead">教材伪代码（当前执行行高亮）</div>
+    <div class="codebox"><pre id="code"></pre></div>
+    <div class="sidehead">状态面板</div>
+    <table class="panel" id="panel"></table>
+    <div id="msg" class="msg"></div>
+  </aside>
+</main>
+<script>
+//__CORE__
+</script>
+<script>
+//__MODULES__
+</script>
+<span id="toast" hidden style="position:fixed;right:18px;bottom:18px;background:#0f2c5c;color:#fff;padding:9px 16px;border-radius:8px;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:99"></span>
+</body>
+</html>

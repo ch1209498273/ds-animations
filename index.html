@@ -58,6 +58,42 @@ table.panel td:first-child{color:var(--muted);width:36%}
 .msg{background:var(--amber-bg);border:1px solid #f5d48f;border-radius:10px;padding:8px 13px;font-size:13.5px;line-height:1.6;flex:none;max-height:22%;overflow:auto}
 .hl{animation:pulse 1.1s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.45}}
+/* 头部功能按钮 */
+.hbtns{display:inline-flex;gap:6px;margin-left:auto}
+.hbtns button{border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;border-radius:6px;
+  padding:3px 10px;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.hbtns button:hover,.hbtns button.on{background:rgba(255,255,255,.18)}
+/* 练习模式：解说栏遮罩 */
+.msg.quizcover{cursor:pointer;background:#eef4ff;border-color:#b9d0f5}
+.msg .quizhint{color:#1e4fa3;font-weight:600}
+/* 总目录覆盖层 */
+#catalog{position:fixed;inset:0;background:rgba(15,28,50,.55);z-index:60;overflow:auto;padding:26px 18px}
+#catalog .ovhead{max-width:1060px;margin:0 auto 10px;background:#fff;border-radius:12px;padding:12px 18px;
+  display:flex;align-items:baseline;gap:12px;font-size:16px}
+#catalog .ovhead span{color:#5f6b76;font-size:13px}
+#catalog .ovhead button{margin-left:auto;border:1px solid var(--line);background:#f8fafc;border-radius:6px;
+  padding:4px 12px;cursor:pointer;font-size:13px}
+#catalog .ovch{max-width:1060px;margin:14px auto 6px;color:#0f2c5c;font-weight:700;font-size:14.5px}
+#catalog .ovch i{font-weight:400;color:#5f6b76;font-size:12.5px;margin-left:8px}
+#catalog .ovgrid{max-width:1060px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+#catalog .ovcard{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:5px}
+#catalog .ovcard b{font-size:13.5px;color:var(--ink)}
+#catalog .ovcard span{font-size:11.5px;color:#5f6b76;min-height:16px}
+#catalog .ovbtns{display:flex;gap:6px;margin-top:2px}
+#catalog .ovbtns button{border:1px solid var(--line);background:#f8fafc;border-radius:6px;padding:3px 10px;
+  font-size:12px;cursor:pointer;color:var(--ink)}
+#catalog .ovbtns button:hover{border-color:var(--blue);color:var(--blue)}
+/* 投影模式：全局放大 */
+body.proj{font-size:17px}
+body.proj header.top h1{font-size:24px}
+body.proj header.top .sub{font-size:14px}
+body.proj nav.chapters button{font-size:16px;padding:6px 18px}
+body.proj .modbar .pill{font-size:15.5px;padding:7px 18px}
+body.proj .modtitle b{font-size:19px}
+body.proj .controls button{font-size:15.5px;padding:8px 14px}
+body.proj .codebox pre{font-size:14.5px}
+body.proj table.panel{font-size:15px}
+body.proj .msg{font-size:16px}
 @media (max-width:1024px){
   body{overflow:auto;height:auto}
   main{grid-template-columns:1fr;overflow:visible}
@@ -70,8 +106,12 @@ table.panel td:first-child{color:var(--muted);width:36%}
 <body>
 <header class="top">
   <h1>《数据结构》互动课件</h1>
-  <span class="sub">教材：《数据结构（C语言版）第3版》（严蔚敏、李冬梅） ｜ 操作：← → 单步，空格 自动播放/暂停，可改输入后自动重新演示</span>
-  <span class="ver">v1.6 · 构建 2026-09-13 00:43</span>
+  <span class="sub">教材：《数据结构（C语言版）第3版》（严蔚敏 · 李冬梅 · 吴伟民） ｜ 操作：← → 单步，空格 自动播放/暂停，可改输入后自动重新演示</span>
+  <span class="hbtns">
+    <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
+    <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
+  </span>
+  <span class="ver">v2.0 · 构建 2026-09-19 01:12</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -88,6 +128,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
       <button id="btnPlay">▶ 自动播放</button>
       <button id="btnShot" title="把当前画面导出为 PNG 图片（可插入课件/试卷）">📷 截图</button>
       <button id="btnLink" title="复制当前页面链接（可直达本模块本帧）">🔗 链接</button>
+      <button id="btnPractice" title="练习模式：隐藏解说，先预测下一步再揭示">🎯 练习</button>
       <button id="btnGuide" title="显示/隐藏使用引导">? 引导</button>
       <label class="inp">速度
         <select id="speed">
@@ -132,6 +173,11 @@ table.panel td:first-child{color:var(--muted);width:36%}
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   DSC.h = {
     C: C, esc: esc,
+    /* 逗号/空格分隔的整数串 → 数组（各章模块通用） */
+    parse: function (s) {
+      return String(s).split(/[,，\s]+/).filter(function (x) { return x !== ''; })
+        .map(Number).filter(function (x) { return !isNaN(x); });
+    },
     svg: function (w, hh, inner) {
       return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + hh + '">' + inner + '</svg>';
     },
@@ -184,13 +230,26 @@ table.panel td:first-child{color:var(--muted);width:36%}
     }
   };
 
-  /* ---------- 章节信息 ---------- */
+  /* ---------- 章节信息（对齐严蔚敏《数据结构（C语言版）》经典八章体系） ---------- */
   var CH = {
-    2: { name: '第2章 线性表', note: '对应大纲第二章' },
-    3: { name: '第3章 栈和队列', note: '对应大纲第三章' },
-    5: { name: '第5章 树和二叉树', note: '对应大纲第四章' },
-    6: { name: '第6章 图', note: '对应大纲第五章' }
+    1: { name: '第1章 绪论', note: '算法与时间复杂度分析' },
+    2: { name: '第2章 线性表', note: '顺序存储与链式存储' },
+    3: { name: '第3章 栈和队列', note: '操作受限的线性表及其应用' },
+    4: { name: '第4章 串和数组', note: '模式匹配与矩阵压缩存储' },
+    5: { name: '第5章 树和二叉树', note: '遍历、线索与哈夫曼树' },
+    6: { name: '第6章 图', note: '遍历与四大应用' },
+    7: { name: '第7章 查找', note: '静态/动态查找与散列表' },
+    8: { name: '第8章 排序', note: '八大内部排序' }
   };
+
+  /* ---------- 模块自动编号：按注册顺序显示 ①②③…，模块名无需手写圈号 ---------- */
+  var CIRCLED = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺';
+  var CIRC_RE = /^[①-⑳㉑-㉟㊱-㊺]+\s*/;
+  function autoNumber() {
+    DSC.mods.forEach(function (m, i) {
+      m.disp = (CIRCLED[i] || (i + 1) + '.') + ' ' + m.name.replace(CIRC_RE, '');
+    });
+  }
 
   /* ---------- 状态 ---------- */
   var cur = null, frames = [], code = [], idx = 0, timer = null, speed = 1;
@@ -209,6 +268,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
   }
 
   function init() {
+    autoNumber();
     var chapters = [];
     DSC.mods.forEach(function (m) { if (chapters.indexOf(m.ch) < 0) chapters.push(m.ch); });
     chapters.sort(function (a, b) { return a - b; });
@@ -221,9 +281,12 @@ table.panel td:first-child{color:var(--muted);width:36%}
     });
     bindControls();
     document.addEventListener('keydown', keys);
-    var h = parseHash();
+    applyHash(parseHash());
+  }
+
+  function applyHash(h) {
     var target = h && h.m ? DSC.mods.filter(function (x) { return x.id === h.m; })[0] : null;
-    selectChapter(target ? target.ch : chapters[0]);
+    selectChapter(target ? target.ch : DSC.mods.length ? DSC.mods[0].ch : 2);
     if (target) {
       var pill = document.querySelector('#modbar .pill[data-id="' + target.id + '"]');
       selectModule(target, pill);
@@ -244,7 +307,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
     for (var i = 0; i < bs.length; i++) bs[i].classList.toggle('active', +bs[i].dataset.ch === c);
     var bar = $('modbar'); bar.innerHTML = '';
     DSC.mods.filter(function (m) { return m.ch === c; }).forEach(function (m) {
-      var p = el('button', 'pill', m.name);
+      var p = el('button', 'pill', m.disp || m.name);
       p.dataset.id = m.id;
       p.onclick = function () { selectModule(m, p); };
       bar.appendChild(p);
@@ -284,7 +347,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
       ctl.addEventListener('change', build);
       box.appendChild(wrap);
     });
-    $('modname').textContent = m.name;
+    $('modname').textContent = m.disp || m.name;
     $('modnote2').textContent = m.note || '';
     renderGuide(false);
     build();
@@ -326,6 +389,9 @@ table.panel td:first-child{color:var(--muted);width:36%}
       return '<tr><td>' + esc(k) + '</td><td>' + p[k] + '</td></tr>';
     }).join('');
     $('msg').innerHTML = f.msg || '';
+    if (practice && revealIdx !== idx) {
+      $('msg').innerHTML = '<span class="quizhint">🎯 练习中——先预测：下一步会发生什么？点此处看解说</span>';
+    }
     updateProgress();
   }
 
@@ -373,6 +439,13 @@ table.panel td:first-child{color:var(--muted);width:36%}
     });
     $('btnShot').onclick = exportFrame;
     $('btnLink').onclick = copyLink;
+    $('btnPractice').onclick = togglePractice;
+    $('btnProj').onclick = toggleProject;
+    $('btnCatalog').onclick = openCatalog;
+    try { if (localStorage.getItem('dsc_proj') === '1') { document.body.classList.add('proj'); $('btnProj').classList.add('on'); } } catch (e) {}
+    $('msg').addEventListener('click', function () {
+      if (practice && revealIdx !== idx) { revealIdx = idx; draw(); }
+    });
   }
   var dismissed = {};
   try { dismissed = JSON.parse(localStorage.getItem('dsc_guide') || '{}') || {}; } catch (e) { dismissed = {}; }
@@ -384,7 +457,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
     var g = $('guide');
     if (!cur) { g.hidden = true; return; }
     if (cur.guide && cur.guide.length && (force || !dismissed[cur.id])) {
-      g.innerHTML = '<div class="gt">💡 使用引导 · ' + esc(cur.name) + '</div><ol>' +
+      g.innerHTML = '<div class="gt">💡 使用引导 · ' + esc(cur.disp || cur.name) + '</div><ol>' +
         cur.guide.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') +
         '</ol><button id="btnGo">开始演示 ▶</button>';
       g.hidden = false;
@@ -411,7 +484,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
       ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       var a = document.createElement('a');
-      var name = (cur ? cur.name.replace(/^[①-⑫]+\s*/, '') : '帧');
+      var name = (cur ? (cur.disp || cur.name).replace(CIRC_RE, '') : '帧');
       a.download = '数据结构-' + name + '-第' + (idx + 1) + '帧.png';
       a.href = canvas.toDataURL('image/png');
       a.click();
@@ -426,6 +499,64 @@ table.panel td:first-child{color:var(--muted);width:36%}
     function fail() { window.prompt('全选并复制本页链接（Ctrl+C）：', url); }
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(ok, fail);
     else fail();
+  }
+  /* ---------- 练习模式：先预测下一步，再点击揭示解说 ---------- */
+  var practice = false, revealIdx = -1;
+  function togglePractice() {
+    practice = !practice; revealIdx = -1;
+    $('btnPractice').classList.toggle('on', practice);
+    $('msg').classList.toggle('quizcover', practice);
+    draw();
+    toast(practice ? '练习模式：先自己预测，再点击解说栏揭示' : '已退出练习模式');
+  }
+  /* ---------- 投影模式：大字号高对比，便于课堂投屏 ---------- */
+  function toggleProject() {
+    var on = document.body.classList.toggle('proj');
+    try { localStorage.setItem('dsc_proj', on ? '1' : ''); } catch (e) {}
+    $('btnProj').classList.toggle('on', on);
+  }
+  /* ---------- 总目录：按章分组全景，一键直达 / 复制深链接 ---------- */
+  function moduleURL(m) {
+    return location.origin + location.pathname + '#m=' + m.id;
+  }
+  function openCatalog() {
+    var html = '<div class="ovhead"><b>📚 全部动画目录</b><span>' + DSC.mods.length + ' 个动画 · 点击卡片直达</span>' +
+      '<button id="ovClose">✕</button></div>';
+    var chapters = [];
+    DSC.mods.forEach(function (m) { if (chapters.indexOf(m.ch) < 0) chapters.push(m.ch); });
+    chapters.sort(function (a, b) { return a - b; });
+    chapters.forEach(function (c) {
+      html += '<div class="ovch">' + esc(CH[c] ? CH[c].name : ('第' + c + '章')) +
+        (CH[c] ? ' <i>' + esc(CH[c].note) + '</i>' : '') + '</div><div class="ovgrid">';
+      DSC.mods.filter(function (m) { return m.ch === c; }).forEach(function (m) {
+        html += '<div class="ovcard" data-id="' + m.id + '"><b>' + esc(m.disp || m.name) + '</b>' +
+          '<span>' + esc(m.note || '') + '</span>' +
+          '<div class="ovbtns"><button data-act="go">打开 ▶</button>' +
+          '<button data-act="copy">复制链接</button></div></div>';
+      });
+      html += '</div>';
+    });
+    var ov = document.createElement('div');
+    ov.id = 'catalog'; ov.innerHTML = html;
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function (e) {
+      var act = e.target.dataset && e.target.dataset.act;
+      var card = e.target.closest ? e.target.closest('.ovcard') : null;
+      if (e.target.id === 'ovClose' || e.target === ov) { document.body.removeChild(ov); return; }
+      if (!card) return;
+      var m = DSC.mods.filter(function (x) { return x.id === card.dataset.id; })[0];
+      if (!m) return;
+      if (act === 'go') {
+        document.body.removeChild(ov);
+        location.hash = '#m=' + m.id;
+        applyHash(parseHash());
+      } else if (act === 'copy') {
+        var url = moduleURL(m);
+        if (navigator.clipboard && navigator.clipboard.writeText)
+          navigator.clipboard.writeText(url).then(function () { toast('已复制：' + (m.disp || m.name)); }, function () { window.prompt('全选复制：', url); });
+        else window.prompt('全选复制：', url);
+      }
+    });
   }
   function keys(e) {
     if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
@@ -452,7 +583,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
 
   DSC.reg({
     id: 'seqList', ch: 2, name: '① 顺序表的插入与删除',
-    note: '大纲 2.4 线性表的顺序表示和实现 ｜ cp2-01',
+    note: '教材 2.4 线性表的顺序表示和实现（插入/删除、移动次数分析）',
     guide: [
       '顶部选择"插入/删除"，改位置 i 或初始序列后自动重新演示',
       '看重点：元素逐格移动，源格显示"空"，空位向插入点/表尾迁移',
@@ -669,7 +800,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
 
   DSC.reg({
     id: 'linkList', ch: 2, name: '② 单链表的插入与删除',
-    note: '大纲 2.5 线性表的链式表示和实现（先连后断）｜ cp2-02',
+    note: '教材 2.5 线性表的链式表示和实现（先连后断、与顺序表对比）',
     guide: [
       '先看 p 沿箭头逐结点走到第 i−1 个位置（头结点不计入表长）',
       '插入两步顺序不能颠倒：先 s->next = p->next 接后继，再 p->next = s 接新结点',
@@ -925,7 +1056,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
 
   DSC.reg({
     id: 'seqStack', ch: 3, name: '③ 顺序栈：进栈与出栈',
-    note: '大纲 3.3 栈的表示和操作的实现（栈空/栈满判定、上溢/下溢）｜ cp3-01',
+    note: '教材 3.3 栈的表示和操作的实现（栈空/栈满判定、上溢/下溢）',
     inputs: [
       {
         key: 'scene', label: '演示场景', type: 'select', options: [
@@ -1131,7 +1262,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
 
   DSC.reg({
     id: 'circQueue', ch: 3, name: '④ 假溢出与循环队列：入队与出队',
-    note: '大纲 3.5 队列的表示和操作的实现（假溢出、队空/队满三方案）｜ cp3-03',
+    note: '教材 3.5 队列的表示和操作的实现（假溢出、队空/队满三方案）',
     inputs: [
       {
         key: 'demo', label: '演示场景', type: 'select', options: [
@@ -1139,7 +1270,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
           ['fewer', '② 循环队列：少用一个元素空间（教材主推）'],
           ['size', '③ 循环队列：增设 size 变量计数'],
           ['tag', '④ 循环队列：增设 tag 标志（实验一(四)）']
-        ], value: 'linear'
+        ], value: 'fewer'
       }
     ],
     run: function (v) {
@@ -1457,7 +1588,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
 
   DSC.reg({
     id: 'hanoi', ch: 3, name: '⑤ 递归调用栈：汉诺塔',
-    note: '大纲 3.4 栈与递归（递归工作栈、分治）｜ cp3-02',
+    note: '教材 3.4 栈与递归（递归工作栈）',
     guide: [
       '右侧递归工作栈与左侧圆盘移动完全同步：压栈=展开一层计划，弹栈=该层完成',
       '每个移动帧都标注由哪个栈帧的哪一步触发',
@@ -1592,7 +1723,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
 
   DSC.reg({
     id: 'bracket', ch: 3, name: '⑥ 括号匹配：栈的应用',
-    note: '大纲 3.6 案例分析与实现（案例3.2 括号匹配）｜ cp3-04',
+    note: '教材 3.6 案例分析与实现（案例3.2 括号匹配）',
     guide: [
       '左括号一律进栈；遇到右括号时与栈顶配对，配对成功才弹出',
       '三种失败情形：① 栈空遇右括号 ② 栈顶类型不符 ③ 扫描结束栈非空',
@@ -1755,7 +1886,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
 
   DSC.reg({
     id: 'expression', ch: 3, name: '⑦ 表达式求值：双栈法（案例3.3）',
-    note: '大纲 3.6 案例分析与实现（案例3.3 表达式求值）｜ cp3-04',
+    note: '教材 3.6 案例分析与实现（案例3.3 表达式求值）',
     guide: [
       '两个栈分工：OPTR 只存运算符（栈底压 #），OPND 只存操作数',
       '每读一个运算符先查优先级表：栈顶低 → 入栈；栈顶高 → 弹两数一符先计算；相等 = 括号相遇，脱括号',
@@ -1880,13 +2011,13 @@ table.panel td:first-child{color:var(--muted);width:36%}
       }
       vstack(110, 'OPTR（运算符）', s.optr, C.blue, C.blueBg);
       vstack(320, 'OPND（操作数）', s.opnd, C.green, C.greenBg);
-      // 计算示意
+      // 计算示意（位于优先级表下方空白区，避免遮挡表格）
       if (s.calc) {
-        g += h.rect(560, 380, 330, 52, { fill: C.amberBg, stroke: C.amber, rx: 9 });
-        g += h.txt(725, 412, '弹栈计算：' + s.calc.a + ' ' + s.calc.theta + ' ' + s.calc.b + ' = ' + s.calc.r, { size: 17, w: 700, fill: C.amber });
+        g += h.rect(560, 364, 330, 50, { fill: C.amberBg, stroke: C.amber, rx: 9 });
+        g += h.txt(725, 395, '弹栈计算：' + s.calc.a + ' ' + s.calc.theta + ' ' + s.calc.b + ' = ' + s.calc.r, { size: 17, w: 700, fill: C.amber });
       }
       // 优先级表（右侧）
-      var px = 620, py = 150, cw2 = 40, ch2 = 30;
+      var px = 620, py = 150, cw2 = 40, ch2 = 26;
       g += h.txt(px + (cw2 + 7 * cw2) / 2 - 20, py - 12, '优先级表（行=栈顶，列=当前）', { size: 13, w: 600 });
       g += h.txt(px + 14, py + ch2 / 2 + 5, '↓', { size: 11, fill: C.muted });
       for (var j = 0; j < 7; j++) g += h.txt(px + cw2 + j * cw2 + cw2 / 2, py + ch2 / 2 + 5, OPS[j], { size: 13, w: 700 });
@@ -1903,7 +2034,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
             rel === ' ' ? '×' : rel, { size: 13, w: isCur ? 700 : 400, fill: isCur ? C.amber : (rel === '>' ? C.red : rel === '<' ? C.blue : C.ink) });
         }
       }
-      g += h.txt(px + cw2 + 140, py + 8 * ch2 + 16, '> 弹栈计算 ｜ < 入栈 ｜ = 脱括号', { size: 11.5, fill: C.muted, anchor: 'start' });
+      g += h.txt(px + cw2 + 140, 352, '> 弹栈计算 ｜ < 入栈 ｜ = 脱括号', { size: 11.5, fill: C.muted, anchor: 'start' });
       // 结果
       if (s.done && s.result != null) {
         g += h.rect(W / 2 - 160, 430, 320, 54, { fill: C.greenBg, stroke: C.green, rx: 10, sw: 2 });
@@ -1912,6 +2043,349 @@ table.panel td:first-child{color:var(--muted);width:36%}
       if (s.err) {
         g += h.rect(W / 2 - 200, 440, 400, 36, { fill: C.redBg, stroke: C.red, rx: 8 });
         g += h.txt(W / 2, 463, '✗ ' + s.err, { size: 14.5, fill: C.red, w: 600 });
+      }
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
+/* ==================== ch4/01kmp.js ==================== */
+/* 动画：串的模式匹配——BF 与 KMP 对照 + next 数组计算，教材 4.3，例题 S="acabaabaabcacaabc", T="abaabcac" */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C;
+
+  var CODE_BF = [
+    'int Index_BF(SString S, SString T) {',
+    '    i = 1;  j = 1;',
+    '    while (i <= S.len && j <= T.len) {',
+    '        if (S[i] == T[j])  { ++i;  ++j; }    // 匹配：双指针前进',
+    '        else { i = i - j + 2;  j = 1; }      // 失配：i 回退到本趟起点下一位',
+    '    }',
+    '    return j > T.len ? i - T.len : 0;',
+    '}'
+  ];
+  var CODE_KMP = [
+    'void get_next(SString T, int next[]) {     // 预处理（前缀自我匹配）',
+    '    i = 1;  next[1] = 0;  j = 0;',
+    '    while (i < T.len) {',
+    '        if (j == 0 || T[i] == T[j]) { ++i;  ++j;  next[i] = j; }',
+    '        else  j = next[j];',
+    '    }',
+    '}',
+    'int Index_KMP(SString S, SString T, int next[]) {',
+    '    i = 1;  j = 1;',
+    '    while (i <= S.len && j <= T.len) {',
+    '        if (j == 0 || S[i] == T[j]) { ++i;  ++j; }   // 匹配则前进',
+    '        else  j = next[j];                    // 失配：i 不回退！模式右滑',
+    '    }',
+    '    return j > T.len ? i - T.len : 0;',
+    '}'
+  ];
+
+  var DEF_S = 'acabaabaabcacaabc', DEF_T = 'abaabcac';
+
+  /* 教材定义（1 基）：next[j] = 前缀 p1..p(k-1) 与 p(j-k+1)..p(j-1) 相等的最大 k，next[1]=0 */
+  function bruteNext(T) {
+    var nx = [0];
+    for (var j = 2; j <= T.length; j++) {
+      var k = j - 1;
+      while (k > 0) {
+        var ok = true;
+        for (var t = 0; t < k - 1; t++) if (T[t] !== T[j - k + t]) { ok = false; break; }
+        if (ok) break;
+        k--;
+      }
+      nx.push(k);
+    }
+    return nx;
+  }
+
+  DSC.reg({
+    id: 'kmp', ch: 4, name: '模式匹配：BF 与 KMP',
+    note: '教材 4.3 串的模式匹配（BF 回退对比 KMP 不回退、next 数组）',
+    guide: [
+      'BF（朴素）：失配时主串指针 i **回退**到本趟起点下一位、模式从头再来——浪费在重复比较',
+      'KMP：失配时 **i 永不回退**，只有模式指针 j 滑到 next[j]——next 预先算好"失配后从模式的哪一位继续"',
+      '动画分两阶段：先逐格算出 next，再同屏对照 BF / KMP 的比较次数',
+      '复杂度：BF 最坏 O(m×n)；KMP O(m+n)——主串越长、模式前缀重复越多，KMP 优势越大'
+    ],
+    inputs: [
+      { key: 's', label: '主串 S', type: 'text', value: DEF_S },
+      { key: 't', label: '模式 T', type: 'text', value: DEF_T }
+    ],
+    run: function (v) {
+      var S = String(v.s || DEF_S).replace(/\s+/g, ''), T = String(v.t || DEF_T).replace(/\s+/g, '');
+      if (T.length < 2 || T.length > 12) throw Error('模式串长度请取 2~12');
+      if (S.length < T.length || S.length > 24) throw Error('主串需长于模式且不超过 24 个字符');
+      if (/[^a-z]/.test(S + T)) throw Error('请只用小写字母 a~z');
+      var frames = [];
+      var nx = [0].concat(bruteNext(T));           // nx[1..len]
+
+      function F(line, msg, extra, mk, code) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { 阶段: extra.phase || '—', 比较次数: extra.cmps != null ? extra.cmps + ' 次' : '—' },
+          snap: { S: S, T: T, nx: nx, phase: extra.phase || 'next', si: extra.si, ti: extra.ti, mark: mk }
+        });
+      }
+
+      F(0, '阶段一：求模式 T=' + T + ' 的 next 数组。next[j] = T 前 j−1 个字符的"最长相等前后缀长度 + 1"。', { phase: 'next' });
+      for (var j = 2; j <= T.length; j++) {
+        var k = nx[j];
+        F(0, 'next[' + j + ']：前 ' + (j - 1) + ' 个字符 "' + T.slice(0, j - 1) + '" 的最长相等前后缀长度 = ' + (k - 1) + '（前缀 ' + T.slice(0, k - 1) + ' == 后缀 ' + T.slice(j - 1 - (k - 1), j - 1) + '）→ next[' + j + '] = ' + k + '。', { phase: 'next', ti: j - 1 });
+      }
+      F(0, 'next = [' + nx.slice(1).join(', ') + ']。含义：模式第 j 位失配时，j 滑到 next[j] 继续，主串指针 i 不动。', { phase: 'next' }, 'nextdone');
+
+      /* BF */
+      var i = 0, jj = 0, bfc = 0;
+      F(1, '阶段二 · BF：从主串第 1 位开始逐趟对齐比较。', { phase: 'BF', si: 0, ti: 0 }, 'bfstart');
+      while (i < S.length && jj < T.length) {
+        bfc++;
+        var m1 = S[i] === T[jj];
+        F(3, 'BF 比较 #' + bfc + '：S[' + (i + 1) + ']=' + S[i] + (m1 ? ' = ' : ' ≠ ') + 'T[' + (jj + 1) + ']=' + T[jj] + (m1 ? '，双指针前进。' : '，失配 → i 回退到第 ' + (i - jj + 2) + ' 位，j 归 1。'),
+          { phase: 'BF', si: i, ti: jj, cmps: bfc });
+        if (m1) { i++; jj++; } else { i = i - jj + 1; jj = 0; }
+      }
+      var bfRes = jj >= T.length ? '成功：匹配位置 = 主串第 ' + (i - T.length + 1) + ' 位' : '失败';
+      F(6, 'BF 结束：' + bfRes + '，共比较 ' + bfc + ' 次。每趟失配 i 都要回退，最坏 O(m×n)。', { phase: 'BF', cmps: bfc, si: i, ti: jj }, 'bfdone');
+
+      /* KMP */
+      var i2 = 0, j2 = 0, kc = 0;
+      F(14, '阶段二 · KMP：同样的主串与模式，j 失配时沿 next 滑动。', { phase: 'KMP', si: 0, ti: 0, cmps: 0 }, 'kmpstart');
+      while (i2 < S.length && j2 < T.length) {
+        kc++;
+        var m2 = S[i2] === T[j2];
+        if (m2) { F(20, 'KMP 比较 #' + kc + '：S[' + (i2 + 1) + ']=' + S[i2] + ' = T[' + (j2 + 1) + ']=' + T[j2] + '，前进。', { phase: 'KMP', si: i2, ti: j2, cmps: kc }); i2++; j2++; }
+        else if (j2 === 0) { F(21, 'KMP 比较 #' + kc + '：S[' + (i2 + 1) + ']=' + S[i2] + ' ≠ T[1]=' + T[0] + '，模式头失配 → 直接右移一位。', { phase: 'KMP', si: i2, ti: j2, cmps: kc }); i2++; }
+        else { var nj = nx[j2 + 1] - 1; F(21, 'KMP 比较 #' + kc + '：S[' + (i2 + 1) + ']=' + S[i2] + ' ≠ T[' + (j2 + 1) + ']=' + T[j2] + ' → j 滑到 next[' + (j2 + 1) + ']=' + (nj + 1) + '，**i 不回退**！', { phase: 'KMP', si: i2, ti: j2, cmps: kc }); j2 = nj; }
+      }
+      var kRes = j2 >= T.length ? '成功：匹配位置 = 主串第 ' + (i2 - T.length + 1) + ' 位' : '失败';
+      F(25, 'KMP 结束：' + kRes + '，共比较 ' + kc + ' 次。', { phase: 'KMP', cmps: kc, si: i2, ti: j2 }, 'kmpdone');
+      F(0, '对照结论：BF ' + bfc + ' 次 vs KMP ' + kc + ' 次。next 只需 O(n) 预处理一次；对同一模式的多次查找都可复用。主串越长、模式前缀重复越多，KMP 优势越大。', { phase: 'KMP', cmps: kc, mark: 'final' });
+      return { code: CODE_BF.concat(CODE_KMP), frames: frames };
+    },
+    render: function (s) {
+      var W = 980, H = 470, S = s.S, T = s.T, nx = s.nx;
+      var g = '';
+      g += h.txt(W / 2, 30, s.phase === 'next' ? '阶段一：next 数组' : '阶段二：' + s.phase + ' 执行对照', { size: 17, w: 600 });
+      /* next 表 */
+      var cw = 34, x0 = (W - (T.length + 1) * cw) / 2;
+      g += h.txt(x0 - 14, 78, 'j', { size: 11.5, fill: C.muted, anchor: 'end' });
+      g += h.txt(x0 - 14, 104, 'T[j]', { size: 11.5, fill: C.muted, anchor: 'end' });
+      g += h.txt(x0 - 14, 130, 'next', { size: 11.5, fill: C.muted, anchor: 'end' });
+      for (var j = 1; j <= T.length; j++) {
+        var x = x0 + j * cw;
+        var hot = s.phase !== 'next' ? false : (s.ti != null && j === s.ti + 1);
+        g += h.rect(x, 62, cw - 3, 24, { fill: '#fff', stroke: C.line, sw: 1, rx: 3 });
+        g += h.txt(x + (cw - 3) / 2, 79, String(j), { size: 12, fill: C.muted });
+        g += h.rect(x, 88, cw - 3, 24, { fill: hot ? C.amberBg : '#fff', stroke: hot ? C.amber : C.line, sw: hot ? 2 : 1, rx: 3 });
+        g += h.txt(x + (cw - 3) / 2, 105, T[j - 1], { size: 13, w: 700 });
+        g += h.rect(x, 114, cw - 3, 24, { fill: hot ? C.amberBg : C.greyBg, stroke: hot ? C.amber : C.line, sw: hot ? 2 : 1, rx: 3 });
+        g += h.txt(x + (cw - 3) / 2, 131, String(nx[j]), { size: 13, w: 700, fill: hot ? C.amber : C.blue });
+      }
+      if (s.phase === 'next') {
+        g += h.txt(W / 2, 210, 'T = ' + T, { size: 17, w: 700, family: 'Consolas,monospace' });
+        g += h.txt(W / 2, 244, '前缀 ↑（从 T[1] 开始）与后缀 ↑（到 T[j−1] 结束）逐长对照，取最长相等者', { size: 12.5, fill: C.muted });
+        return h.svg(W, H, g);
+      }
+      /* 匹配视图 */
+      var scw = Math.min(40, Math.floor((W - 140) / S.length));
+      var sx = (W - (S.length * scw)) / 2, sy = 210;
+      var align = (s.si != null && s.ti != null) ? s.si - s.ti : 0;
+      g += h.txt(sx - 10, sy + 26, 'S', { size: 14, fill: C.muted, anchor: 'end', w: 700 });
+      for (var k = 0; k < S.length; k++) {
+        var x = sx + k * scw;
+        var isCmp = s.si === k;
+        var matched = k >= align && k < s.si;
+        var f = '#fff', st = C.grey, sw = 1.4;
+        if (matched) { f = C.greenBg; st = C.green; }
+        if (isCmp) { f = C.amberBg; st = C.amber; sw = 2.4; }
+        g += h.rect(x, sy, scw - 2, 36, { fill: f, stroke: st, sw: sw, rx: 4 });
+        g += h.txt(x + (scw - 2) / 2, sy + 24, S[k], { size: 14.5, w: 700 });
+        g += h.txt(x + (scw - 2) / 2, sy + 52, String(k + 1), { size: 9.5, fill: C.muted });
+      }
+      var ty = sy + 66;
+      g += h.txt(sx - 10, ty + 26, 'T', { size: 14, fill: C.muted, anchor: 'end', w: 700 });
+      var tx0 = sx + align * scw;
+      for (var k2 = 0; k2 < T.length; k2++) {
+        var x2 = tx0 + k2 * scw;
+        if (x2 < sx - scw) continue;
+        var isCmp2 = s.ti === k2;
+        var f2 = '#fff', st2 = C.grey, sw2 = 1.4;
+        if (isCmp2) { f2 = C.amberBg; st2 = C.amber; sw2 = 2.4; }
+        else if (k2 < s.ti) { f2 = C.greenBg; st2 = C.green; }
+        g += h.rect(x2, ty, scw - 2, 36, { fill: f2, stroke: st2, sw: sw2, rx: 4 });
+        g += h.txt(x2 + (scw - 2) / 2, ty + 24, T[k2], { size: 14.5, w: 700 });
+      }
+      if (s.mark === 'bfdone' || s.mark === 'kmpdone' || s.mark === 'final') {
+        var win = (s.mark !== 'bfdone' || true);
+        g += h.rect(sx + (s.si - T.length) * scw, sy - 6, T.length * scw, 48, { fill: 'none', stroke: s.mark === 'bfdone' ? C.green : C.blue, sw: 2.5, rx: 6, dash: '5,4' });
+      }
+      g += h.txt(W / 2, 388, s.phase === 'BF' ? 'BF：失配 → i 回退到本趟起点下一位（绿色=本趟已比较过）' : 'KMP：失配 → 仅模式右滑，主串指针 i 从不左移', { size: 13, fill: C.muted });
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
+/* ==================== ch4/02matrix.js ==================== */
+/* 动画：矩阵压缩存储——对称矩阵下标映射 + 稀疏矩阵三元组快速转置，教材 4.5/4.6 */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C;
+
+  var CODE_SYM = [
+    '// 对称矩阵（下三角）压缩：aij（i≥j）存入 sa[]',
+    'k = i*(i-1)/2 + j - 1      // 下标从 0 起：第 i 行前有 1+2+…+(i-1) 个元素',
+    'aij（i<j）与 aji 对称：读 sa[ j*(j-1)/2 + i - 1 ]'
+  ];
+  var CODE_SPT = [
+    'void FastTransposeSMatrix(TSMatrix M, TSMatrix &T) {',
+    '    // num[col]：M 中第 col 列（即 T 的第 col 行）非零元个数',
+    '    for (col = 1; col <= M.nu; ++col)  num[col] = 0;',
+    '    for (p = 1; p <= M.tu; ++p)  ++num[M.data[p].j];',
+    '    cpot[1] = 1;                            // cpot：T 中每行的起始位置',
+    '    for (col = 2; col <= M.nu; ++col)',
+    '        cpot[col] = cpot[col-1] + num[col-1];',
+    '    for (p = 1; p <= M.tu; ++p) {           // 一遍扫描完成转置',
+    '        col = M.data[p].j;  q = cpot[col];',
+    '        T.data[q].i = M.data[p].j;  T.data[q].j = M.data[p].i;',
+    '        T.data[q].e = M.data[p].e;  ++cpot[col];',
+    '    }',
+    '}'
+  ];
+
+  var DEF_MTX = '6,0,0,2, 0,5,0,0, 0,0,9,0, 2,0,0,7';   // 4×4 对称例
+
+  DSC.reg({
+    id: 'matrix', ch: 4, name: '矩阵压缩存储',
+    note: '教材 4.5/4.6 特殊矩阵与稀疏矩阵（对称矩阵映射、三元组快速转置）',
+    guide: [
+      '场景①对称矩阵：只存下三角。第 i 行前有 1+2+…+(i−1) = i(i−1)/2 个元素 → aij 存到 sa[i(i−1)/2+j−1]',
+      '点矩阵任意格子（或改 i、j），动画给出映射 k 并在 sa[] 中点亮对应位置；i<j 时读其对称元素',
+      '场景②稀疏矩阵：三元组 (行,列,值) 只存非零元；**快速转置**预先用 num/cpot 算出每行起始位，一遍扫描完成',
+      '对比：普通转置要反复扫描 M（O(tu×nu)）；快速转置 O(tu+nu)——用两个辅助数组换时间'
+    ],
+    inputs: [
+      { key: 'scen', label: '场景', type: 'select', options: [
+        ['sym', '① 对称矩阵 → 一维数组 sa'],
+        ['spt', '② 稀疏矩阵三元组 → 快速转置']
+      ], value: 'sym' },
+      { key: 'ii', label: '行 i', type: 'number', value: 3, min: 1, max: 4 },
+      { key: 'jj', label: '列 j', type: 'number', value: 2, min: 1, max: 4 },
+      { key: 'w', label: '对称矩阵（行优先展开）', type: 'text', value: DEF_MTX }
+    ],
+    run: function (v) {
+      var frames = [];
+      if (v.scen !== 'spt') {
+        var vals = h.parse(v.w);
+        var n = Math.round(Math.sqrt(vals.length));
+        if (n * n !== vals.length || n < 2 || n > 5) throw Error('请输入 4~25 个数（构成 2~5 阶方阵，行优先展开）');
+        for (var a = 0; a < n; a++) for (var b = a + 1; b < n; b++) {
+          if (vals[a * n + b] !== vals[b * n + a]) throw Error('矩阵不对称：m[' + (a + 1) + '][' + (b + 1) + ']=' + vals[a * n + b] + ' ≠ m[' + (b + 1) + '][' + (a + 1) + ']=' + vals[b * n + a]);
+        }
+        var ii = Math.min(Math.max(1, +v.ii || 1), n), jj2 = Math.min(Math.max(1, +v.jj || 1), n);
+        var swap = ii < jj2;
+        var I = swap ? jj2 : ii, J = swap ? ii : jj2;
+        var k = I * (I - 1) / 2 + J - 1;          // 1 基
+        var sa = [];
+        for (var r = 1; r <= n; r++) for (var c = 1; c <= r; c++) sa.push(vals[(r - 1) * n + (c - 1)]);
+        function F(line, msg, extra, mk) {
+          extra = extra || {};
+          frames.push({
+            line: Array.isArray(line) ? line : [line], msg: msg,
+            panel: { n: String(n), 非零元: String(sa.filter(function (x) { return x !== 0; }).length), 压缩率: Math.round(sa.length / (n * n) * 100) + '%' },
+            snap: { mtx: vals.slice(), n: n, sa: sa.slice(), si: extra.si, sj: extra.sj, k: extra.k, ii: ii, jj: jj2, mark: mk }
+          });
+        }
+        F(0, n + ' 阶对称矩阵（对角线下三角存储）：m[' + ii + '][' + jj2 + ']=' + vals[(ii - 1) * n + (jj2 - 1)] + (swap ? ' 在上三角 → 实际读取其对称元素 m[' + I + '][' + J + ']。' : ' 在下三角 → 直接映射。'), {});
+        F(1, 'k = i(i−1)/2 + j−1 = ' + I + '×' + (I - 1) + '/2 + ' + J + '−1 = ' + k + '（第 ' + I + ' 行前共有 1+2+…+' + (I - 1) + '=' + (I * (I - 1) / 2) + ' 个元素）。', { k: k });
+        F(1, 'sa[' + k + '] = ' + sa[k] + ' ✓ 与矩阵中 m[' + I + '][' + J + '] 一致。存取都是 O(1)——压缩一半空间，随机存取能力不丢。', { si: I, sj: J, k: k }, 'symdone');
+        F(0, '一般结论：对角矩阵、三角矩阵、对称矩阵都可用"位置公式"压进一维数组；对称矩阵对 i<j 的元素直接读对称位，无需重复存储。', { si: I, sj: J, k: k });
+        return { code: CODE_SYM, frames: frames };
+      }
+
+      /* 稀疏矩阵快速转置：教材例题 6×6 M */
+      var M = [
+        { i: 1, j: 2, e: 12 }, { i: 1, j: 3, e: 9 }, { i: 3, j: 5, e: -3 }, { i: 4, j: 3, e: 24 },
+        { i: 5, j: 1, e: 14 }, { i: 5, j: 4, e: -7 }, { i: 6, j: 1, e: 18 }, { i: 6, j: 6, e: 8 }
+      ];
+      var mu = 6, nu = 6;
+      var num = []; for (var q = 0; q <= nu; q++) num.push(0);
+      M.forEach(function (x) { num[x.j]++; });
+      var cpot = [0, 1]; for (var col = 2; col <= nu; col++) cpot[col] = cpot[col - 1] + num[col - 1];   // cpot[1..nu]
+      function F2(line, msg, extra, mk) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { 非零元: String(M.length), 'num[]': '[' + num.slice(1).join(',') + ']', 'cpot[]': '[' + cpot.slice(1).join(',') + ']' },
+          snap: { M: M.map(function (x) { return { i: x.i, j: x.j, e: x.e }; }), T: (extra.T || []).map(function (x) { return { i: x.i, j: x.j, e: x.e }; }), cur: extra.cur, stage: extra.stage, mark: mk }
+        });
+      }
+      F2(0, '稀疏矩阵 M（6×6，8 个非零元）的三元组表：只存 (行,列,值)。转置 = 每个 (i,j,e) → (j,i,e) 且按新行序排列。', { stage: 'init' });
+      F2([1, 2], '第一步：统计 num[col] = M 中第 col 列的非零元个数 = T 中第 col 行的元素个数。', { stage: 'num' });
+      M.forEach(function (x, p) {
+        F2([3], 'M.data[' + (p + 1) + ']=(' + x.i + ',' + x.j + ',' + x.e + ')：列 ' + x.j + ' 计数 +1 → num[' + x.j + ']=' + num[x.j] + '。', { stage: 'num', cur: p });
+      });
+      F2([4, 5], 'cpot[1]=1；cpot[col] = cpot[col−1] + num[col−1] → [' + cpot.slice(1).join(', ') + ']：T 中每一行的起始存放位置。', { stage: 'cpot' });
+      var T2 = []; var cp = cpot.slice();
+      M.forEach(function (x, p) {
+        var c = x.j, q = cp[c];
+        T2[q - 1] = { i: c, j: x.i, e: x.e };
+        cp[c]++;
+        F2([6, 7, 8, 9], '(' + x.i + ',' + x.j + ',' + x.e + ') → 转置为 (' + c + ',' + x.i + ',' + x.e + ')，放入 T.data[' + q + ']（cpot[' + c + ']），cpot[' + c + '] 后移。', { stage: 'move', cur: p, T: T2 });
+      });
+      F2(0, '快速转置完成：T 的三元组已按行序排列（' + T2.map(function (x) { return '(' + x.i + ',' + x.j + ',' + x.e + ')'; }).join(' ') + '）。只扫描 M 两遍（一遍计数、一遍移动），O(tu+nu)——普通转置需 O(tu×nu)。', { stage: 'done', T: T2, mark: 'final' });
+      return { code: CODE_SPT, frames: frames };
+    },
+    render: function (s) {
+      var W = 980, H = 470;
+      var g = '';
+      if (s.mtx) {
+        var n = s.n, cw = 64, x0 = 90, y0 = 80;
+        g += h.txt(90 + n * cw / 2, 50, '对称矩阵（下三角压缩）', { size: 16, w: 600 });
+        for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) {
+          var x = x0 + c * cw, y = y0 + r * cw;
+          var lower = c <= r;
+          var isSel = (r + 1) === s.si && (c + 1) === s.sj;
+          var f = isSel ? C.blueBg : lower ? '#fff' : '#f1f5f9';
+          g += h.rect(x, y, cw - 6, cw - 6, { fill: f, stroke: isSel ? C.blue : (lower ? C.grey : C.line), sw: isSel ? 2.6 : 1.2, rx: 6, dash: lower ? null : '4,4' });
+          g += h.txt(x + (cw - 6) / 2, y + (cw - 6) / 2 + 7, String(s.mtx[r * n + c]), { size: 15, w: 700, fill: lower ? C.ink : C.muted });
+          if (c === 0) g += h.txt(x - 14, y + cw / 2, String(r + 1), { size: 12, fill: C.muted });
+        }
+        for (var c2 = 0; c2 < n; c2++) g += h.txt(x0 + c2 * cw + (cw - 6) / 2, y0 + n * cw + 18, String(c2 + 1), { size: 12, fill: C.muted });
+        /* sa 数组 */
+        var sw2 = Math.min(46, Math.floor((W - 600) / s.sa.length)), sx0 = 560, sy = 130;
+        g += h.txt(sx0, 100, 'sa[]（一维数组，共 ' + s.sa.length + ' 格 = n(n+1)/2）', { size: 13.5, fill: C.muted, anchor: 'start', w: 600 });
+        s.sa.forEach(function (val, k) {
+          var x = sx0 + k * sw2;
+          var hot = s.k === k;
+          g += h.rect(x, sy, sw2 - 4, 44, { fill: hot ? C.blueBg : '#fff', stroke: hot ? C.blue : C.grey, sw: hot ? 2.6 : 1.3, rx: 5 });
+          g += h.txt(x + (sw2 - 4) / 2, sy + 27, String(val), { size: 14, w: 700 });
+          g += h.txt(x + (sw2 - 4) / 2, sy + 62, String(k + 1), { size: 10, fill: hot ? C.blue : C.muted, w: hot ? 700 : 400 });
+        });
+        if (s.k) g += h.txt(sx0 + (s.k - 1) * sw2 + (sw2 - 4) / 2, sy + 86, '↑ k=' + s.k, { size: 12, fill: C.blue, w: 700 });
+        g += h.txt(560, 300, '映射公式（下标从 0 起）：', { size: 13.5, anchor: 'start', w: 600 });
+        g += h.txt(560, 330, 'k = i(i−1)/2 + j − 1   （i ≥ j）', { size: 15, w: 700, anchor: 'start', family: 'Consolas,monospace' });
+        g += h.txt(560, 360, 'i < j 时读对称元素 sa[ j(j−1)/2 + i − 1 ]', { size: 15, w: 700, anchor: 'start', family: 'Consolas,monospace', fill: C.muted });
+        g += h.txt(560, 400, '第 i 行前有 1+2+…+(i−1) = i(i−1)/2 个元素', { size: 12.5, fill: C.muted, anchor: 'start' });
+      } else {
+        g += h.txt(W / 2, 40, '稀疏矩阵三元组快速转置（M 6×6，8 个非零元）', { size: 16, w: 600 });
+        function table(x, y, title, arr, hotP) {
+          var out = h.txt(x + 130, y - 12, title, { size: 13.5, fill: C.muted, anchor: 'start', w: 600 });
+          out += h.txt(x + 10, y + 16, '( i,  j,  e )', { size: 12, fill: C.muted, anchor: 'start', family: 'Consolas,monospace' });
+          arr.forEach(function (t, p) {
+            var hot = hotP === p;
+            out += h.rect(x, y + 26 + p * 32, 260, 28, { fill: hot ? C.amberBg : '#fff', stroke: hot ? C.amber : C.line, sw: hot ? 2.2 : 1, rx: 4 });
+            out += h.txt(x + 16, y + 45 + p * 32, '( ' + t.i + ',  ' + t.j + ',  ' + t.e + ' )', { size: 13, anchor: 'start', family: 'Consolas,monospace', w: hot ? 700 : 400 });
+          });
+          return out;
+        }
+        g += table(60, 100, 'M.data（转置前）', s.M, s.cur);
+        if (s.T && s.T.length) g += table(620, 100, 'T.data（转置后，按行序）', s.T, null);
+        if (s.stage === 'num' || s.stage === 'cpot') g += h.txt(W / 2, 440, s.stage === 'num' ? '统计 num[col]：M 第 col 列非零元个数（= T 第 col 行个数）' : '由 num 推出 cpot：T 每行在 T.data 中的起始位置', { size: 13, fill: C.blue, w: 600 });
+        if (s.mark === 'final') g += h.txt(W / 2, 445, '✓ 一遍扫描完成转置：O(tu + nu)，普通算法为 O(tu × nu)', { size: 14, w: 700, fill: C.green });
       }
       return h.svg(W, H, g);
     }
@@ -2010,7 +2484,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
 
   DSC.reg({
     id: 'traversal', ch: 5, name: '⑧ 二叉树的四种遍历',
-    note: '大纲 5.5 遍历二叉树 ｜ cp5-03',
+    note: '教材 5.5 遍历二叉树（访问时机与递归栈）',
     guide: [
       '结点下方的 ①②③ 圆点 = 第几次"经过"；绿色那一次才是真正"访问"',
       '底部"序列输出"栏随访问逐个落下结果，完成后显示最终序列',
@@ -2231,7 +2705,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
 
   DSC.reg({
     id: 'threads', ch: 5, name: '⑨ 中序线索二叉树',
-    note: '大纲 5.5 遍历二叉树与线索二叉树 ｜ cp5-03',
+    note: '教材 5.5 遍历二叉树与线索二叉树',
     guide: [
       '普通二叉链表有 n+1 个空链域——正好用来存放"前驱/后继"线索',
       '规则：无左孩子 → 左链存前驱（ltag=1）；无右孩子 → 右链存后继（rtag=1）',
@@ -2464,7 +2938,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
 
   DSC.reg({
     id: 'huffman', ch: 5, name: '⑩ 哈夫曼树构造与编码/译码',
-    note: '大纲 5.7 哈夫曼树及其应用（WPL、前缀编码）｜ cp5-05 / cp5-06',
+    note: '教材 5.7 哈夫曼树及其应用（WPL、前缀编码）',
     guide: [
       '阶段下拉可直达：① 构造（森林视图逐轮合并最小的两棵）② 编码 ③ 译码',
       '编码：从叶子向根收集 0/1（左0右1），底部收集器按叶→根顺序显示，最后逆置；每片叶子有"读树验证"帧',
@@ -2794,7 +3268,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
 
   DSC.reg({
     id: 'dfsBfs', ch: 6, name: '⑪ 图的 DFS 与 BFS 遍历',
-    note: '大纲 6.5 图的遍历 ｜ cp6-03',
+    note: '教材 6.5 图的遍历（DFS/BFS、存储结构的影响）',
     guide: [
       '切换 DFS（递归+栈）与 BFS（队列），以及起点；右侧同步显示递归栈/队列',
       '存储结构可切换：邻接矩阵（邻接点升序）与邻接表（头插法）——同图不同存储，序列不同',
@@ -3030,7 +3504,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
 
   DSC.reg({
     id: 'mst', ch: 6, name: '⑫ 最小生成树：Prim / Kruskal',
-    note: '大纲 6.6 图的应用 ｜ cp6-04',
+    note: '教材 6.6 图的应用（最小生成树：Prim / Kruskal）',
     guide: [
       'Prim：看右侧候选边表逐轮更新，每次把"离 U 最近"的点并入（绿色）',
       'Kruskal：按权升序逐条考察，接受不成环的边、丢弃成环的边（红色虚线）',
@@ -3239,7 +3713,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
 
   DSC.reg({
     id: 'dijkstra', ch: 6, name: '⑬ 最短路径：Dijkstra',
-    note: '大纲 6.6 图的应用（单源最短路径）｜ cp6-04',
+    note: '教材 6.6 图的应用（单源最短路径）',
     guide: [
       '每轮先在 V−S 中比较 D 值选最小者（消息里列出比较过程），其最短路径就此确定',
       '随后松弛该点的每条出弧：经它中转更短就更新 D 和 Path',
@@ -3409,7 +3883,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
 
   DSC.reg({
     id: 'floyd', ch: 6, name: '⑭ Floyd：各顶点间最短路径',
-    note: '大纲 6.6 图的应用（所有顶点间最短路径）｜ cp6-04',
+    note: '教材 6.6 图的应用（所有顶点间最短路径）',
     guide: [
       '每一轮只允许一个新中转点 v_k，用它检查全部 i→j：经 k 更短就更新 D[i][j]',
       '核心一行：D[i][j] = min(D[i][j], D[i][k] + D[k][j])',
@@ -3526,7 +4000,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
 (function () {
   var DSC = window.DSC, h = DSC.h, C = DSC.C;
   var N = 6;
-  var NAMES = ['C0', 'C1', 'C2', 'C3', 'C4', 'C5'];
+  var NAMES = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6'];
   var BASE_ARCS = [[0, 2], [0, 3], [1, 3], [1, 4], [2, 5], [4, 5]];
   var POS = { 0: [300, 90], 1: [560, 90], 2: [180, 300], 3: [430, 300], 4: [680, 300], 5: [430, 500] };
 
@@ -3548,15 +4022,15 @@ table.panel td:first-child{color:var(--muted);width:36%}
 
   DSC.reg({
     id: 'topo', ch: 6, name: '⑮ 拓扑排序：AOV 网与回路检测',
-    note: '大纲 6.6 图的应用（AOV 网、拓扑排序、回路检测）｜ cp6-04',
+    note: '教材 6.6 图的应用（AOV 网、拓扑排序、回路检测）',
     guide: [
       '只有入度为 0 的顶点才能输出——输出后删除它的所有出弧',
       '删除弧使后继入度减 1，减到 0 就进栈；弹栈顺序就是拓扑序列',
-      '勾选"加入回路边 C5→C1"再看一遍：有回路的 AOV 网无法完成拓扑排序',
+      '勾选"加入回路边 C6→C2"再看一遍：有回路的 AOV 网无法完成拓扑排序',
       '拓扑序列不唯一（栈中同时有几个都能弹），但都满足所有先后约束'
     ],
     inputs: [
-      { key: 'cycle', label: '加入回路边 C5→C1（演示失败判定）', type: 'checkbox', value: false }
+      { key: 'cycle', label: '加入回路边 C6→C2（演示失败判定）', type: 'checkbox', value: false }
     ],
     run: function (v) {
       var arcs = BASE_ARCS.slice();
@@ -3581,7 +4055,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
         return p;
       }
 
-      F([0, 1], 'AOV 网：顶点表示活动（课程），有向弧表示先后约束（C0 必须先于 C2、C3…）。拓扑排序 = 输出一个满足全部先后约束的序列。先求各顶点入度。',
+      F([0, 1], 'AOV 网：顶点表示活动（课程），有向弧表示先后约束（C1 必须先于 C3、C4…）。拓扑排序 = 输出一个满足全部先后约束的序列。先求各顶点入度。',
         panelOf(), snap({}));
 
       F([2], '把所有入度为 0 的顶点进栈：', panelOf(), snap({}));
@@ -3713,7 +4187,7 @@ table.panel td:first-child{color:var(--muted);width:36%}
 
   DSC.reg({
     id: 'critical', ch: 6, name: '⑯ 关键路径：AOE 网与关键活动',
-    note: '大纲 6.6 图的应用（AOE 网、关键路径、关键活动）｜ cp6-04',
+    note: '教材 6.6 图的应用（AOE 网、关键路径、关键活动）',
     guide: [
       'AOE 网：顶点=事件（状态），带权弧=活动（持续时间为权）；源点 v0 开始、汇点 v5 结束',
       '两步计算：先按拓扑序求各事件最早时间 ve，再按逆拓扑序求最迟时间 vl',
@@ -3848,6 +4322,1834 @@ table.panel td:first-child{color:var(--muted);width:36%}
         g += h.txt(tx + 236, y + 19, String(a.slack), { size: 12, w: a.crit ? 700 : 400, fill: a.crit ? C.green : C.muted });
       });
       g += h.txt(tx + 120, 126 + 8 * rh + 12, '✓/绿 = 关键活动（l−e = 0）', { size: 11.5, fill: C.muted });
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
+/* ==================== ch7/01seqBinarySearch.js ==================== */
+/* 动画：顺序查找（哨兵）与折半查找（判定树 + ASL）——教材 7.2，例题 ST={5,13,19,21,37,56,64,75,80,88,92} */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C;
+
+  var CODE_SEQ = [
+    'int Search_Seq(SSTable ST, KeyType key) {',
+    '    ST.r[0].key = key;                        // 哨兵：省去每次判越界',
+    '    for (i = ST.length; ST.r[i].key != key; --i);   // 从后往前找',
+    '    return i;                                 // 找不到时 i = 0',
+    '}'
+  ];
+  var CODE_BIN = [
+    'int Search_Bin(SSTable ST, KeyType key) {',
+    '    low = 1;  high = ST.length;               // 有序表两端',
+    '    while (low <= high) {',
+    '        mid = (low + high) / 2;',
+    '        if (key == ST.r[mid].key)  return mid;      // 找到',
+    '        else if (key < ST.r[mid].key)  high = mid - 1;  // 左半区',
+    '        else  low = mid + 1;                           // 右半区',
+    '    }',
+    '    return 0;                                 // 失败',
+    '}'
+  ];
+
+  var DEF = [5, 13, 19, 21, 37, 56, 64, 75, 80, 88, 92];
+
+  DSC.reg({
+    id: 'seqBinSearch', ch: 7, name: '顺序查找与折半查找',
+    note: '教材 7.2 静态查找（哨兵技巧、二分判定树、ASL）',
+    guide: [
+      '顺序查找：把 key 放进 ST[0] 当**哨兵**，从后往前扫——省去每步判"是否越界"，找不到自然停在 0',
+      '折半查找：只对**有序**表有效，mid=(low+high)/2，每次排除一半；右侧展示判定树，路径就是比较序列',
+      '切换不同的 key 观察成功/失败路径；失败时 low>high',
+      '性能：顺序查找 ASL=(n+1)/2；折半查找 ASL≈log₂(n+1)−1——n=11 时分别为 6 和 3 左右'
+    ],
+    inputs: [
+      { key: 'mode', label: '算法', type: 'select', options: [['seq', '顺序查找（带哨兵）'], ['bin', '折半查找（判定树）']], value: 'bin' },
+      { key: 'key', label: '查找 key', type: 'number', value: 21, min: 0, max: 999 },
+      { key: 'w', label: '自定义有序表', type: 'text', value: '5,13,19,21,37,56,64,75,80,88,92' }
+    ],
+    run: function (v) {
+      var mode = v.mode || 'bin';
+      var st = v.w && v.w.trim() ? h.parse(v.w) : DEF.slice();
+      if (st.length < 3 || st.length > 12) throw Error('表长请取 3~12');
+      for (var i0 = 1; i0 < st.length; i0++) if (st[i0] <= st[i0 - 1]) throw Error('折半查找要求表严格递增（自定义表请有序）');
+      var n = st.length, key = +v.key || 0;
+      var frames = [], cmp = 0, visit = [];
+
+      function F(line, msg, extra, mk) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { 比较: cmp + ' 次', 区间: extra.range || (mode === 'bin' ? '—' : '全表'), 结果: extra.res || '查找中…' },
+          snap: { st: st.slice(), mode: mode, key: key, cur: extra.cur, low: extra.low, high: extra.high, mid: extra.mid, visit: visit.slice(), res: extra.res || null, mark: mk }
+        });
+      }
+
+      if (mode === 'seq') {
+        F(0, '顺序查找：把 key=' + key + ' 写入哨兵位 ST[0]，从表尾向前扫描。', {});
+        var a = [key].concat(st);
+        var i = n, found = 0;
+        while (a[i] !== key && i > 0) {
+          cmp++;
+          F([2], 'ST[' + i + ']=' + a[i] + ' ≠ ' + key + ' → 继续向前。', { cur: i });
+          i--;
+        }
+        cmp++;
+        if (i > 0) {
+          found = i;
+          F([2, 3], 'ST[' + i + ']=' + a[i] + ' = key，找到！共比较 ' + (n - i + 1) + ' 次（哨兵使循环无需判越界）。', { cur: i, res: '成功：第 ' + i + ' 个元素' }, 'found');
+        } else {
+          F([2, 3], '扫到 ST[0] 命中哨兵——说明 key 不在表中，查找失败（i=0）。共比较 ' + (n + 1) + ' 次 = n+1（最坏情形）。', { cur: 0, res: '失败：key 不在表中' }, 'fail');
+        }
+        F(0, '小结：顺序查找 ASL(成功) = (n+1)/2 = ' + ((n + 1) / 2).toFixed(1) + '（等概率）。哨兵的价值：循环体内不用每次判断 i 是否越界，程序更简洁也更快一点。', { cur: found, res: found ? '成功' : '失败' });
+      } else {
+        F(0, '折半查找：表必须有序。low=1、high=' + n + '，mid=(low+high)/2 取整。', {});
+        var low = 1, high = n, found2 = 0;
+        while (low <= high) {
+          var mid = Math.floor((low + high) / 2);
+          cmp++; visit.push(mid);
+          F([3, 4], 'mid=(low+high)/2=' + mid + '：ST[' + mid + ']=' + st[mid - 1] + (st[mid - 1] === key ? ' = key，命中！' : st[mid - 1] > key ? ' > key=' + key + ' → 目标在左半区，high=' + (mid - 1) : ' < key=' + key + ' → 目标在右半区，low=' + (mid + 1)) + '。',
+            { low: low, high: high, mid: mid, range: '[' + low + '..' + high + ']' });
+          if (st[mid - 1] === key) { found2 = mid; break; }
+          else if (st[mid - 1] > key) high = mid - 1; else low = mid + 1;
+        }
+        if (found2) F(5, '查找成功：key=' + key + ' 位于第 ' + found2 + ' 个。判定树上走过的路径（黄色）长度 = 比较次数 ' + cmp + '。', { mid: found2, res: '成功：第 ' + found2 + ' 个' }, 'found');
+        else F(9, 'low > high，区间为空——查找失败。走过 ' + cmp + ' 次比较，路径与"判定树"外部结点对应。', { res: '失败：key 不在表中' }, 'fail');
+        F(0, '小结：折半查找 ASL ≈ log₂(n+1) − 1 ≈ ' + (Math.log2(n + 1) - 1).toFixed(1) + '，远优于顺序查找的 (n+1)/2 = ' + ((n + 1) / 2).toFixed(1) + '。前提：顺序存储 + 有序——链表不能随机存取，无法折半。', { res: found2 ? '成功' : '失败' });
+      }
+      return { code: mode === 'seq' ? CODE_SEQ : CODE_BIN, frames: frames };
+    },
+    render: function (s) {
+      var W = 980, H = 560, n = s.st.length;
+      var g = '';
+      g += h.txt(W / 2, 30, (s.mode === 'seq' ? '顺序查找（哨兵）' : '折半查找（判定树）') + '：key = ' + s.key, { size: 17, w: 600 });
+      var bw = Math.min(64, Math.floor((W - 120) / n) - 10), gap = 10;
+      var x0 = (W - (n * bw + (n - 1) * gap)) / 2, cy = s.mode === 'bin' ? 400 : 330;
+      /* 折半判定树 */
+      if (s.mode === 'bin') {
+        var order = [], depthOf = {};
+        (function build(lo, hi, d) {
+          if (lo > hi) return;
+          var m = Math.floor((lo + hi) / 2);
+          order.push(m); depthOf[m] = d;
+          build(lo, m - 1, d + 1); build(m + 1, hi, d + 1);
+        })(1, n, 0);
+        var inRank = {};
+        order.slice().sort(function (a, b) { return a - b; }).forEach(function (m, r) { inRank[m] = r; });
+        function npos(m) { return [70 + inRank[m] * ((W - 140) / n), 90 + depthOf[m] * 74]; }
+        var edges = [];
+        (function edgesBuild(lo, hi) {
+          if (lo > hi) return;
+          var m = Math.floor((lo + hi) / 2);
+          if (lo <= m - 1) { edges.push([m, Math.floor((lo + m - 1) / 2)]); edgesBuild(lo, m - 1); }
+          if (m + 1 <= hi) { edges.push([m, Math.floor((m + 1 + hi) / 2)]); edgesBuild(m + 1, hi); }
+        })(1, n);
+        edges.forEach(function (e) { var A = npos(e[0]), B = npos(e[1]); g += h.line(A[0], A[1], B[0], B[1], { stroke: C.line, sw: 1.5 }); });
+        order.forEach(function (m) {
+          var P = npos(m), idx = s.visit.indexOf(m);
+          var f = '#fff', st2 = C.grey, sw = 1.8;
+          if (idx >= 0 && s.res == null) { f = C.amberBg; st2 = C.amber; sw = 2.4; }
+          if (s.res != null && idx >= 0) { f = C.greenBg; st2 = C.green; }
+          if (s.mid === m && !s.res) { f = C.amberBg; st2 = C.amber; sw = 3; }
+          g += h.circle(P[0], P[1], 20, { fill: f, stroke: st2, sw: sw });
+          g += h.txt(P[0], P[1] + 6, String(s.st[m - 1]), { size: 14.5, w: 700 });
+          g += h.txt(P[0], P[1] + 38, 'ST[' + m + ']', { size: 10, fill: C.muted });
+        });
+        g += h.txt(W / 2, 336, '↑ 判定树：走过的结点 = 比较序列 ' + (s.visit.length ? s.visit.join(' → ') : ''), { size: 12.5, fill: C.muted });
+      }
+      /* 表视图 */
+      var sent = s.mode === 'seq';
+      var cells = sent ? ['k'].concat(s.st) : s.st;
+      var bw2 = sent ? Math.min(64, Math.floor((W - 160) / cells.length) - 10) : bw;
+      var xx = sent ? (W - (cells.length * bw2 + (cells.length - 1) * 10)) / 2 : x0;
+      cells.forEach(function (val, k) {
+        var x = xx + k * (bw2 + 10), isSent = sent && k === 0;
+        var f = '#fff', st3 = isSent ? C.blue : C.grey, sw = 1.5;
+        var pos1 = isSent ? 0 : k;   // 显示用位序
+        if (!isSent && s.cur === pos1) { f = C.amberBg; st3 = C.amber; sw = 2.6; }
+        if (!isSent && s.mid === pos1) { f = C.amberBg; st3 = C.amber; sw = 2.6; }
+        if (sent && s.cur === 0 && isSent) { f = C.redBg; st3 = C.red; sw = 2.4; }
+        if (sent && s.res && s.cur === pos1) { f = C.greenBg; st3 = C.green; sw = 2.4; }
+        if (!sent && s.res && s.mid === pos1) { f = C.greenBg; st3 = C.green; sw = 2.4; }
+        g += h.rect(x, cy, bw2, 44, { fill: f, stroke: st3, sw: sw, rx: 6 });
+        g += h.txt(x + bw2 / 2, cy + 27, String(val), { size: 15, w: 700 });
+        g += h.txt(x + bw2 / 2, cy + 62, isSent ? 'ST[0]哨兵' : 'ST[' + pos1 + ']', { size: 10.5, fill: isSent ? C.blue : C.muted });
+      });
+      if (s.mode === 'bin' && s.low != null && s.res == null) {
+        var lx = xx + (s.low - 1) * (bw + 10), hx = xx + (s.high - 1) * (bw + 10) + bw;
+        g += h.line(lx, cy - 12, hx, cy - 12, { stroke: C.blue, sw: 3 });
+        g += h.txt(lx, cy - 20, 'low', { size: 11.5, fill: C.blue, w: 600 });
+        g += h.txt(hx, cy - 20, 'high', { size: 11.5, fill: C.blue, w: 600 });
+      }
+      if (s.res) g += h.txt(W / 2, cy + 106, (s.res.indexOf('成功') >= 0 ? '✓ ' : '✗ ') + s.res, { size: 14.5, w: 700, fill: s.res.indexOf('成功') >= 0 ? C.green : C.red });
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
+/* ==================== ch7/02blockSearch.js ==================== */
+/* 动画：分块查找（索引顺序查找）——教材 7.2，块间有序 / 块内无序，两段查找 */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C;
+
+  var CODE = [
+    'int BlockSearch(SSTable ST, IndexTable ID, KeyType key) {',
+    '    // ① 在索引表（有序）中确定所在块：可顺序也可折半',
+    '    for (b = 1; b <= ID.len && ID[b].max < key; ++b);',
+    '    if (b > ID.len)  return 0;                 // 比所有块上界都大 → 失败',
+    '    // ② 在该块内顺序查找（块内无序，只能顺序）',
+    '    for (i = ID[b].start; i < ID[b].start + ID[b].len; ++i)',
+    '        if (ST.r[i].key == key)  return i;',
+    '    return 0;',
+    '}'
+  ];
+
+  var DEF = [22, 12, 13, 8, 9, 33, 42, 44, 38, 24, 48, 60, 58, 74, 49];
+
+  DSC.reg({
+    id: 'blockSearch', ch: 7, name: '分块查找（索引顺序查找）',
+    note: '教材 7.2 分块查找（索引表定块、块内顺序，折中的 ASL）',
+    guide: [
+      '分块 = "块间有序、块内无序"：先查**索引表**（每块最大值，有序）确定所在块，再在块内顺序扫',
+      '蓝色=索引表扫描，黄色=块内扫描；先看 key=38：索引 2 步定块，块内 2 步命中',
+      'key=50：比前两块上界都大、落在第三块，但块内没有 → 失败（仍要扫完该块）',
+      'ASL = 索引查找 + 块内查找，介于顺序查找 O(n) 与折半 O(log n) 之间；分块还支持"块内插入不移动其他块"'
+    ],
+    inputs: [
+      { key: 'key', label: '查找 key', type: 'select', options: [['38', '38（成功：第 2 块）'], ['49', '49（成功：第 3 块）'], ['50', '50（失败）'], ['8', '8（成功：第 1 块）']], value: '38' },
+      { key: 'im', label: '索引表查找方式', type: 'select', options: [['seq', '顺序'], ['bin', '折半']], value: 'seq' }
+    ],
+    run: function (v) {
+      var st = DEF.slice(), n = st.length, B = 3, S = n / B;
+      var key = +v.key;
+      var idx = [];
+      for (var b = 0; b < B; b++) {
+        var mx = -1;
+        for (var k = 0; k < S; k++) mx = Math.max(mx, st[b * S + k]);
+        idx.push(mx);
+      }
+      var frames = [], cmp = 0;
+      function F(line, msg, extra, mk) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { 比较: cmp + ' 次', 阶段: extra.phase || '—', 结果: extra.res || '查找中…' },
+          snap: { st: st, idx: idx, S: S, B: B, key: key, curI: extra.curI, curB: extra.curB, blk: extra.blk, hit: extra.hit, res: extra.res || null, im: v.im, visit: (extra.visit || []).slice(), mark: mk }
+        });
+      }
+      var visit = [];
+      F(0, '原表 "块间有序、块内无序"：索引表 = 每块最大值 ' + idx.join('、') + '（有序）。查找 key=' + key + ' 分两段：先索引表定块，再块内顺序。', { phase: '索引表' });
+
+      if (v.im === 'bin') {
+        var lo = 0, hi = B - 1, blk = -1;
+        while (lo <= hi) {
+          var mid = Math.floor((lo + hi) / 2);
+          cmp++; visit.push(mid);
+          F(1, '折半查索引表：ID[' + (mid + 1) + '].max=' + idx[mid] + (idx[mid] >= key ? ' ≥ ' : ' < ') + key + (idx[mid] >= key ? ' → 块（或更左）' : ' → 右半') + '。', { phase: '索引表(折半)', curB: mid, visit: visit });
+          if (idx[mid] >= key) { blk = mid; hi = mid - 1; } else lo = mid + 1;
+        }
+        if (blk < 0) { F(2, '索引表全部 < key：key 比所有块上界都大 → 查找失败。', { phase: '索引表', visit: visit, res: '失败：key 不在表中' }, 'fail'); return { code: CODE, frames: frames }; }
+        F(1, '确定所在块：第 ' + (blk + 1) + ' 块（其上界 ' + idx[blk] + ' ≥ ' + key + '，且前一块上界 < key）。', { phase: '索引表', blk: blk, visit: visit });
+      } else {
+        var blk = -1;
+        for (var b2 = 0; b2 < B; b2++) {
+          cmp++; visit.push(b2);
+          if (idx[b2] >= key) { blk = b2; F(1, '索引表第 ' + (b2 + 1) + ' 项：上界 ' + idx[b2] + ' ≥ key=' + key + ' → 目标只可能在第 ' + (b2 + 1) + ' 块。', { phase: '索引表', curB: b2, blk: blk, visit: visit }); break; }
+          F(1, '索引表第 ' + (b2 + 1) + ' 项：上界 ' + idx[b2] + ' < key → 跳过第 ' + (b2 + 1) + ' 块。', { phase: '索引表', curB: b2, visit: visit });
+        }
+        if (blk < 0) { F(2, '所有块上界都 < key → 查找失败（只比较了 B=' + B + ' 次索引——这是分块的优点）。', { phase: '索引表', visit: visit, res: '失败：key 不在表中' }, 'fail'); return { code: CODE, frames: frames }; }
+      }
+
+      F(3, '进入第 ' + (blk + 1) + ' 块（位置 ' + (blk * S + 1) + '~' + ((blk + 1) * S) + '），块内无序 → 只能顺序扫描。', { phase: '块内', blk: blk, visit: visit });
+      var hit = -1;
+      for (var k2 = 0; k2 < S; k2++) {
+        var p = blk * S + k2;
+        cmp++;
+        if (st[p] === key) { hit = p; F(5, 'ST[' + (p + 1) + ']=' + st[p] + ' = key，命中！共比较 ' + cmp + ' 次（索引 + 块内）。', { phase: '块内', blk: blk, curI: p, hit: p, res: '成功：第 ' + (p + 1) + ' 个元素' }, 'found'); break; }
+        F(4, 'ST[' + (p + 1) + ']=' + st[p] + ' ≠ ' + key + '，继续。', { phase: '块内', blk: blk, curI: p, visit: visit });
+      }
+      if (hit < 0) F(5, '块内扫完没有命中 → 查找失败（key 不在表中，但绝不会出现在其他块）。', { phase: '块内', blk: blk, res: '失败：key 不在表中' }, 'fail');
+      var aslIdx = v.im === 'bin' ? Math.ceil(Math.log2(B + 1)) : (B + 1) / 2;
+      F(0, '小结：等概率下 ASL = 索引查找 + 块内查找。本例 3 块每块 5 个：顺序索引 + 顺序块内 = (' + (B + 1) + '/2)+(' + (S + 1) + '/2) = 5；若索引用折半 ≈ ' + (Math.ceil(Math.log2(B + 1)) + (S + 1) / 2).toFixed(1) + '。n 越大，分块相对整体顺序查找的优势越明显。', { res: hit >= 0 ? '成功' : '失败' });
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var W = 980, H = 520;
+      var g = '';
+      g += h.txt(W / 2, 30, '分块查找：key = ' + s.key + '（' + (s.im === 'bin' ? '索引折半' : '索引顺序') + '）', { size: 17, w: 600 });
+      /* 索引表 */
+      g += h.txt(60, 78, '索引表（有序）', { size: 13.5, fill: C.muted, anchor: 'start', w: 600 });
+      var iw = 110, ix = 60;
+      for (var b = 0; b < s.B; b++) {
+        var on = s.curB === b || s.blk === b;
+        var visited = s.visit && s.visit.indexOf(b) >= 0;
+        var f = on ? C.blueBg : visited ? C.amberBg : '#fff', st2 = on ? C.blue : visited ? C.amber : C.grey;
+        g += h.rect(ix + b * (iw + 10), 90, iw, 40, { fill: f, stroke: st2, sw: on ? 2.4 : 1.5, rx: 6 });
+        g += h.txt(ix + b * (iw + 10) + iw / 2, 116, 'max=' + s.idx[b], { size: 14, w: 700 });
+        g += h.txt(ix + b * (iw + 10) + iw / 2, 146, '第 ' + (b + 1) + ' 块', { size: 11, fill: C.muted });
+      }
+      /* 主表（按块分框） */
+      var bw = 52, x0 = 60, y0 = 210;
+      for (var b2 = 0; b2 < s.B; b2++) {
+        var bx = x0 + b2 * (s.S * bw + 26);
+        g += h.rect(bx - 8, y0 - 8, s.S * bw + 16, 66, { fill: s.blk === b2 ? C.blueBg : 'none', stroke: s.blk === b2 ? C.blue : C.line, sw: s.blk === b2 ? 2 : 1, rx: 8, dash: s.blk === b2 ? null : '4,4' });
+        for (var k = 0; k < s.S; k++) {
+          var p = b2 * s.S + k, x = bx + k * bw;
+          var isCur = s.curI === p, isHit = s.hit === p;
+          g += h.rect(x, y0, bw - 4, 50, { fill: isHit ? C.greenBg : isCur ? C.amberBg : '#fff', stroke: isHit ? C.green : isCur ? C.amber : C.grey, sw: isCur || isHit ? 2.4 : 1.4, rx: 5 });
+          g += h.txt(x + (bw - 4) / 2, y0 + 31, String(s.st[p]), { size: 14.5, w: 700 });
+          g += h.txt(x + (bw - 4) / 2, y0 + 66, String(p + 1), { size: 10, fill: C.muted });
+        }
+      }
+      g += h.txt(60, 350, '块内无序（块间有序）：索引表只管"最大值上界"，块内必须顺序扫描', { size: 12.5, fill: C.muted, anchor: 'start' });
+      if (s.res) g += h.txt(W / 2, 420, (s.res.indexOf('成功') >= 0 ? '✓ ' : '✗ ') + s.res, { size: 16, w: 700, fill: s.res.indexOf('成功') >= 0 ? C.green : C.red });
+      g += h.txt(W / 2, 470, '索引表(有序) ─确定块→ 块内(无序) ─顺序扫→ 结果；ASL 介于顺序与折半之间', { size: 12.5, fill: C.muted });
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
+/* ==================== ch7/03bst.js ==================== */
+/* 动画：二叉排序树 BST——教材 7.3，插入（路径比较）与删除三情形，例题 {45,24,53,12,37,90} */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C;
+
+  var CODE_I = [
+    'BSTNode* InsertBST(BSTNode *T, KeyType key) {',
+    '    if (!T)  return new BSTNode(key);         // 空位：创建新结点',
+    '    if (key == T->key)      return T;         // 已存在（不重复插入）',
+    '    else if (key < T->key)  T->lchild = InsertBST(T->lchild, key);   // 小 → 左',
+    '    else                    T->rchild = InsertBST(T->rchild, key);   // 大 → 右',
+    '    return T;',
+    '}'
+  ];
+  var CODE_D = [
+    'void DeleteBST(BSTNode *&T, KeyType key) {',
+    '    if (!T) return;',
+    '    if (key < T->key)  DeleteBST(T->lchild, key);      // 左子树找',
+    '    else if (key > T->key) DeleteBST(T->rchild, key);  // 右子树找',
+    '    else {                                             // 找到了，三种情形',
+    '        if (!T->lchild)       T = T->rchild;           // ① 左空：右子树顶替',
+    '        else if (!T->rchild)  T = T->lchild;           // ② 右空：左子树顶替',
+    '        else {                                         // ③ 两孩子都在：',
+    '            p = T->lchild;                             //   找中序前驱',
+    '            while (p->rchild) p = p->rchild;',
+    '            T->key = p->key;                           //   前驱值放入 T',
+    '            DeleteBST(T->lchild, p->key);              //   再删除前驱结点',
+    '        }',
+    '    }',
+    '}'
+  ];
+
+  function insert(node, val, path) {
+    if (!node) { return { v: val, l: null, r: null, _new: true }; }
+    path.push(node.v);
+    if (val === node.v) return node;
+    if (val < node.v) node.l = insert(node.l, val, path);
+    else node.r = insert(node.r, val, path);
+    return node;
+  }
+  function inorder(node, out) { if (!node) return; inorder(node.l, out); out.push(node.v); inorder(node.r, out); }
+  function cloneT(n) { return n ? { v: n.v, l: cloneT(n.l), r: cloneT(n.r) } : null; }
+  function find(node, val, path) { while (node) { path.push(node.v); if (val === node.v) return node; node = val < node.v ? node.l : node.r; } return null; }
+  function maxNode(node) { while (node.r) node = node.r; return node; }
+
+  var INS = [45, 24, 53, 12, 37, 90];
+
+  DSC.reg({
+    id: 'bst', ch: 7, name: '二叉排序树（插入与删除）',
+    note: '教材 7.3 动态查找（中序有序、删除三情形）',
+    guide: [
+      '插入 = 一路比较走到空位：小于当前走左边、大于走右边——新结点永远是叶子',
+      '中序遍历 BST 恰好得到递增序列（左侧演示），这是 BST 的灵魂性质',
+      '删除有三种情形：叶子直接删；单孩子由孩子顶替；**双孩子用中序前驱（左子树最右）的值替换，再删前驱**',
+      '试三个删除场景：删叶子 12、删单孩子 53、删双孩子 45——删根也能保持 BST 性质'
+    ],
+    inputs: [
+      { key: 'op', label: '操作', type: 'select', options: [
+        ['ins', '依次插入 45,24,53,12,37,90'],
+        ['dl', '插入后删除叶子 12'],
+        ['d1', '插入后删除单孩子结点 53'],
+        ['d2', '插入后删除双孩子结点 45（前驱替代）']
+      ], value: 'ins' }
+    ],
+    run: function (v) {
+      var op = v.op;
+      var root = null, frames = [], cmp = 0;
+      var code = op === 'ins' ? CODE_I : CODE_D;
+
+      function snap(hl) {
+        hl = hl || {};
+        return { tree: cloneT(root), cur: hl.cur || null, hit: hl.hit || null, del: hl.del || null, path: (hl.path || []).slice(), newv: hl.newv || null, note: hl.note || '', mark: hl.mark };
+      }
+      function F(line, msg, hl) {
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: (function () { var io = []; inorder(root, io); return { 中序序列: io.join(' ≤ ') || '（空）', 结点数: String(io.length) }; })(),
+          snap: snap(hl)
+        });
+      }
+
+      INS.forEach(function (val) {
+        var path = [];
+        F(0, '插入 ' + val + '：从根开始比较。', {});
+        var cur = root, parent = null, dir = '', dup = false;
+        while (cur) {
+          cmp++;
+          if (val < cur.v) { F([3], val + ' < ' + cur.v + ' → 走左子树。', { cur: cur.v, path: path }); parent = cur; dir = 'l'; cur = cur.l; }
+          else if (val > cur.v) { F([4], val + ' > ' + cur.v + ' → 走右子树。', { cur: cur.v, path: path }); parent = cur; dir = 'r'; cur = cur.r; }
+          else { dup = true; F([2], val + ' 已存在（BST 不插重复键）。', { cur: cur.v }); break; }
+        }
+        if (dup) return;
+        if (!root) { root = insert(root, val, path); }
+        else if (dir === 'l') { parent.l = insert(null, val, []); } else if (dir === 'r') { parent.r = insert(null, val, []); }
+        F(1, '走到空位：新结点 ' + val + ' 作为 ' + (parent ? parent.v + ' 的' + (dir === 'l' ? '左' : '右') + '孩子' : '根') + ' 插入——**插入永远发生在叶子层**，不需要调整树形。', { newv: val, hit: val }, 'ins' + val);
+      });
+      if (op === 'ins') {
+        var io = []; inorder(root, io);
+        F(0, '插入完成。中序遍历：' + io.join(' ≤ ') + ' —— 恰好递增！查找就是沿着这条比较路径走，ASL 与结点深度挂钩（树越平衡越快）。', {}, 'done');
+        return { code: code, frames: frames };
+      }
+
+      /* 删除场景 */
+      var delVal = op === 'dl' ? 12 : op === 'd1' ? 53 : 45;
+      F(0, '现在删除 ' + delVal + '：先按查找路径找到它。', {});
+      var path2 = [];
+      var node = find(root, delVal, path2);
+      if (node.l && node.r) {
+        F([8, 9, 10], delVal + ' 左右孩子都在（双孩子情形）：不能直接摘——会断成两棵树。策略：找**中序前驱**（左子树最右结点）。', { cur: delVal, path: path2 });
+        var pred = maxNode(node.l);
+        F([11], '中序前驱 = 左子树最右结点 ' + pred.v + '（比 ' + delVal + ' 小的最大结点）。把它的值放入被删结点。', { cur: delVal, note: '前驱=' + pred.v });
+        node.v = pred.v;
+        F([12], '值替换完成：该结点现在存放 ' + pred.v + '。接下来只需从左子树中删除结点 ' + pred.v + '（此时它必是叶子或单孩子，退化为前两种情形）。', { del: pred.v });
+        (function delPred(n2, val) {   // 只在左子树中删前驱；前驱无右孩子，孩子顶替即可
+          if (n2.v === val) return n2.l;
+          if (val < n2.v) n2.l = delPred(n2.l, val); else n2.r = delPred(n2.r, val);
+          return n2;
+        })(node.l, pred.v);
+      } else if (node.l || node.r) {
+        var child = node.l || node.r;
+        F([7], delVal + ' 只有一个孩子（' + child.v + '）——单孩子情形：孩子直接顶替它的位置。', { cur: delVal, path: path2 });
+        replaceNode(root, delVal, child);
+      } else {
+        F([6], delVal + ' 是叶子——情形①：直接删除，不留空位。', { cur: delVal, path: path2 });
+        replaceNode(root, delVal, null);
+      }
+      var io2 = []; inorder(root, io2);
+      F(0, '删除完成。中序序列：' + io2.join(' ≤ ') + ' —— 依然严格递增，BST 性质保持！这就是"用中序前驱/后继补位"的意义：删掉的可以是任意结点，有序性不丢。', {}, 'done');
+      return { code: code, frames: frames };
+
+      function replaceNode(n2, val, child) {
+        if (!n2) return null;
+        if (n2.v === val) return child;
+        if (val < n2.v) n2.l = replaceNode(n2.l, val, child); else n2.r = replaceNode(n2.r, val, child);
+        return n2;
+      }
+    },
+    render: function (s) {
+      var W = 980, H = 560;
+      var g = '';
+      var nodes = [], pos = {};
+      (function walk(n2, d) {
+        if (!n2) return;
+        walk(n2.l, d + 1); nodes.push({ v: n2.v, d: d }); walk(n2.r, d + 1);
+      })(s.tree, 0);
+      nodes.forEach(function (n3, r) { pos[n3.v] = [110 + r * ((W - 220) / Math.max(nodes.length - 1, 1)), 90 + n3.d * 92]; });
+      (function edges(n2) {
+        if (!n2) return;
+        if (n2.l) { var A = pos[n2.v], B = pos[n2.l.v]; g += h.line(A[0], A[1], B[0], B[1], { stroke: C.line, sw: 1.6 }); edges(n2.l); }
+        if (n2.r) { var A2 = pos[n2.v], B2 = pos[n2.r.v]; g += h.line(A2[0], A2[1], B2[0], B2[1], { stroke: C.line, sw: 1.6 }); edges(n2.r); }
+      })(s.tree);
+      nodes.forEach(function (n4) {
+        var P = pos[n4.v];
+        var f = '#fff', st = C.grey, sw = 1.8;
+        if (s.path && s.path.indexOf(n4.v) >= 0) { f = C.blueBg; st = C.blue; }
+        if (s.cur === n4.v) { f = C.amberBg; st = C.amber; sw = 2.6; }
+        if (s.newv === n4.v || s.hit === n4.v) { f = C.greenBg; st = C.green; sw = 2.6; }
+        if (s.del === n4.v) { f = C.redBg; st = C.red; sw = 2.6; }
+        g += h.circle(P[0], P[1], 21, { fill: f, stroke: st, sw: sw });
+        g += h.txt(P[0], P[1] + 6, String(n4.v), { size: 14.5, w: 700 });
+      });
+      g += h.txt(W / 2, 380, '横向位置即中序次序 → 中序遍历必然递增', { size: 12.5, fill: C.muted });
+      if (s.note) g += h.txt(W / 2, 420, s.note, { size: 14, w: 700, fill: C.amber });
+      g += h.txt(W / 2, 470, '蓝=比较路径  黄=当前比较  绿=新插入/命中  红=待删除', { size: 12.5, fill: C.muted });
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
+/* ==================== ch7/04avl.js ==================== */
+/* 动画：平衡二叉树 AVL——教材 7.3，四种失衡旋转（LL/RR/LR/RL），平衡因子标注 */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C;
+
+  var CODE = [
+    'void R_Rotate(BSTNode *&p) {              // 右旋：LL 型',
+    '    lc = p->lchild;  p->lchild = lc->rchild;  lc->rchild = p;  p = lc;',
+    '}',
+    'void L_Rotate(BSTNode *&p) {              // 左旋：RR 型',
+    '    rc = p->rchild;  p->rchild = rc->lchild;  rc->lchild = p;  p = rc;',
+    '}',
+    'void LeftBalance(BSTNode *&T) {           // T 左高失衡',
+    '    lc = T->lchild;',
+    '    if (lc->bf == 1) { T->bf = lc->bf = 0; R_Rotate(T); }            // LL',
+    '    else { /* LR：先对左孩子左旋，再对 T 右旋 */',
+    '        rd = lc->rchild;  /* 按rd的bf更新三者bf */',
+    '        lc->rchild = rd->lchild;  rd->lchild = lc;',
+    '        T->lchild = rd->rchild;   rd->rchild = T;  T = rd;  }',
+    '}',
+    '// 插入后从插入点向上逐层检查 |bf|≤2 → 在最浅失衡点旋转（右Balance对称）'
+  ];
+
+  function mk(v) { return { v: v, l: null, r: null, h: 1 }; }
+  function H(n) { return n ? n.h : 0; }
+  function upd(n) { n.h = 1 + Math.max(H(n.l), H(n.r)); }
+  function bf(n) { return H(n.l) - H(n.r); }
+  function cloneT(n) { return n ? { v: n.v, l: cloneT(n.l), r: cloneT(n.r), h: n.h } : null; }
+  function rotr(p) { var lc = p.l; p.l = lc.r; lc.r = p; upd(p); upd(lc); return lc; }
+  function rotl(p) { var rc = p.r; p.r = rc.l; rc.l = p; upd(p); upd(rc); return rc; }
+  function inorder(n, out) { if (!n) return; inorder(n.l, out); out.push({ v: n.v, bf: bf(n) }); inorder(n.r, out); }
+
+  var SCEN = {
+    LL: [30, 20, 10], RR: [10, 20, 30], LR: [30, 10, 20], RL: [10, 30, 20]
+  };
+  var CASEINFO = {
+    LL: 'LL 型：失衡点 A=30，插入落在 A 的**左**孩子的**左**子树 → 对 A **右旋**（新根=20）',
+    RR: 'RR 型：失衡点 A=10，插入落在 A 的**右**孩子的**右**子树 → 对 A **左旋**（新根=20）',
+    LR: 'LR 型：插入落在 A=30 的左孩子的**右**子树 → 先对左孩子 **左旋**，再对 A **右旋**（新根=20）',
+    RL: 'RL 型：插入落在 A=10 的右孩子的**左**子树 → 先对右孩子 **右旋**，再对 A **左旋**（新根=20）'
+  };
+
+  DSC.reg({
+    id: 'avl', ch: 7, name: '平衡二叉树（四种旋转）',
+    note: '教材 7.3 平衡二叉树（|bf|≤1，失衡即旋转）',
+    guide: [
+      'AVL = BST + 平衡约束：每个结点 |平衡因子 bf = 左高−右高| ≤ 1，越界就旋转恢复',
+      '下拉切换四种失衡场景（各 3 次插入触发一次旋转）：结点旁标注 bf，红色即失衡点',
+      'LL/RR 单旋一次到位；LR/RL 双旋两步：先转孩子再转失衡点',
+      '旋转后中序序列不变（仍是递增）——旋转只改变"形状"来恢复平衡，不破坏 BST 性质'
+    ],
+    inputs: [
+      { key: 'scen', label: '失衡场景', type: 'select', options: [
+        ['LL', 'LL 型：30 → 20 → 10（右旋）'],
+        ['RR', 'RR 型：10 → 20 → 30（左旋）'],
+        ['LR', 'LR 型：30 → 10 → 20（双旋）'],
+        ['RL', 'RL 型：10 → 30 → 20（双旋）']
+      ], value: 'LL' }
+    ],
+    run: function (v) {
+      var seq = SCEN[v.scen] || SCEN.LL;
+      var frames = [], root = null;
+      function F(line, msg, hl) {
+        hl = hl || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: (function () { var io = []; inorder(root, io); return { 中序: io.map(function (x) { return x.v; }).join(' ≤ ') || '（空）', '最大|bf|': String(io.reduce(function (m, x) { return Math.max(m, Math.abs(x.bf)); }, 0)) }; })(),
+          snap: { tree: cloneT(root), hl: hl, mark: hl.mark }
+        });
+      }
+      function insertAVL(val) {
+        if (!root) { root = mk(val); F(1, '插入 ' + val + '：作为根。', { newv: val }, 'ins' + val); return; }
+        var path = [], cur = root, par = null, dir = '';
+        while (cur) {
+          path.push(cur.v);
+          if (val < cur.v) { par = cur; dir = 'l'; cur = cur.l; }
+          else if (val > cur.v) { par = cur; dir = 'r'; cur = cur.r; }
+          else { return; }
+        }
+        if (dir === 'l') par.l = mk(val); else par.r = mk(val);
+        /* 更新高度并找最浅失衡点 */
+        (function updAll(n2) { if (!n2) return; updAll(n2.l); updAll(n2.r); upd(n2); })(root);
+        F(1, '插入 ' + val + '（叶子），向上检查平衡因子。', { newv: val, path: path }, 'ins' + val);
+        var a = null, apar = null, adir = '';
+        (function findU(n2, p, d) {
+          if (!n2) return;
+          findU(n2.l, n2, 'l'); findU(n2.r, n2, 'r');
+          if (Math.abs(bf(n2)) > 1 && !a) { a = n2; apar = p; adir = d; }
+        })(root, null, '');
+        if (!a) { F(0, '所有结点 |bf| ≤ 1，无需旋转。', { path: path }); return; }
+        F(0, CASEINFO[v.scen].split('：')[0] + '：结点 ' + a.v + ' 失衡（bf = ' + bf(a) + '），需要旋转。', { bad: a.v, path: path });
+        var caseType = v.scen;
+        if (caseType === 'LL') { root = (a === root) ? rotr(a) : (function () { if (apar.l === a) apar.l = rotr(a); else apar.r = rotr(a); return root; })(); }
+        else if (caseType === 'RR') { root = (a === root) ? rotl(a) : (function () { if (apar.l === a) apar.l = rotl(a); else apar.r = rotl(a); return root; })(); }
+        else if (caseType === 'LR') { F(0, 'LR 第一步：对左孩子 ' + a.l.v + ' 左旋。', { bad: a.v, sub: a.l.v }); a.l = rotl(a.l); F(0, 'LR 第二步：对 ' + a.v + ' 右旋。', { bad: a.v }); root = (a === root) ? rotr(a) : (function () { if (apar.l === a) apar.l = rotr(a); else apar.r = rotr(a); return root; })(); }
+        else { F(0, 'RL 第一步：对右孩子 ' + a.r.v + ' 右旋。', { bad: a.v, sub: a.r.v }); a.r = rotr(a.r); F(0, 'RL 第二步：对 ' + a.v + ' 左旋。', { bad: a.v }); root = (a === root) ? rotl(a) : (function () { if (apar.l === a) apar.l = rotl(a); else apar.r = rotl(a); return root; })(); }
+        (function updAll2(n2) { if (!n2) return; updAll2(n2.l); updAll2(n2.r); upd(n2); })(root);
+        F(0, '旋转完成：新子树根 = ' + root.v + '。中序序列不变，全部 |bf| ≤ 1。', { newv: root.v }, 'rot');
+      }
+      seq.forEach(insertAVL);
+      var io = []; inorder(root, io);
+      F(0, '场景完成：依次插入 ' + seq.join(' → ') + '，最终根为 ' + root.v + '。AVL 把查找稳定在 O(log n)——代价是插入/删除要维护平衡。', {}, 'done');
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var W = 980, H = 520;
+      var g = '';
+      var nodes = [], pos = {};
+      (function walk(n2, d) { if (!n2) return; walk(n2.l, d + 1); nodes.push({ v: n2.v, d: d, bf: bf(n2) }); walk(n2.r, d + 1); })(s.tree, 0);
+      nodes.forEach(function (n3, r) { pos[n3.v] = [150 + r * ((W - 300) / Math.max(nodes.length - 1, 1)), 110 + n3.d * 100]; });
+      (function edges(n2) { if (!n2) return; if (n2.l) { var A = pos[n2.v], B = pos[n2.l.v]; g += h.line(A[0], A[1], B[0], B[1], { stroke: C.line, sw: 1.7 }); edges(n2.l); } if (n2.r) { var A2 = pos[n2.v], B2 = pos[n2.r.v]; g += h.line(A2[0], A2[1], B2[0], B2[1], { stroke: C.line, sw: 1.7 }); edges(n2.r); } })(s.tree);
+      nodes.forEach(function (n4) {
+        var P = pos[n4.v], bad = s.hl && s.hl.bad === n4.v;
+        g += h.circle(P[0], P[1], 22, { fill: bad ? C.redBg : (s.hl && s.hl.newv === n4.v ? C.greenBg : '#fff'), stroke: bad ? C.red : (s.hl && s.hl.newv === n4.v ? C.green : C.grey), sw: bad ? 2.8 : 1.9 });
+        g += h.txt(P[0], P[1] + 6, String(n4.v), { size: 14.5, w: 700 });
+        var bfc = n4.bf === 0 ? C.muted : Math.abs(n4.bf) > 1 ? C.red : C.blue;
+        g += h.txt(P[0], P[1] + 40, 'bf=' + (n4.bf > 0 ? '+' : '') + n4.bf, { size: 11.5, fill: bfc, w: 700 });
+      });
+      if (s.hl && s.hl.sub) g += h.txt(W / 2, 400, '双旋第一步涉及子树根 ' + s.hl.sub, { size: 13, fill: C.amber, w: 600 });
+      g += h.txt(W / 2, 460, 'bf = 左子树高 − 右子树高；|bf| > 1 即失衡（红），旋转后新根绿', { size: 12.5, fill: C.muted });
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
+/* ==================== ch7/05hashLinear.js ==================== */
+/* 动画：哈希表——线性探测再散列（开放定址），教材 7.4，例题 H(key)=key%13，{19,14,23,1,68,20,84,27,55,11} */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C;
+
+  var CODE = [
+    '#define M 13                     // 表长 = 哈希地址数 0..12',
+    'int H(KeyType key) { return key % 13; }   // 除留余数法',
+    'int InsertHash(HashTable &HT, KeyType key) {',
+    '    h0 = H(key);                          // 计算散列地址',
+    '    for (i = 0; i < M; ++i) {',
+    '        addr = (h0 + i) % M;              // 线性探测：h0, h0+1, …（取模回绕）',
+    '        if (HT[addr] == EMPTY) { HT[addr] = key; return i+1; }  // 空位即插入',
+    '    }',
+    '    return ERROR;                         // 表满',
+    '}'
+  ];
+
+  var DEF = [19, 14, 23, 1, 68, 20, 84, 27, 55, 11];
+  var M = 13;
+
+  DSC.reg({
+    id: 'hashLinear', ch: 7, name: '哈希表：线性探测再散列',
+    note: '教材 7.4 散列表（除留余数 + 开放定址，ASL 统计）',
+    guide: [
+      '哈希思想：不比较、直接算地址——H(key)=key%13。理想 O(1)，但会"冲突"（两数同地址）',
+      '冲突就用**线性探测**：地址被占就顺移一格 (h0+i)%M，直到找到空位（红色=冲突，蓝=落位）',
+      '观察 84：H=6 被 19 占 → 7 被 20 占 → 8 落位，探测 3 次；27 更是探测 4 次——"堆积"现象',
+      '查最后面板的 ASL：成功查找平均 1.8 次 = Σ每元素探测次数 ÷ n。装填因子越大，堆积越严重'
+    ],
+    inputs: [
+      { key: 'w', label: '关键码序列', type: 'text', value: '19,14,23,1,68,20,84,27,55,11' }
+    ],
+    run: function (v) {
+      var keys = h.parse(v.w);
+      if (keys.length < 3 || keys.length > M) throw Error('请输入 3~' + M + ' 个非负整数（表长 M=13）');
+      for (var c0 = 0; c0 < keys.length; c0++) if (keys[c0] < 0 || keys[c0] > 999) throw Error('关键码请在 0~999 之间');
+      var table = [], cnt = [];
+      for (var i = 0; i < M; i++) { table.push(null); cnt.push(0); }
+      var frames = [], total = 0;
+
+      function F(line, msg, extra, mk) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { 已存: table.filter(function (x) { return x !== null; }).length + ' / ' + M, 累计探测: total + ' 次' },
+          snap: { table: table.slice(), cnt: cnt.slice(), probe: extra.probe, addr: extra.addr, h0: extra.h0, ok: extra.ok, fail: extra.fail, cur: extra.cur, mark: mk }
+        });
+      }
+
+      F(0, '空表 HT[0..12]，散列函数 H(key)=key%13。逐个插入。', {});
+      var dup = {};
+      keys.forEach(function (key) {
+        if (dup[key]) { F(0, '关键码 ' + key + ' 重复，跳过。', {}); return; }
+        dup[key] = 1;
+        var h0 = key % M, probes = 0, addr = h0, ok = -1;
+        F([3, 4], '插入 ' + key + '：H(' + key + ') = ' + key + ' % 13 = ' + h0 + '。', { cur: key, h0: h0, addr: h0 });
+        for (var i = 0; i < M; i++) {
+          addr = (h0 + i) % M;
+          if (table[addr] === null) {
+            probes = i + 1; total += probes;
+            table[addr] = key; cnt[addr] = probes; ok = addr;
+            F([6, 7], (i === 0 ? 'HT[' + addr + '] 为空 → 直接放入（探测 1 次）。' : '第 ' + (i + 1) + ' 次探测：HT[' + addr + '] 为空 → 放入（' + key + ' 共探测 ' + probes + ' 次）。'), { cur: key, h0: h0, addr: addr, ok: addr }, 'ins' + key);
+            break;
+          }
+          F(5, 'HT[' + addr + '] 已被 ' + table[addr] + ' 占用 → 冲突，线性探测下一格 (h0+' + (i + 1) + ') mod 13 = ' + ((h0 + i + 1) % M) + '。', { cur: key, h0: h0, addr: addr, probe: i + 1 });
+        }
+        if (ok < 0) F(8, '表满，插入失败。', { cur: key, fail: true });
+      });
+      var n = table.filter(function (x) { return x !== null; }).length;
+      F(0, '插入完成。每个关键码下方的数字 = 查找它需要的比较（探测）次数。ASL(成功) = ' + total + ' ÷ ' + n + ' = ' + (total / n).toFixed(2) + '。装填因子 α = ' + n + '/' + M + ' ≈ ' + (n / M).toFixed(2) + '——α 越大冲突越多；线性探测易"堆积"（非同义词争抢同一批地址），后续帧可对比链地址法。', { mark: 'final' });
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var W = 980, H = 470, cw = Math.floor((W - 80) / 13);
+      var g = '';
+      g += h.txt(W / 2, 32, '哈希表 H(key)=key%13 · 线性探测再散列', { size: 17, w: 600 });
+      for (var i = 0; i < M; i++) {
+        var x = 40 + i * cw;
+        var f = '#fff', st = C.grey, sw = 1.5;
+        if (s.addr === i && !s.ok) { f = C.redBg; st = C.red; sw = 2.4; }
+        if (s.ok === i) { f = C.blueBg; st = C.blue; sw = 2.6; }
+        g += h.rect(x, 120, cw - 4, 52, { fill: f, stroke: st, sw: sw, rx: 6 });
+        g += h.txt(x + (cw - 4) / 2, 152, s.table[i] == null ? '' : String(s.table[i]), { size: 16, w: 700 });
+        g += h.txt(x + (cw - 4) / 2, 192, String(i), { size: 11, fill: C.muted });
+        if (s.cnt[i]) g += h.txt(x + (cw - 4) / 2, 214, '探' + s.cnt[i], { size: 10.5, fill: C.green, w: 600 });
+        if (s.h0 === i && s.cur != null) g += h.txt(x + (cw - 4) / 2, 108, 'H(' + s.cur + ')=' + i, { size: 10.5, fill: C.blue, w: 700 });
+        if (s.ok === i && s.cur != null) g += h.txt(x + (cw - 4) / 2, 98, s.cur + ' 落位', { size: 11, fill: C.blue, w: 700 });
+      }
+      g += h.txt(W / 2, 260, '红色=冲突探测中 ｜ 蓝=插入落位 ｜ 格下数字=该元素的查找比较次数', { size: 12.5, fill: C.muted });
+      g += h.txt(W / 2, 300, '探查序列：(h0) → (h0+1) mod M → (h0+2) mod M → …（"线性"：一格一格顺移）', { size: 13, fill: C.ink });
+      g += h.txt(W / 2, 340, '堆积（clustering）：非同义词抢占地址链，使冲突概率滚雪球——线性探测的主要缺陷', { size: 12.5, fill: C.muted });
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
+/* ==================== ch7/06hashChain.js ==================== */
+/* 动画：哈希表——链地址法（拉链法），教材 7.4，同余链表 + ASL 对照 */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C;
+
+  var CODE = [
+    '#define M 13',
+    'int H(KeyType key) { return key % 13; }',
+    'void InsertHash(HashTable &HT, KeyType key) {   // 链地址：冲突就挂链',
+    '    addr = H(key);',
+    '    // 头插法：新结点插到该桶链表最前面（同义词条数再大也不影响其他桶）',
+    '    p = new Node(key);  p->next = HT[addr];  HT[addr] = p;',
+    '}',
+    '// 查找：先到桶，再沿链顺序比较（比较次数 = 在链中的位次）'
+  ];
+
+  var DEF = [19, 14, 23, 1, 68, 20, 84, 27, 55, 11];
+  var M = 13;
+
+  DSC.reg({
+    id: 'hashChain', ch: 7, name: '哈希表：链地址法（拉链）',
+    note: '教材 7.4 散列表（同义词挂链、无堆积，与线性探测对照）',
+    guide: [
+      '同一批关键码换**拉链法**：每个桶是一条链表，冲突的元素直接挂上去——谁也不挤谁',
+      '头插法：新结点总插在链头（注意 84 插入后：桶 6 变成 84→19）',
+      '比较次数 = 元素在链中的位次；最后一帧的 ASL 与线性探测对照（本例 1.4 < 1.8）',
+      '链地址优点：无堆积、删改方便、装填因子可 >1；代价：链表指针的空间与二次寻址'
+    ],
+    inputs: [
+      { key: 'w', label: '关键码序列', type: 'text', value: '19,14,23,1,68,20,84,27,55,11' }
+    ],
+    run: function (v) {
+      var keys = h.parse(v.w);
+      if (keys.length < 3 || keys.length > 30) throw Error('请输入 3~30 个非负整数');
+      for (var c0 = 0; c0 < keys.length; c0++) if (keys[c0] < 0 || keys[c0] > 999) throw Error('关键码请在 0~999 之间');
+      var HT = [], cnt = {}, total = 0;
+      for (var i = 0; i < M; i++) { HT.push([]); }
+      var frames = [];
+
+      function F(line, msg, extra, mk) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { 元素数: String(keys.length), 累计比较: total + ' 次' },
+          snap: { HT: HT.map(function (c) { return c.slice(); }), cnt: JSON.parse(JSON.stringify(cnt)), addr: extra.addr, cur: extra.cur, pos: extra.pos, mark: mk }
+        });
+      }
+
+      F(0, '13 个空桶（桶 = 同义词链表的头指针）。逐个头插。', {});
+      keys.forEach(function (key) {
+        var addr = key % M;
+        F([2, 3, 4], key + '：H(' + key + ')=' + key + '%13=' + addr + (HT[addr].length ? '，桶不空（链上已有 ' + HT[addr].join('→') + '）→ 头插。' : '，桶为空 → 直接成为链头。'), { addr: addr, cur: key });
+        HT[addr].unshift(key);
+        cnt[key] = HT[addr].indexOf(key) + 1;
+        F(5, key + ' 进入桶 ' + addr + ' 链头：链变为 ' + HT[addr].join('→') + '。（后续头插会改变位次，最终查找代价以末帧统计为准）', { addr: addr, cur: key }, 'ins' + key);
+      });
+      var total = 0;
+      keys.forEach(function (k2) { total += HT[k2 % M].indexOf(k2) + 1; });
+      F(0, '插入完成（按最终链位次统计：' + keys.map(function (k3) { return k3 + '→' + (HT[k3 % M].indexOf(k3) + 1); }).join('，') + '）。ASL(成功) = ' + total + ' ÷ ' + keys.length + ' = ' + (total / keys.length).toFixed(2) + '——对照线性探测的 1.8，拉链法没有"堆积"，冲突只发生在真正的同义词之间。', { mark: 'final' });
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var W = 980, H = 560;
+      var g = '';
+      g += h.txt(W / 2, 32, '哈希表 H(key)=key%13 · 链地址法（头插）', { size: 17, w: 600 });
+      var bw = Math.floor((W - 80) / 13);
+      for (var i = 0; i < M; i++) {
+        var x = 40 + i * bw;
+        g += h.txt(x + bw / 2 - 6, 92, String(i), { size: 12, fill: C.muted, w: 700 });
+        g += h.rect(x, 102, bw - 10, 44, { fill: (s.addr === i) ? C.blueBg : '#fbfcfe', stroke: (s.addr === i) ? C.blue : C.grey, sw: (s.addr === i) ? 2.4 : 1.4, rx: 6 });
+        g += h.txt(x + bw / 2 - 6, 130, s.cur != null && s.HT[i][0] != null && s.addr === i ? String(s.cur) : (s.HT[i].length ? '•' : ''), { size: 14, w: 700, fill: C.blue });
+        if (s.addr === i && s.cur != null) g += h.txt(x + bw / 2 - 6, 80, 'H(' + s.cur + ')', { size: 10.5, fill: C.blue, w: 700 });
+        /* 链 */
+        s.HT[i].forEach(function (val, k) {
+          var y = 160 + k * 46;
+          g += h.line(x + bw / 2 - 6, y - 14, x + bw / 2 - 6, y, { stroke: C.grey, sw: 1.6 });
+          var isCur = s.cur === val && s.addr === i;
+          g += h.rect(x + 6, y, bw - 22, 34, { fill: isCur ? C.greenBg : '#fff', stroke: isCur ? C.green : C.grey, sw: isCur ? 2.4 : 1.5, rx: 6 });
+          g += h.txt(x + bw / 2 - 6, y + 23, String(val), { size: 13.5, w: 700 });
+        });
+      }
+      g += h.txt(W / 2, 540, '桶头 → 同义词链表；比较次数 = 链上位次。无堆积、可删改，α 可以 > 1', { size: 12.5, fill: C.muted });
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
+/* ==================== ch8/00sortCommon.js ==================== */
+/* 排序章共享工具：数据预设、条形图渲染。被 ch8 各排序模块复用（非注册模块）。 */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C;
+
+  DSC.su = {
+    /* 颜色约定：N 普通 C 比较 S 交换/写入 D 已就位 P 基准/关键 */
+    COLORS: {
+      N: ['#ffffff', '#94a3b8'], C: ['#fef3c7', '#d97706'], S: ['#fee2e2', '#dc2626'],
+      D: ['#dcfce7', '#16a34a'], P: ['#dbeafe', '#2563eb']
+    },
+    parse: function (s) {
+      return String(s).split(/[,，\s]+/).filter(function (x) { return x !== ''; })
+        .map(Number).filter(function (x) { return !isNaN(x); });
+    },
+    gen: function (kind, custom) {
+      if (kind === 'textbook') return [49, 38, 65, 97, 76, 13, 27, 49];
+      if (kind === 'ordered') return [12, 23, 34, 45, 56, 67, 78, 89];
+      if (kind === 'reverse') return [89, 78, 67, 56, 45, 34, 23, 12];
+      if (kind === 'nearly') return [12, 23, 34, 45, 67, 56, 78, 89];
+      if (kind === 'custom') return this.parse(custom);
+      var a = [], i;
+      for (i = 0; i < 10; i++) a.push(10 + Math.floor(Math.random() * 90));
+      return a;
+    },
+    getData: function (v) {
+      var arr = this.gen(v.preset, v.w);
+      if (arr.length < 2 || arr.length > 12) throw Error('请输入 2~12 个整数（用逗号分隔）');
+      for (var i = 0; i < arr.length; i++) {
+        if (arr[i] < 0 || arr[i] > 999) throw Error('数值请在 0~999 之间');
+        if (!isFinite(arr[i])) throw Error('存在非法数值');
+      }
+      return arr;
+    },
+    presetInputs: function (extra) {
+      return [
+        { key: 'preset', label: '数据', type: 'select', options: [
+          ['textbook', '教材例题 49,38,65,97,76,13,27,49'],
+          ['random', '随机 10 个（每次不同）'],
+          ['ordered', '有序（最好情况）'],
+          ['reverse', '逆序（最坏情况）'],
+          ['nearly', '几乎有序'],
+          ['custom', '自定义 ↓']
+        ], value: 'textbook' },
+        { key: 'w', label: '自定义序列', type: 'text', value: '49,38,65,97,76,13,27,49' }
+      ].concat(extra || []);
+    },
+    /* 条形图：s={arr,colors,tags}，o={title,W,H,base,note} */
+    bars: function (s, o) {
+      o = o || {};
+      var W = o.W || 980, H = o.H || 470, arr = s.arr, n = arr.length;
+      var bw = Math.min(72, Math.floor((W - 150) / n) - 12), gap = 12;
+      var x0 = (W - (n * bw + (n - 1) * gap)) / 2, base = o.base || 380;
+      var maxv = Math.max.apply(null, arr) || 1;
+      var g = '';
+      if (o.title) g += h.txt(W / 2, 34, o.title, { size: 18, w: 600 });
+      for (var i = 0; i < n; i++) {
+        var bh = 40 + Math.round(arr[i] / maxv * (base - 120));
+        var x = x0 + i * (bw + gap);
+        var key = (s.colors && s.colors[i]) || 'N';
+        var cm = this.COLORS[key] || this.COLORS.N;
+        g += h.rect(x, base - bh, bw, bh, { fill: cm[0], stroke: cm[1], sw: key === 'N' ? 1.4 : 2.4, rx: 5 });
+        g += h.txt(x + bw / 2, base - bh - 8, String(arr[i]), { size: 14.5, w: 700 });
+        g += h.txt(x + bw / 2, base + 20, String(i + 1), { size: 11, fill: C.muted });
+      }
+      (s.tags || []).forEach(function (t) {
+        var x = x0 + t.i * (bw + gap) + bw / 2;
+        g += h.txt(x, base + 40, t.text, { size: 12.5, fill: t.color || C.blue, w: 600 });
+      });
+      if (o.note) g += h.txt(W / 2, H - 14, o.note, { size: 12.5, fill: C.muted });
+      return h.svg(W, H, g);
+    },
+    /* 图例 */
+    legend: function (items) {
+      var h = DSC.h, g = '', x = 30;
+      items.forEach(function (it) {
+        var cm = DSC.su.COLORS[it[1]];
+        g += h.rect(x, 404, 16, 16, { fill: cm[0], stroke: cm[1], rx: 3 });
+        g += h.txt(x + 22, 416, it[0], { size: 12, fill: DSC.C.muted, anchor: 'start' });
+        x += 22 + it[0].length * 13 + 16;
+      });
+      return g;
+    }
+  };
+})();
+
+
+/* ==================== ch8/01insertSort.js ==================== */
+/* 动画：直接插入排序（可切换折半插入）——教材 8.2，例题 {49,38,65,97,76,13,27,49*}，带哨兵 */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C, su = DSC.su;
+
+  var CODE = [
+    'void InsertSort(SqList &L) {',
+    '    for (i = 2; i <= L.length; ++i)',
+    '        if (L.r[i] < L.r[i-1]) {              // 需将 L.r[i] 插入有序子表',
+    '            L.r[0] = L.r[i];                  // 复制为哨兵',
+    '            for (j = i-1; L.r[0] < L.r[j]; --j)',
+    '                L.r[j+1] = L.r[j];            // 记录后移',
+    '            L.r[j+1] = L.r[0];                // 插入到正确位置',
+    '        }',
+    '}'
+  ];
+  var CODE_B = [
+    'void BInsertSort(SqList &L) {',
+    '    for (i = 2; i <= L.length; ++i) {',
+    '        L.r[0] = L.r[i];                      // 哨兵',
+    '        low = 1;  high = i-1;                 // 在 [1..i-1] 中折半查找插入位置',
+    '        while (low <= high) {',
+    '            m = (low + high) / 2;',
+    '            if (L.r[0] < L.r[m])  high = m-1; // 插入位置在低半区',
+    '            else                  low  = m+1;',
+    '        }                                     // 循环结束 low 即插入位置',
+    '        for (j = i-1; j >= low; --j) L.r[j+1] = L.r[j];   // 记录后移',
+    '        L.r[low] = L.r[0];',
+    '    }',
+    '}'
+  ];
+
+  DSC.reg({
+    id: 'insertSort', ch: 8, name: '直接插入排序（含折半插入）',
+    note: '教材 8.2 插入排序（逐个比较/后移/插入，稳定）',
+    guide: [
+      '左侧绿色为已排好的"有序区"，每趟把下一个元素插入其中',
+      '观察哨兵 L.r[0]：先取出待插元素腾出空位，再从后往前比较、后移',
+      '对比"直接/折半"两种方式：折半只减少比较次数，移动次数不变',
+      '注意两个 49：直接插入排序是稳定的（相等元素不跨越）'
+    ],
+    inputs: su.presetInputs([
+      { key: 'mode', label: '插入方式', type: 'select', options: [['d', '直接插入'], ['b', '折半插入']], value: 'd' }
+    ]),
+    run: function (v) {
+      var a = su.getData(v);
+      a.unshift(0);                                  // a[0] 为哨兵位
+      var n = a.length - 1, bin = v.mode === 'b';
+      var frames = [], cmp = 0, mov = 0;
+      var code = bin ? CODE_B : CODE;
+
+      function colors(hl) {
+        var cs = [];
+        for (var i = 1; i <= n; i++) cs.push(i <= (hl.done ? hl.done : 0) ? 'D' : 'N');
+        if (hl.c) cs[hl.c - 1] = 'C';
+        if (hl.s) cs[hl.s - 1] = 'S';
+        if (hl.p) cs[hl.p - 1] = 'P';
+        return cs;
+      }
+      function F(line, msg, extra, mk) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { 比较: cmp + ' 次', 移动: mov + ' 次', 有序区: '第 1 ~ ' + (extra.done || 0) + ' 个', 哨兵: extra.sent != null ? String(extra.sent) : '—' },
+          snap: { arr: a.slice(1), colors: colors(extra), tags: [], sent: extra.sent, mark: mk }
+        });
+      }
+
+      F(0, '初始序列（位置 1~' + n + '，a[0] 留作哨兵）。' + (bin ? '折半插入：先用二分找到插入位置，再统一后移。' : '直接插入：从后往前边比较边后移。'), { done: 0 });
+
+      for (var i = 2; i <= n; i++) {
+        var sent = a[i];
+        if (!bin) {
+          cmp++;
+          if (a[i - 1] <= sent) { F(1, '第 ' + (i - 1) + ' 趟：a[' + i + ']=' + sent + ' ≥ 前驱 a[' + (i - 1) + ']=' + a[i - 1] + '，位置本就正确，本趟 0 次移动。', { c: i, done: i - 1, sent: sent }); }
+          else {
+            a[0] = a[i]; mov++;
+            F([2, 3], '第 ' + (i - 1) + ' 趟：a[' + i + ']=' + sent + ' < 前驱，取出存入哨兵 a[0]，位置 ' + i + ' 腾空。', { p: i, sent: sent });
+            var j = i - 1;
+            while (a[0] < a[j]) {
+              cmp++; a[j + 1] = a[j]; mov++;
+              F(5, 'a[' + j + ']=' + a[j] + ' > 哨兵 ' + a[0] + ' → 后移到 a[' + (j + 1) + ']。', { c: j, s: j + 1, sent: a[0] });
+              j--;
+            }
+            cmp++;
+            a[j + 1] = a[0]; mov++;
+            F(6, 'a[' + j + ']=' + (j >= 1 ? a[j] : '—') + ' ≤ 哨兵，停在这里：a[' + (j + 1) + '] = ' + a[0] + '，插入完成。', { s: j + 1, sent: a[0] });
+          }
+          F(1, '第 ' + (i - 1) + ' 趟完成：第 1~' + i + ' 个元素构成有序区。', { done: i, sent: null }, i);
+        } else {
+          a[0] = a[i]; mov++;
+          F([1, 2], '第 ' + (i - 1) + ' 趟：取出 a[' + i + ']=' + sent + ' 存入哨兵，在有序区 [1..' + (i - 1) + '] 中折半查找插入位置。', { p: i, sent: sent });
+          var low = 1, high = i - 1;
+          while (low <= high) {
+            var m = Math.floor((low + high) / 2);
+            cmp++;
+            var goLow = a[0] < a[m];
+            F([5, 6, 7, 8], 'm=(1+' + high + ')/2 取中 m=' + m + '：a[m]=' + a[m] + (goLow ? ' > 哨兵 ' + a[0] + ' → 插入位置在低半区，high=' + (m - 1) : ' ≤ 哨兵 ' + a[0] + ' → 在高半区，low=' + (m + 1)) + '。',
+              { c: m, p: i, sent: sent });
+            if (goLow) high = m - 1; else low = m + 1;
+          }
+          F(4, '折半结束：low=' + low + ' ≤ high=' + high + ' 不再成立，插入位置确定为 low=' + low + '。', { sent: sent });
+          for (var k = i - 1; k >= low; k--) { a[k + 1] = a[k]; mov++; F(9, 'a[' + k + ']=' + a[k] + ' 后移到 a[' + (k + 1) + ']。', { c: k, s: k + 1, sent: sent }); }
+          a[low] = a[0]; mov++;
+          F(10, 'a[' + low + '] = ' + a[0] + '，插入完成。', { s: low, sent: a[0] });
+          F(2, '第 ' + (i - 1) + ' 趟完成：第 1~' + i + ' 个元素构成有序区。', { done: i, sent: null }, i);
+        }
+      }
+      F(0, '排序完成：' + a.slice(1).join(' ') + '。共比较 ' + cmp + ' 次、移动 ' + mov + ' 次。要点：折半插入把比较次数降到 O(n log n)，但移动次数仍为 O(n²)——移动由序列初始排列决定，比较方式帮不上忙。',
+        { done: n, sent: null }, 'final');
+      return { code: code, frames: frames };
+    },
+    render: function (s) {
+      var g = su.bars(s, { title: '插入排序（绿=有序区，蓝=待插元素，黄=比较，红=后移/写入）' });
+      g += su.legend([['有序区', 'D'], ['取出/待插', 'P'], ['比较', 'C'], ['后移/写入', 'S']]);
+      if (s.sent != null) g += h.txt(490, 446, '哨兵 a[0] = ' + s.sent, { size: 14, w: 700, fill: C.blue });
+      return g;
+    }
+  });
+})();
+
+
+/* ==================== ch8/02shellSort.js ==================== */
+/* 动画：希尔排序——教材 8.3，增量序列 {4,2,1}，例题 {49,38,65,97,76,13,27,49*} */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C, su = DSC.su;
+
+  var CODE = [
+    'void ShellSort(SqList &L, int dlta[]) {',
+    '    // 增量序列 dlta = { 4, 2, 1 }',
+    '    for (k = 0; k < 3; ++k)',
+    '        ShellInsert(L, dlta[k]);          // 一趟增量为 dlta[k] 的插入排序',
+    '}',
+    'void ShellInsert(SqList &L, int dk) {',
+    '    for (i = dk+1; i <= L.length; ++i)',
+    '        if (L.r[i] < L.r[i-dk]) {         // 组内插入排序（带哨兵）',
+    '            L.r[0] = L.r[i];',
+    '            for (j = i-dk; j > 0 && L.r[0] < L.r[j]; j -= dk)',
+    '                L.r[j+dk] = L.r[j];       // 组内记录后移 dk 位',
+    '            L.r[j+dk] = L.r[0];',
+    '        }',
+    '}'
+  ];
+
+  DSC.reg({
+    id: 'shellSort', ch: 8, name: '希尔排序（缩小增量）',
+    note: '教材 8.3 希尔排序（分组插入、增量收缩，不稳定）',
+    guide: [
+      '按增量 dk 把序列分成 dk 组，组内做插入排序——远距离的元素先大致就位',
+      '增量逐趟收缩（4→2→1），最后一趟 dk=1 就是普通直接插入，但此时序列已"基本有序"',
+      '观察前几趟：移动步长是 dk 而不是 1，远处的小数能一步跳到前面',
+      '希尔排序性能依赖增量序列，约 O(n^1.3)；相等的元素可能被分到不同组——它是不稳定排序'
+    ],
+    inputs: su.presetInputs(),
+    run: function (v) {
+      var a = su.getData(v);
+      a.unshift(0);
+      var n = a.length - 1, cmp = 0, mov = 0;
+      var frames = [];
+      var gaps = [];
+      for (var g0 = Math.floor(n / 2); g0 >= 1; g0 = Math.floor(g0 / 2)) gaps.push(g0);
+      if (gaps.length > 3) gaps = gaps.slice(gaps.length - 3);
+
+      function colors(hl) {
+        var cs = [];
+        for (var i = 1; i <= n; i++) cs.push('N');
+        if (hl.c) cs[hl.c - 1] = 'C';
+        if (hl.s) cs[hl.s - 1] = 'S';
+        if (hl.p) cs[hl.p - 1] = 'P';
+        (hl.group || []).forEach(function (i2, k) { if (cs[i2 - 1] === 'N') cs[i2 - 1] = k % 2 ? 'P' : 'N'; });
+        return cs;
+      }
+      function F(line, msg, extra, mk) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { 比较: cmp + ' 次', 移动: mov + ' 次', 当前增量: String(extra.dk || '—') },
+          snap: { arr: a.slice(1), colors: colors(extra), dk: extra.dk, group: extra.group || [], mark: mk }
+        });
+      }
+
+      F(0, '初始序列。本例增量序列取 { ' + gaps.join(', ') + ' }（教材例题取法），每趟组内做插入排序。', {});
+
+      for (var gi = 0; gi < gaps.length; gi++) {
+        var dk = gaps[gi];
+        var group = [];
+        for (var t = 1; t <= dk; t++) group.push(t);
+        F([0, 1, 4], '【dk = ' + dk + '】把位置按 "位置 mod dk" 分成 ' + dk + ' 组，组内做插入排序。', { dk: dk, group: group });
+        for (var i = dk + 1; i <= n; i++) {
+          cmp++;
+          if (a[i] < a[i - dk]) {
+            a[0] = a[i]; mov++;
+            F([6, 7], 'a[' + i + ']=' + a[i] + ' < 同组前驱 a[' + (i - dk) + ']=' + a[i - dk] + '：存入哨兵，准备在组内前移。', { dk: dk, c: i, p: i - dk, group: group });
+            var j = i - dk;
+            while (j > 0 && a[0] < a[j]) {
+              cmp++; a[j + dk] = a[j]; mov++;
+              F(9, '组内 a[' + j + ']=' + a[j] + ' > 哨兵 → 后移 dk 位到 a[' + (j + dk) + ']（一次跨 ' + dk + ' 步！）。', { dk: dk, c: j, s: j + dk, group: group });
+              j -= dk;
+            }
+            a[j + dk] = a[0]; mov++;
+            F(10, '哨兵 ' + a[0] + ' 插入到 a[' + (j + dk) + ']。', { dk: dk, s: j + dk, group: group });
+          }
+        }
+        F([1, 2], 'dk=' + dk + ' 一趟完成：序列更"接近有序"。' + (dk === 1 ? '最后一趟 dk=1 即直接插入排序——因为基本有序，比较/移动都很少。' : ''), { dk: dk, group: group }, 'gap' + dk);
+      }
+      var sorted = a.slice(1).slice().sort(function (x, y) { return x - y; });
+      F(0, '排序完成：' + a.slice(1).join(' ') + '。要点：① 增量序列最后一个必须是 1；② 基本有序后 dk=1 那趟几乎不移动——这就是希尔快于直接插入的原因；③ 分组跨越使相等元素可能乱序，不稳定。', {}, 'final');
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var tags = [];
+      (s.group || []).forEach(function (i, k) { tags.push({ i: i - 1, text: '组' + ((k % 4) + 1), color: ['#2563eb', '#16a34a', '#d97706', '#7c3aed'][k % 4] }); });
+      var g = su.bars({ arr: s.arr, colors: s.colors, tags: tags }, { title: '希尔排序（dk = ' + (s.dk || '—') + '）：同色位置为一组，组内插入排序' });
+      g += su.legend([['比较', 'C'], ['后移/写入', 'S'], ['哨兵来源', 'P']]);
+      return g;
+    }
+  });
+})();
+
+
+/* ==================== ch8/03bubbleSort.js ==================== */
+/* 动画：冒泡排序——教材 8.4 交换排序，含"已有序提前终止"，例题 {49,38,65,97,76,13,27,49*} */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C, su = DSC.su;
+
+  var CODE = [
+    'void BubbleSort(SqList &L) {',
+    '    m = L.length - 1;  flag = 1;              // flag 记录某一趟是否发生交换',
+    '    while (m > 0 && flag) {',
+    '        flag = 0;                             // 本趟开始先假设不交换',
+    '        for (j = 1; j <= m; ++j)',
+    '            if (L.r[j] > L.r[j+1]) {',
+    '                swap(L.r[j], L.r[j+1]);       // 逆序则交换',
+    '                flag = 1;                     // 发生了交换',
+    '            }',
+    '        --m;                                  // 最大者已"冒泡"到末尾',
+    '    }',
+    '}'
+  ];
+
+  DSC.reg({
+    id: 'bubbleSort', ch: 8, name: '冒泡排序（相邻逆序交换）',
+    note: '教材 8.4 交换排序（相邻比较、大数沉底，稳定）',
+    guide: [
+      '每趟从左到右依次比较相邻两个：逆序就交换——最大的数像气泡一样"冒"到末尾',
+      '黄色=正在比较的一对，红色=发生交换；每趟结束最右端多一个绿色"已就位"',
+      '重点看 flag：若某一趟一次交换都没发生，序列已有序，提前终止',
+      '最好情况（已有序）只比较 n−1 次、0 次移动——切到"有序"数据试一试'
+    ],
+    inputs: su.presetInputs(),
+    run: function (v) {
+      var a = su.getData(v).slice();
+      var n = a.length, cmp = 0, mov = 0;
+      var frames = [];
+
+      function colors(hl) {
+        var cs = [];
+        for (var i = 0; i < n; i++) cs.push(hl.doneFrom != null && i >= hl.doneFrom ? 'D' : 'N');
+        if (hl.c1) cs[hl.c1] = 'C';
+        if (hl.c2) cs[hl.c2] = 'C';
+        if (hl.s1) cs[hl.s1] = 'S';
+        if (hl.s2) cs[hl.s2] = 'S';
+        return cs;
+      }
+      function F(line, msg, extra, mk) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { 比较: cmp + ' 次', 交换: mov + ' 次', 已就位: extra.doneFrom != null ? '第 ' + (extra.doneFrom + 1) + '~' + n + ' 个' : '—' },
+          snap: { arr: a.slice(), colors: colors(extra), mark: mk }
+        });
+      }
+
+      F(0, '初始序列。冒泡排序按"相邻比较、逆序交换"进行，每趟把当前无序区的最大值送到末尾。', {});
+
+      var m = n - 1, flag = 1, pass = 0;
+      while (m > 0 && flag) {
+        flag = 0; pass++;
+        F([3], '第 ' + pass + ' 趟开始：flag 清零（假设本趟无交换），无序区为第 1~' + (m + 1) + ' 个。', { doneFrom: m + 1 });
+        for (var j = 0; j < m; j++) {
+          cmp++;
+          if (a[j] > a[j + 1]) {
+            var t = a[j]; a[j] = a[j + 1]; a[j + 1] = t;
+            mov++; flag = 1;
+            F([6, 7, 8], 'a[' + (j + 1) + ']=' + t + ' > a[' + (j + 2) + ']=' + a[j] + '，逆序 → 交换。', { s1: j, s2: j + 1, doneFrom: m + 1 });
+          } else {
+            F(5, 'a[' + (j + 1) + ']=' + a[j] + ' ≤ a[' + (j + 2) + ']=' + a[j + 1] + '，顺序正确，不交换。', { c1: j, c2: j + 1, doneFrom: m + 1 });
+          }
+        }
+        F(9, '第 ' + pass + ' 趟结束：无序区最大值 ' + a[m] + ' 已"冒泡"到第 ' + (m + 1) + ' 个位置。' + (flag ? '' : '本趟一次交换都没有发生 → flag=0！'),
+          { doneFrom: m }, pass);
+        m--;
+      }
+      F(1, '排序完成：' + a.join(' ') + '。共 ' + pass + ' 趟、比较 ' + cmp + ' 次、交换 ' + mov + ' 次。要点：flag 提前终止让"有序/几乎有序"输入达到 O(n)——最好情况；相等的相邻元素不会交换，稳定。', { doneFrom: 0 }, 'final');
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var g = su.bars(s, { title: '冒泡排序（黄=比较相邻对，红=交换，绿=已就位）' });
+      g += su.legend([['比较中', 'C'], ['交换', 'S'], ['已就位', 'D']]);
+      return g;
+    }
+  });
+})();
+
+
+/* ==================== ch8/04quickSort.js ==================== */
+/* 动画：快速排序——教材 8.4，Partition 双指针相向扫描 + 递归树，例题 {49,38,65,97,76,13,27,49*} */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C, su = DSC.su;
+
+  var CODE = [
+    'int Partition(SqList &L, int low, int high) {',
+    '    L.r[0] = L.r[low];                        // 基准存入 L.r[0]，low 位腾空',
+    '    pivotkey = L.r[low].key;',
+    '    while (low < high) {',
+    '        while (low < high && L.r[high] >= pivotkey) --high;',
+    '        L.r[low] = L.r[high];                 // 小的换到左边',
+    '        while (low < high && L.r[low]  <= pivotkey) ++low;',
+    '        L.r[high] = L.r[low];                 // 大的换到右边',
+    '    }',
+    '    L.r[low] = L.r[0];                        // 基准归位：左边都不大于它，右边都不小于它',
+    '    return low;',
+    '}',
+    'void QSort(SqList &L, int low, int high) {',
+    '    if (low < high) { pivot = Partition(L, low, high);',
+    '        QSort(L, low, pivot-1);  QSort(L, pivot+1, high); }',
+    '}'
+  ];
+
+  DSC.reg({
+    id: 'quickSort', ch: 8, name: '快速排序（Partition 划分）',
+    note: '教材 8.4 交换排序（基准划分、分治递归，不稳定）',
+    guide: [
+      '每趟选区间第一个元素为基准（蓝色）：先挖出基准，左边留一个"坑"',
+      'high 端从右向左找比基准小的填左坑；low 端从左向右找比基准大的填右坑——两指针相向而行',
+      'low==high 时基准归位：它左边都不大于它、右边都不小于它，位置就是最终位置（绿色）',
+      '对基准两侧子区间递归。切到"有序"数据看最坏情况：每次划分极度不平衡，退化为 O(n²)'
+    ],
+    inputs: su.presetInputs(),
+    run: function (v) {
+      var a = su.getData(v).slice();
+      var n = a.length, cmp = 0, mov = 0;
+      var frames = [], stackView = [];
+
+      function colors(hl) {
+        hl = hl || {};
+        var cs = [];
+        for (var i = 0; i < n; i++) cs.push('N');
+        for (var k = 0; k < n; k++) if (a._done && a._done[k]) cs[k] = 'D';
+        if (hl.c) cs[hl.c] = 'C';
+        if (hl.s) cs[hl.s] = 'S';
+        if (hl.p != null) cs[hl.p] = 'P';
+        (hl.zone || []).forEach(function (i2) { if (cs[i2] === 'N') cs[i2] = 'P'; });
+        return cs;
+      }
+      function F(line, msg, extra, mk) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { 比较: cmp + ' 次', 赋值: mov + ' 次', 调用栈: stackView.length ? stackView.join(' ｜ ') : '（空）' },
+          snap: { arr: a.slice(), colors: colors(extra), mark: mk, zone: extra.zone || [] }
+        });
+      }
+
+      F(0, '初始序列。快速排序 = 选基准 + Partition 划分 + 对两侧递归（分治）。', {});
+
+      function qsort(low, high, depth) {
+        if (low >= high) {
+          if (low === high) { a._done = a._done || {}; a._done[low] = 1; }
+          return;
+        }
+        stackView.push('[' + (low + 1) + '..' + (high + 1) + '] 基准=' + a[low]);
+        F([13, 14, 15], 'QSort 处理区间 [' + (low + 1) + '..' + (high + 1) + ']：取基准 a[' + (low + 1) + ']=' + a[low] + ' 挖出，存入 L.r[0]。', { p: low, zone: [low, high] });
+        var pivot = a[low];
+        var i = low, j = high;
+        while (i < j) {
+          while (i < j && a[j] >= pivot) { cmp++; j--; }
+          if (i < j) {
+            cmp++;
+            a[i] = a[j]; mov++;
+            F([5, 6], '右端 a[' + (j + 1) + ']=' + a[j] + ' < 基准 ' + pivot + ' → 填入左坑 a[' + (i + 1) + ']，右端腾出新坑。', { c: j, s: i, p: low, zone: [low, high] });
+          }
+          while (i < j && a[i] <= pivot) { cmp++; i++; }
+          if (i < j) {
+            cmp++;
+            a[j] = a[i]; mov++;
+            F([7, 8], '左端 a[' + (i + 1) + ']=' + a[i] + ' > 基准 ' + pivot + ' → 填入右坑 a[' + (j + 1) + ']，左端腾出新坑。', { c: i, s: j, p: low, zone: [low, high] });
+          }
+        }
+        a[i] = pivot; mov++;
+        a._done = a._done || {}; a._done[i] = 1;
+        F(10, '两指针相遇于 a[' + (i + 1) + ']：基准 ' + pivot + ' 归位（绿色）。左侧全部 ≤ ' + pivot + '，右侧全部 ≥ ' + pivot + '。', { s: i, zone: [low, high] }, 'part' + (low + 1) + '_' + (high + 1));
+        stackView.pop();
+        qsort(low, i - 1, depth + 1);
+        qsort(i + 1, high, depth + 1);
+      }
+      qsort(0, n - 1, 1);
+      F(12, '排序完成：' + a.join(' ') + '。要点：① 平均 O(n log n)，但**有序/逆序输入每次只能划分出 1 个元素**，退化为 O(n²)——这就是"快排怕有序"；② 相等元素会跨越基准，不稳定。', {}, 'final');
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var g = su.bars(s, { title: '快速排序（蓝=当前区间/基准，黄=扫描，红=填坑，绿=已归位）' });
+      g += su.legend([['基准/区间', 'P'], ['扫描', 'C'], ['填坑', 'S'], ['已归位', 'D']]);
+      return g;
+    }
+  });
+})();
+
+
+/* ==================== ch8/05selectSort.js ==================== */
+/* 动画：直接选择排序——教材 8.5 选择排序，例题 {49,38,65,97,76,13,27,49*} */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C, su = DSC.su;
+
+  var CODE = [
+    'void SelectSort(SqList &L) {',
+    '    for (i = 1; i < L.length; ++i) {',
+    '        k = i;                                // 先假设第 i 个最小',
+    '        for (j = i+1; j <= L.length; ++j)',
+    '            if (L.r[j] < L.r[k])  k = j;      // 记录更小者的位置',
+    '        if (k != i)  swap(L.r[i], L.r[k]);    // 与第 i 个交换',
+    '    }',
+    '}'
+  ];
+
+  DSC.reg({
+    id: 'selectSort', ch: 8, name: '直接选择排序（选最小交换）',
+    note: '教材 8.5 选择排序（选最小者放到队首，不稳定）',
+    guide: [
+      '每趟在无序区里**选出最小值**（黄色跟踪候选最小者），与无序区第一个元素交换',
+      '与冒泡的区别：比较时只记录位置不交换，每趟最多交换 1 次——交换次数最少',
+      '红色=发生交换的一对，绿色=已就位；比较次数固定 n(n−1)/2，与初始序列无关',
+      '交换会跨越相等元素：反例 3,3,1 第一趟 1 与第一个 3 交换后两个 3 乱序——不稳定'
+    ],
+    inputs: su.presetInputs(),
+    run: function (v) {
+      var a = su.getData(v).slice();
+      var n = a.length, cmp = 0, mov = 0;
+      var frames = [];
+
+      function colors(hl) {
+        hl = hl || {};
+        var cs = [];
+        for (var i = 0; i < n; i++) cs.push(hl.doneFrom != null && i < hl.doneFrom ? 'D' : 'N');
+        if (hl.c) cs[hl.c] = 'C';
+        if (hl.m) cs[hl.m] = 'P';
+        if (hl.s1 != null) { cs[hl.s1] = 'S'; cs[hl.s2] = 'S'; }
+        return cs;
+      }
+      function F(line, msg, extra, mk) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { 比较: cmp + ' 次', 交换: mov + ' 次', 有序区: extra.doneFrom != null ? '第 1~' + extra.doneFrom + ' 个' : '—' },
+          snap: { arr: a.slice(), colors: colors(extra), mark: mk }
+        });
+      }
+
+      F(0, '初始序列。选择排序：每趟从未排序部分选出最小值，放到开头。', { doneFrom: 0 });
+
+      for (var i = 0; i < n - 1; i++) {
+        var k = i;
+        F([2], '第 ' + (i + 1) + ' 趟：先假设 a[' + (i + 1) + ']=' + a[i] + ' 是无序区最小。', { m: k, doneFrom: i });
+        for (var j = i + 1; j < n; j++) {
+          cmp++;
+          if (a[j] < a[k]) {
+            var old = k; k = j;
+            F([4], 'a[' + (j + 1) + ']=' + a[j] + ' < 候选最小 a[' + (old + 1) + ']=' + a[old] + ' → 更新候选最小为 a[' + (j + 1) + ']。', { m: k, c: j, doneFrom: i });
+          } else {
+            F([4], 'a[' + (j + 1) + ']=' + a[j] + ' ≥ 候选最小 a[' + (k + 1) + ']=' + a[k] + '，不更新。', { m: k, c: j, doneFrom: i });
+          }
+        }
+        if (k !== i) {
+          var t = a[i]; a[i] = a[k]; a[k] = t; mov++;
+          F(5, '无序区最小值 ' + a[i] + '（原在 a[' + (k + 1) + ']）与 a[' + (i + 1) + '] 交换。', { s1: i, s2: k, doneFrom: i + 1 });
+        } else {
+          F(5, '最小值恰好就在 a[' + (i + 1) + ']，本趟无需交换。', { doneFrom: i + 1 });
+        }
+        F([1, 6], '第 ' + (i + 1) + ' 趟完成：a[' + (i + 1) + ']=' + a[i] + ' 已就位。', { doneFrom: i + 1 }, i + 1);
+      }
+      F(0, '排序完成：' + a.join(' ') + '。共比较 ' + cmp + ' 次（固定 n(n−1)/2）、交换 ' + mov + ' 次（最多 n−1）。移动次数少是它对"交换成本高"场景的价值；但比较不占便宜，且不稳定。', { doneFrom: n }, 'final');
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var g = su.bars(s, { title: '直接选择排序（蓝=当前候选最小，黄=正在比较，红=交换，绿=已就位）' });
+      g += su.legend([['候选最小', 'P'], ['比较', 'C'], ['交换', 'S'], ['已就位', 'D']]);
+      return g;
+    }
+  });
+})();
+
+
+/* ==================== ch8/06heapSort.js ==================== */
+/* 动画：堆排序——教材 8.5，建大根堆（自下而上筛选）+ 逐个输出堆顶，例题 {49,38,65,97,76,13,27,49*} */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C, su = DSC.su;
+
+  var CODE = [
+    'void HeapAdjust(SqList &L, int s, int m) {   // 使 a[s..m] 成为大根堆',
+    '    rc = L.r[s];                             // 暂存待调整记录',
+    '    for (j = 2*s; j <= m; j *= 2) {          // 沿孩子向下筛选',
+    '        if (j < m && L.r[j] < L.r[j+1]) ++j; // j 指向较大的孩子',
+    '        if (rc >= L.r[j])  break;            // 找到归宿，结束',
+    '        L.r[s] = L.r[j];  s = j;             // 孩子上移，继续向下',
+    '    }',
+    '    L.r[s] = rc;',
+    '}',
+    'void HeapSort(SqList &L) {',
+    '    for (i = L.length/2; i >= 1; --i)        // ① 自下而上建大根堆',
+    '        HeapAdjust(L, i, L.length);',
+    '    for (i = L.length; i > 1; --i) {         // ② 堆顶与堆尾交换，堆缩小',
+    '        swap(L.r[1], L.r[i]);  HeapAdjust(L, 1, i-1);',
+    '    }',
+    '}'
+  ];
+
+  DSC.reg({
+    id: 'heapSort', ch: 8, name: '堆排序（建堆 + 筛选）',
+    note: '教材 8.5 选择排序（完全二叉树视角的选择排序，不稳定）',
+    guide: [
+      '上半部分是完全二叉树视图、下半部分是数组视图——同一份数据两种看法（a[i] 的孩子是 a[2i]、a[2i+1]）',
+      '第一步自下而上"建堆"：从最后一个非叶结点开始，把大孩子逐层上移，让每个父亲 ≥ 孩子',
+      '第二步反复"输出堆顶"：堆顶（最大值）与堆尾交换（绿色=已就位），堆缩小后再筛选重建',
+      '建堆 O(n)，每次调整 O(log n)，整体 O(n log n)——不受初始序列影响，且只用到 O(1) 辅助空间'
+    ],
+    inputs: su.presetInputs(),
+    run: function (v) {
+      var a = su.getData(v).slice();
+      var n = a.length, cmp = 0, mov = 0;
+      a.unshift(0);
+      var frames = [];
+
+      function colors(hl, heap) {
+        hl = hl || {}; heap = heap == null ? n : heap;
+        var cs = [];
+        for (var i = 1; i <= n; i++) cs.push(i > heap ? 'D' : 'N');
+        if (hl.s != null && cs[hl.s - 1] === 'N') cs[hl.s - 1] = 'P';
+        if (hl.c != null && cs[hl.c - 1] === 'N') cs[hl.c - 1] = 'C';
+        if (hl.w != null) cs[hl.w - 1] = 'S';
+        return cs;
+      }
+      function F(line, msg, extra, mk) {
+        extra = extra || {};
+        var heap = extra.heap == null ? n : extra.heap;
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { 比较: cmp + ' 次', 赋值: mov + ' 次', 堆区: 'a[1..' + heap + ']', 已输出: n - heap + ' 个' },
+          snap: { arr: a.slice(1), colors: colors(extra, heap), heap: heap, s: extra.s, c: extra.c, w: extra.w, mark: mk }
+        });
+      }
+
+      F(0, '初始序列（数组 a[1..' + n + ']，完全二叉树视图：a[i] 的孩子是 a[2i] 与 a[2i+1]）。先自下而上建大根堆。', {});
+
+      function adjust(s, m, phase) {
+        var rc = a[s];
+        F([1], phase + '：调整结点 a[' + s + ']=' + rc + '（其子树中暂存于 rc）。', { s: s, heap: m });
+        for (var j = 2 * s; j <= m; j *= 2) {
+          if (j < m) {
+            cmp++;
+            if (a[j] < a[j + 1]) { F([3], '两个孩子 a[' + j + ']=' + a[j] + '、a[' + (j + 1) + ']=' + a[j + 1] + '：选较大者 a[' + (j + 1) + ']。', { c: j + 1, s: s, heap: m }); j++; }
+            else { F([3], '两个孩子 a[' + j + ']=' + a[j] + '、a[' + (j + 1) + ']=' + a[j + 1] + '：选较大者 a[' + j + ']。', { c: j, s: s, heap: m }); }
+          } else { F([3], '只有一个孩子 a[' + j + ']=' + a[j] + '。', { c: j, s: s, heap: m }); }
+          cmp++;
+          if (rc >= a[j]) { F([4], 'rc=' + rc + ' ≥ 大孩子 a[' + j + ']=' + a[j] + ' → 位置合适，筛选结束。', { s: s, c: j, heap: m }); break; }
+          a[s] = a[j]; mov++;
+          F(5, 'rc=' + rc + ' < 大孩子 a[' + j + ']=' + a[j] + ' → 大孩子上移到 a[' + s + ']，继续向下看。', { w: s, c: j, heap: m });
+          s = j;
+        }
+        a[s] = rc; mov++;
+        F(6, 'rc=' + rc + ' 放入最终位置 a[' + s + ']。', { w: s, heap: m });
+      }
+
+      for (var i = Math.floor(n / 2); i >= 1; i--) adjust(i, n, '建堆');
+      F([9, 10], '建堆完成！a[1]=' + a[1] + ' 是全序列最大值，且每个父亲 ≥ 孩子。堆排序开始：反复"取堆顶 + 重建堆"。', {}, 'heap');
+
+      var cnt = 0;
+      for (var i2 = n; i2 > 1; i2--) {
+        var t = a[1]; a[1] = a[i2]; a[i2] = t; mov++;
+        cnt++;
+        F(12, '第 ' + cnt + ' 步：堆顶 ' + t + ' 与堆尾 a[' + i2 + ']=' + a[i2] + ' 交换 → ' + t + ' 已就位（绿）。堆缩小为 a[1..' + (i2 - 1) + ']。',
+          { w: i2, heap: i2 - 1 }, 'e' + cnt);
+        adjust(1, i2 - 1, '重建堆');
+      }
+      F(12, '排序完成：' + a.slice(1).join(' ') + '。整个过程比较 ' + cmp + ' 次、赋值 ' + mov + ' 次。堆排序 = "树形选择排序"：利用父子关系把选择最小/最大的代价从 O(n) 降到 O(log n)。', { heap: 0 }, 'final');
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var W = 980, H = 620, n = s.arr.length, heap = s.heap == null ? n : s.heap;
+      var g = '';
+      g += h.txt(W / 2, 30, '堆排序（蓝=调整中，黄=孩子候选，红=写入，绿=已输出）', { size: 17, w: 600 });
+      /* ---- 树视图 ---- */
+      function pos(i) { // i 1-based
+        var d = Math.floor(Math.log(i) / Math.LN2), k = i - (1 << d), cnt = 1 << d;
+        var dx = Math.min(120, 880 / cnt);
+        return [W / 2 + (k - (cnt - 1) / 2) * dx, 88 + d * 104];
+      }
+      for (var i = 1; i <= n; i++) {
+        if (2 * i > n) continue;
+        var A = pos(i), B1 = pos(2 * i);
+        g += h.line(A[0], A[1] + 20, B1[0], B1[1] - 20, { stroke: C.line, sw: 1.6 });
+        if (2 * i + 1 <= n) { var B2 = pos(2 * i + 1); g += h.line(A[0], A[1] + 20, B2[0], B2[1] - 20, { stroke: C.line, sw: 1.6 }); }
+      }
+      for (var i2 = 1; i2 <= n; i2++) {
+        var P = pos(i2), key = s.colors[i2 - 1] || 'N';
+        var cm = su.COLORS[key];
+        var out = i2 > heap;
+        g += h.circle(P[0], P[1], 21, { fill: out ? C.greenBg : cm[0], stroke: out ? C.green : cm[1], sw: out ? 1.6 : 2.2 });
+        g += h.txt(P[0], P[1] + 6, String(s.arr[i2 - 1]), { size: 15, w: 700, fill: out ? C.green : C.ink });
+        if (s.s === i2) g += h.txt(P[0], P[1] - 30, '调整中', { size: 11, fill: C.blue, w: 600 });
+        if (s.c === i2) g += h.txt(P[0], P[1] - 30, '候选孩子', { size: 11, fill: C.amber, w: 600 });
+      }
+      /* ---- 数组视图 ---- */
+      var bw = Math.min(60, Math.floor(880 / n) - 8), x0 = (W - n * bw - (n - 1) * 8) / 2, ay = 500;
+      for (var i3 = 1; i3 <= n; i3++) {
+        var x = x0 + (i3 - 1) * (bw + 8), key2 = s.colors[i3 - 1] || 'N', cm2 = su.COLORS[key2];
+        var out2 = i3 > heap;
+        g += h.rect(x, ay, bw, 40, { fill: out2 ? C.greenBg : cm2[0], stroke: out2 ? C.green : cm2[1], sw: 1.6, rx: 5 });
+        g += h.txt(x + bw / 2, ay + 26, String(s.arr[i3 - 1]), { size: 15, w: 700, fill: out2 ? C.green : C.ink });
+        g += h.txt(x + bw / 2, ay + 56, String(i3), { size: 10.5, fill: C.muted });
+        if (i3 === 1 && heap >= 1) g += h.txt(x + bw / 2, ay - 10, '堆顶', { size: 11.5, fill: C.blue, w: 700 });
+      }
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
+/* ==================== ch8/07mergeSort.js ==================== */
+/* 动画：归并排序——教材 8.6，2 路归并（递归），例题 {49,38,65,97,76,13,27,49*} */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C, su = DSC.su;
+
+  var CODE = [
+    'void Merge(SqList SR, SqList &TR, int s, int m, int t) {',
+    '    // 将有序的 SR[s..m] 和 SR[m+1..t] 归并为有序的 TR[s..t]',
+    '    for (i = s, j = m+1; i <= m && j <= t; ) {',
+    '        if (SR[i] <= SR[j])  TR[k++] = SR[i++];   // 取左半（≤ 保稳定）',
+    '        else                 TR[k++] = SR[j++];   // 取右半',
+    '    }',
+    '    while (i <= m) TR[k++] = SR[i++];             // 收尾：左半剩余',
+    '    while (j <= t) TR[k++] = SR[j++];             // 收尾：右半剩余',
+    '}',
+    'void MSort(SqList SR, SqList &TR1, int s, int t) {',
+    '    if (s == t)  TR1[s] = SR[s];',
+    '    else { m = (s+t)/2;',
+    '        MSort(SR, TR2, s, m);  MSort(SR, TR2, m+1, t);   // 递归两半',
+    '        Merge(TR2, TR1, s, m, t); }                       // 归并',
+    '}'
+  ];
+
+  DSC.reg({
+    id: 'mergeSort', ch: 8, name: '归并排序（2 路归并）',
+    note: '教材 8.6 归并排序（分治 + 两路合并，稳定）',
+    guide: [
+      '分治：把序列一分为二，两半分别排好序（左侧帧会显示当前处理的区间），再两路归并',
+      '归并时两指针分别指向左右半区开头：每次取较小者写入结果（相等取左半——稳定）',
+      '看最下面一层：单个元素天然有序，归并从最小单元自底向上长出有序序列',
+      '一趟归并 O(n)，共 ⌈log n⌉ 趟，任何输入都是 O(n log n)；代价是需要 O(n) 辅助数组；它也是**外排序**的基础'
+    ],
+    inputs: su.presetInputs(),
+    run: function (v) {
+      var a = su.getData(v).slice();
+      var n = a.length, cmp = 0, mov = 0;
+      var frames = [];
+
+      function colors(hl) {
+        hl = hl || {};
+        var cs = [];
+        for (var i = 0; i < n; i++) cs.push('N');
+        (hl.zl || []).forEach(function (i2) { cs[i2] = 'P'; });
+        (hl.zr || []).forEach(function (i2) { if (cs[i2] === 'N') cs[i2] = 'N'; });
+        if (hl.c1 != null) cs[hl.c1] = 'C';
+        if (hl.c2 != null) cs[hl.c2] = 'C';
+        if (hl.w != null) cs[hl.w] = 'S';
+        (hl.done || []).forEach(function (i2) { cs[i2] = 'D'; });
+        return cs;
+      }
+      function F(line, msg, extra, mk) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { 比较: cmp + ' 次', 写入: mov + ' 次', 当前区间: extra.range || '—' },
+          snap: { arr: view.slice(), colors: colors(extra), mark: mk, range: extra.range }
+        });
+      }
+
+      var work = a.slice(), view = a.slice();
+      F(0, '初始序列。归并排序自顶向下二分，自底向上归并。', {});
+
+      function msort(s, t) {           // 对 work[s..t] 排序（闭区间，0 基）
+        if (s === t) return;
+        var m = Math.floor((s + t) / 2);
+        msort(s, m); msort(m + 1, t);
+        var range = '[' + (s + 1) + '..' + (t + 1) + ']（左 [' + (s + 1) + '..' + (m + 1) + '] ＋ 右 [' + (m + 2) + '..' + (t + 1) + ']）';
+        F(12, '开始归并区间 ' + range + '：两半各自已有序。', { zl: span(s, m), zr: span(m + 1, t), range: range });
+        var i = s, j = m + 1, buf = [];
+        while (i <= m && j <= t) {
+          cmp++;
+          if (work[i] <= work[j]) { buf.push(work[i]); F([3], '左半 a[' + (i + 1) + ']=' + work[i] + ' ≤ 右半 a[' + (j + 1) + ']=' + work[j] + ' → 取左。', { c1: i, c2: j, zl: span(s, m), zr: span(m + 1, t), range: range }); i++; }
+          else { buf.push(work[j]); F([4], '左半 a[' + (i + 1) + ']=' + work[i] + ' > 右半 a[' + (j + 1) + ']=' + work[j] + ' → 取右。', { c1: i, c2: j, zl: span(s, m), zr: span(m + 1, t), range: range }); j++; }
+          mov++;
+        }
+        while (i <= m) { buf.push(work[i]); mov++; i++; }
+        while (j <= t) { buf.push(work[j]); mov++; j++; }
+        for (var k2 = 0; k2 < buf.length; k2++) work[s + k2] = buf[k2];
+        view = work.slice();
+        F([5, 6, 7], '归并完成：区间 ' + range + ' 已整体有序：' + buf.join(' ') + '。', { zl: span(s, m), zr: span(m + 1, t), range: range, done: span(s, t) }, 'm' + s + '_' + t);
+      }
+      function span(s, t) { var r = []; for (var x = s; x <= t; x++) r.push(x); return r; }
+
+      msort(0, n - 1);
+      view = work.slice();
+      F(15, '排序完成：' + view.join(' ') + '。n 个元素共归并 ⌈log₂n⌉ 层、每层 O(n)，任何输入都稳定在 O(n log n)；相等时优先取左半保证稳定。空间代价 O(n) 是它的短板——但这个"有序段合并"思想让归并成为磁盘外排序的基石。', {}, 'final');
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var g = su.bars(s, { title: '归并排序（蓝=左半区，黄=左右指针比较，红=写入，绿=该区间已有序）' });
+      g += su.legend([['左半区', 'P'], ['比较指针', 'C'], ['写入', 'S'], ['已有序', 'D']]);
+      return g;
+    }
+  });
+})();
+
+
+/* ==================== ch8/08radixSort.js ==================== */
+/* 动画：基数排序——教材 8.7，多关键字 LSD 分配/收集，教材例题 {278,109,063,930,589,184,505,269,008,083} */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C, su = DSC.su;
+
+  var CODE = [
+    'void RadixSort(SqList &L) {',
+    '    // 关键字按"个位→十位→百位"分解（LSD 最低位优先），每位取值 0..9',
+    '    for (d = 1; d <= 3; ++d) {',
+    '        // ① 分配：按第 d 位关键字，把记录放入队列 Q[0..9]',
+    '        for (i = 1; i <= L.length; ++i)',
+    '            EnQueue(Q[第d位(L.r[i])], L.r[i]);',
+    '        // ② 收集：按 Q[0]..Q[9] 顺序依次出队接回',
+    '        for (j = 0, i = 1; j <= 9; ++j)',
+    '            while (!QueueEmpty(Q[j]))  L.r[i++] = DeQueue(Q[j]);',
+    '    }',
+    '}'
+  ];
+
+  var DEF = [278, 109, 63, 930, 589, 184, 505, 269, 8, 83];
+  function pad3(x) { return ('00' + x).slice(-3); }
+
+  DSC.reg({
+    id: 'radixSort', ch: 8, name: '基数排序（分配与收集）',
+    note: '教材 8.7 多关键字排序（LSD 最低位优先，稳定）',
+    guide: [
+      '基数排序不比较元素大小！把整数按位分解：个位→十位→百位，逐位做"分配 + 收集"',
+      '分配：按当前位数字 0~9 把记录放进 10 个队列（黄色框显示当前入队记录）',
+      '收集：按 Q[0]→Q[9] 依次出队接回原表。注意队列先进先出——这是稳定性的来源',
+      '做完最高位后整体有序；趟数 = 最大位数 d，复杂度 O(d(n+10))，与 n 成线性关系'
+    ],
+    inputs: [
+      { key: 'preset', label: '数据', type: 'select', options: [
+        ['textbook', '教材例题 278,109,063,930,589,184,505,269,008,083'],
+        ['custom', '自定义 ↓']
+      ], value: 'textbook' },
+      { key: 'w', label: '自定义序列', type: 'text', value: '278,109,63,930,589,184,505,269,8,83' }
+    ],
+    run: function (v) {
+      var arr = v.preset === 'custom' ? su.parse(v.w) : DEF.slice();
+      if (arr.length < 2 || arr.length > 10) throw Error('请输入 2~10 个非负整数');
+      for (var c0 = 0; c0 < arr.length; c0++) if (arr[c0] < 0 || arr[c0] > 999) throw Error('数值需在 0~999 之间');
+      var n = arr.length, d = 3;
+      var frames = [], disp = arr.map(pad3);
+
+      function F(line, msg, extra, mk) {
+        extra = extra || {};
+        frames.push({
+          line: Array.isArray(line) ? line : [line], msg: msg,
+          panel: { 趟数: extra.pass ? '第 ' + extra.pass + ' 趟（' + extra.bitName + '）' : '—', 队列: extra.buckets ? extra.buckets.map(function (b) { return b.length; }).join(',') : '—' },
+          snap: { arr: (extra.arr || disp).slice(), colors: [], buckets: extra.buckets ? extra.buckets.map(function (b) { return b.slice(); }) : null, cur: extra.cur, mark: mk, pass: extra.pass }
+        });
+      }
+
+      F(0, '初始序列（显示为 3 位对齐：如 008）。从最低位（个位）开始，逐位分配 + 收集。', {});
+
+      var work = arr.slice();
+      [1, 2, 3].forEach(function (bit) {
+        var bitName = bit === 1 ? '个位' : bit === 2 ? '十位' : '百位';
+        var buckets = [];
+        for (var b = 0; b < 10; b++) buckets.push([]);
+        F([2, 3], '【第 ' + bit + ' 趟 · ' + bitName + '】准备 10 个空队列 Q[0..9]，开始按 ' + bitName + '数字分配。', { arr: disp, pass: bit, bitName: bitName, buckets: buckets });
+        for (var i = 0; i < n; i++) {
+          var dig = Math.floor(work[i] / Math.pow(10, bit - 1)) % 10;
+          buckets[dig].push(work[i]);
+          F(4, pad3(work[i]) + ' 的 ' + bitName + ' = ' + dig + ' → 进入队列 Q[' + dig + ']。', { arr: disp, pass: bit, bitName: bitName, buckets: buckets, cur: i });
+        }
+        var out = [];
+        for (var q = 0; q < 10; q++) while (buckets[q].length) out.push(buckets[q].shift());
+        F([6, 7], '分配完毕，按 Q[0]→Q[9] 依次收集（队列先进先出，等值记录先后次序不变——稳定）。', { pass: bit, bitName: bitName, buckets: buckets.map(function () { return []; }) });
+        work = out;
+        disp = work.map(pad3);
+        F([5, 8], '第 ' + bit + ' 趟收集完成：' + disp.join(' ') + '。' + (bit < 3 ? '注意观察：' + bitName + '小的都排到了前面。' : '百位也有序了——整体有序！'),
+          { pass: bit, bitName: bitName, buckets: null }, 'p' + bit);
+      });
+      F(0, '排序完成：' + disp.join(' ') + '。共 3 趟（= 最大位数 d），每趟 n 次分配 + n 次收集，O(d·(n+r))，r 为基数。不比较、不交换，靠"位"的先后关系排序；d 与 r 固定时接近线性。', { arr: disp }, 'final');
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var W = 980, H = 520, n = s.arr.length;
+      var bw = Math.min(70, Math.floor((W - 120) / n) - 10), gap = 10;
+      var x0 = (W - (n * bw + (n - 1) * gap)) / 2, base = 200;
+      var g = '';
+      g += h.txt(W / 2, 30, s.pass ? '基数排序 · 第 ' + s.pass + ' 趟（' + (s.pass === 1 ? '个位' : s.pass === 2 ? '十位' : '百位') + '）' : '基数排序（分配 → 收集）', { size: 17, w: 600 });
+      for (var i = 0; i < n; i++) {
+        var x = x0 + i * (bw + gap);
+        var hl = s.cur === i;
+        g += h.rect(x, base, bw, 44, { fill: hl ? C.amberBg : '#fff', stroke: hl ? C.amber : C.grey, sw: hl ? 2.5 : 1.5, rx: 6 });
+        g += h.txt(x + bw / 2, base + 27, s.arr[i], { size: 15.5, w: 700, family: 'Consolas,monospace' });
+      }
+      if (s.buckets) {
+        g += h.txt(30, 320, '队列（Q0 → Q9）：', { size: 13.5, fill: C.muted, anchor: 'start', w: 600 });
+        var qy = 336, qw = (W - 60) / 10;
+        for (var q = 0; q < 10; q++) {
+          var qx = 30 + q * qw;
+          g += h.txt(qx + qw / 2, qy + 14, 'Q' + q, { size: 12, w: 700, fill: C.muted });
+          g += h.rect(qx + 4, qy + 22, qw - 8, 116, { fill: '#fbfcfe', stroke: C.line, rx: 6 });
+          s.buckets[q].forEach(function (val, k) {
+            g += h.rect(qx + 10, qy + 30 + k * 36, qw - 20, 30, { fill: C.blueBg, stroke: C.blue, rx: 5 });
+            g += h.txt(qx + qw / 2, qy + 50 + k * 36, pad3(val), { size: 12.5, w: 600, family: 'Consolas,monospace' });
+          });
+        }
+      } else {
+        g += h.txt(W / 2, 330, '（本帧队列为空——收集阶段/初始）', { size: 12.5, fill: C.muted });
+      }
+      g += h.txt(W / 2, H - 14, '分配：按当前位数字进队 ｜ 收集：按 Q0→Q9 出队接回。队列先进先出 ⇒ 稳定', { size: 12.5, fill: C.muted });
+      return h.svg(W, H, g);
+    }
+  });
+})();
+
+
+/* ==================== ch8/09sortGallery.js ==================== */
+/* 动画：八大排序总览——同一数据跑全部 8 算法，统计比较/移动次数、稳定性、复杂度对照 */
+(function () {
+  var DSC = window.DSC, h = DSC.h, C = DSC.C, su = DSC.su;
+
+  var CODE = [
+    '// 同一初始序列分别执行 8 种内部排序，',
+    '// 统计：比较次数 / 移动(交换)次数 / 是否稳定 / 复杂度',
+    '// 最终输出对照表，验证"结果一致、代价不同、稳定性有别"'
+  ];
+
+  /* 轻量实现（带 {v,id} 元素以检测稳定性；r = 记录移动次数，c = 比较次数） */
+  function runAlgos(input) {
+    function mk(a) { return a.map(function (v, i) { return { v: v, id: i }; }); }
+    function keys(o) { return o.map(function (x) { return x.v; }); }
+    var out = [];
+    function alg(name, fn, stable, best, worst, extra) {
+      var a = mk(input), c = 0, r = 0;
+      fn(a, function () { c++; }, function () { r++; });
+      var ok = keys(a).every(function (v, i, arr2) { return i === 0 || arr2[i - 1] <= v; });
+      var st = a.every(function (x, i) { return i === 0 || (a[i - 1].v > x.v) || (a[i - 1].v < x.v ? true : a[i - 1].id < x.id); });
+      out.push({ name: name, cmp: c, mov: r, sorted: ok, stable: st, stableClaim: stable, best: best, worst: worst, space: extra });
+    }
+    alg('直接插入', function (a, C2, R2) {
+      for (var i = 1; i < a.length; i++) { var x = a[i], j = i - 1; C2(); while (j >= 0 && a[j].v > x.v) { C2(); a[j + 1] = a[j]; R2(); j--; } a[j + 1] = x; R2(); }
+    }, true, 'O(n)', 'O(n²)', 'O(1)');
+    alg('希尔排序', function (a, C2, R2) {
+      var gaps = []; for (var g = Math.floor(a.length / 2); g >= 1; g = Math.floor(g / 2)) gaps.push(g);
+      gaps.forEach(function (dk) {
+        for (var i = dk; i < a.length; i++) { var x = a[i], j = i - dk; C2(); while (j >= 0 && a[j].v > x.v) { C2(); a[j + dk] = a[j]; R2(); j -= dk; } a[j + dk] = x; R2(); }
+      });
+    }, false, '≈O(n)', 'O(n²)', 'O(1)');
+    alg('冒泡排序', function (a, C2, R2) {
+      var m = a.length - 1, flag = 1;
+      while (m > 0 && flag) { flag = 0; for (var j = 0; j < m; j++) { C2(); if (a[j].v > a[j + 1].v) { var t = a[j]; a[j] = a[j + 1]; a[j + 1] = t; R2(); flag = 1; } } m--; }
+    }, true, 'O(n)', 'O(n²)', 'O(1)');
+    alg('快速排序', function (a, C2, R2) {
+      (function qs(lo, hi) {
+        if (lo >= hi) return; var p = a[lo].v, i = lo, j = hi;
+        while (i < j) { while (i < j && a[j].v >= p) { C2(); j--; } if (i < j) { a[i] = a[j]; R2(); } while (i < j && a[i].v <= p) { C2(); i++; } if (i < j) { a[j] = a[i]; R2(); } }
+        a[i] = { v: p, id: -1 }; R2(); qs(lo, i - 1); qs(i + 1, hi);
+      })(0, a.length - 1);
+    }, false, 'O(n log n)', 'O(n²)', 'O(log n)栈');
+    alg('直接选择', function (a, C2, R2) {
+      for (var i = 0; i < a.length - 1; i++) { var k = i; for (var j = i + 1; j < a.length; j++) { C2(); if (a[j].v < a[k].v) k = j; } if (k !== i) { var t = a[i]; a[i] = a[k]; a[k] = t; R2(); } }
+    }, false, 'O(n²)', 'O(n²)', 'O(1)');
+    alg('堆排序', function (a, C2, R2) {
+      var n = a.length;
+      function sift(s, m) { var rc = a[s]; for (var j = 2 * s + 1; j <= m; j = 2 * j + 1) { if (j < m) { C2(); if (a[j].v < a[j + 1].v) j++; } C2(); if (rc.v >= a[j].v) break; a[s] = a[j]; R2(); s = j; } a[s] = rc; R2(); }
+      for (var i = Math.floor(n / 2) - 1; i >= 0; i--) sift(i, n - 1);
+      for (var i2 = n - 1; i2 > 0; i2--) { var t = a[0]; a[0] = a[i2]; a[i2] = t; R2(); sift(0, i2 - 1); }
+    }, false, 'O(n log n)', 'O(n log n)', 'O(1)');
+    alg('归并排序', function (a, C2, R2) {
+      var buf = new Array(a.length);
+      (function ms(lo, hi) {
+        if (lo >= hi) return; var m = (lo + hi) >> 1; ms(lo, m); ms(m + 1, hi);
+        var i = lo, j = m + 1, k = lo;
+        while (i <= m && j <= hi) { C2(); buf[k++] = (a[i].v <= a[j].v) ? a[i++] : a[j++]; R2(); }
+        while (i <= m) { buf[k++] = a[i++]; R2(); } while (j <= hi) { buf[k++] = a[j++]; R2(); }
+        for (var x = lo; x <= hi; x++) a[x] = buf[x];
+      })(0, a.length - 1);
+    }, true, 'O(n log n)', 'O(n log n)', 'O(n)');
+    alg('基数排序', function (a, C2, R2) {
+      for (var bit = 1; bit <= 3; bit++) {
+        var bks = []; for (var b = 0; b < 10; b++) bks.push([]);
+        a.forEach(function (x) { bks[Math.floor(x.v / Math.pow(10, bit - 1)) % 10].push(x); R2(); });
+        var k = 0; bks.forEach(function (bk) { bk.forEach(function (x) { a[k++] = x; R2(); }); });
+      }
+    }, true, 'O(d(n+r))', 'O(d(n+r))', 'O(n+r)');
+    return out;
+  }
+
+  DSC.reg({
+    id: 'sortGallery', ch: 8, name: '八大排序总览与对比',
+    note: '教材 8.8 排序综合比较（同一数据 × 8 算法 × 代价对照）',
+    guide: [
+      '同一初始序列分别用 8 种排序跑一遍：结果必然一致——差别在"代价"',
+      '对照表给出比较/移动次数与复杂度；重点体会"同数据、不同算法、代价悬殊"',
+      '切到"逆序/有序"数据再看：快排怕有序、冒泡爱有序——没有万能算法，只有适配场景',
+      '稳定性列用两个相同的数验证：稳定算法排序后它们保持原有先后次序'
+    ],
+    inputs: su.presetInputs(),
+    run: function (v) {
+      var a = su.getData(v).slice();
+      var stats = runAlgos(a);
+      var frames = [];
+      var sortedRef = a.slice().sort(function (x, y) { return x - y; });
+
+      stats.forEach(function (st, i) {
+        frames.push({
+          line: [1, 2], msg: '【' + st.name + '】比较 ' + st.cmp + ' 次、移动/交换 ' + st.mov + ' 次；复杂度 最好 ' + st.best + ' / 最坏 ' + st.worst + '，空间 ' + st.space + '；' + (st.stableClaim ? '稳定' : '不稳定') + '。' + (i === 0 ? '逐个算法过一遍，最后给出汇总表。' : ''),
+          panel: { 算法: st.name, 比较: st.cmp + ' 次', 移动: st.mov + ' 次', 稳定: st.stable ? '✓' : '✗' },
+          snap: { arr: a.slice(), cur: i, stats: stats }
+        });
+      });
+      frames.push({
+        line: [3], msg: '汇总：8 种算法结果一致（' + sortedRef.join(' ') + '），代价大不相同。经验法则：基本有序 → 插入/冒泡；要求稳定 + 稳定 O(n log n) → 归并；空间苛刻 + 平均最快 → 快排；最坏也有 O(n log n) 且 O(1) 空间 → 堆排；位数固定的整数/多关键字 → 基数。',
+        panel: { 结论: '见表格', 算法数: '8', 数据: a.join(',') },
+        snap: { arr: a.slice(), cur: -1, stats: stats, mark: 'final' }
+      });
+      return { code: CODE, frames: frames };
+    },
+    render: function (s) {
+      var W = 980, H = 560;
+      var g = '';
+      g += h.txt(W / 2, 32, '八大排序 · 同一数据 · 代价对照表', { size: 18, w: 600 });
+      var cols = ['算法', '比较', '移动/交换', '稳定', '最好', '最坏', '空间'];
+      var rows = s.stats;
+      var x0 = 60, y0 = 70, cw = [140, 110, 130, 80, 150, 160, 120];
+      var xx = [];
+      (function () { var t = x0; cols.forEach(function (c, i) { xx.push(t); t += cw[i]; }); })();
+      g += h.rect(x0 - 10, y0 - 30, cw.reduce(function (p, c) { return p + c; }, 0) + 20, 34, { fill: '#0f2c5c', stroke: 'none', rx: 6 });
+      cols.forEach(function (c, i) { g += h.txt(xx[i] + cw[i] / 2 - 10, y0 - 8, c, { size: 13.5, fill: '#fff', w: 600 }); });
+      rows.forEach(function (r, ri) {
+        var y = y0 + ri * 44;
+        var on = s.cur === ri, fin = s.mark === 'final';
+        g += h.rect(x0 - 10, y - 4, cw.reduce(function (p, c) { return p + c; }, 0) + 20, 40, { fill: on ? C.blueBg : (fin ? '#f8fafc' : '#fff'), stroke: on ? C.blue : C.line, sw: on ? 2 : 1, rx: 6 });
+        var vals = [r.name, r.cmp + ' 次', r.mov + ' 次', r.stableClaim ? '✓ 是' : '✗ 否', r.best, r.worst, r.space];
+        vals.forEach(function (t, i) {
+          g += h.txt(xx[i] + cw[i] / 2 - 10, y + 20, t, {
+            size: 13, w: i === 0 ? 600 : 400,
+            fill: i === 3 ? (r.stableClaim ? C.green : C.red) : (i === 1 || i === 2) && on ? C.blue : C.ink
+          });
+        });
+      });
+      var yb = y0 + rows.length * 44 + 26;
+      if (s.mark === 'final') {
+        g += h.rect(W / 2 - 330, yb, 660, 60, { fill: C.greenBg, stroke: C.green, rx: 9 });
+        g += h.txt(W / 2, yb + 26, '全部结果一致：' + s.arr.join(' '), { size: 15, w: 700, fill: C.green });
+        g += h.txt(W / 2, yb + 48, '选择依据：看初始状态（有序?）、稳定性要求、空间限制', { size: 12.5, fill: C.muted });
+      } else {
+        g += h.txt(W / 2, yb + 16, '↑ 逐个算法执行中……最后一帧给出汇总结论', { size: 13, fill: C.muted });
+      }
       return h.svg(W, H, g);
     }
   });
