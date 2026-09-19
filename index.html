@@ -117,7 +117,7 @@ body.proj .msg{font-size:16px}
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.1 · 构建 2026-09-19 12:21</span>
+  <span class="ver">v2.1 · 构建 2026-09-19 12:33</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -133,7 +133,6 @@ body.proj .msg{font-size:16px}
       <button id="btnNext">下一步 ▶</button>
       <button id="btnPlay">▶ 自动播放</button>
       <button id="btnShot" title="把当前画面导出为 PNG 图片（可插入课件/试卷）">📷 截图</button>
-      <button id="btnHandout" title="取当前动画 6 个关键帧拼成讲义 PNG（可打印/插入PPT）">🖨 讲义</button>
       <button id="btnLink" title="复制当前页面链接（可直达本模块本帧）">🔗 链接</button>
       <button id="btnPractice" title="练习模式：隐藏解说，先预测下一步再揭示">🎯 练习</button>
       <button id="btnGuide" title="显示/隐藏使用引导">? 引导</button>
@@ -449,7 +448,6 @@ body.proj .msg{font-size:16px}
     });
     $('btnShot').onclick = exportFrame;
     $('btnLink').onclick = copyLink;
-    $('btnHandout').onclick = exportHandout;
     $('btnPractice').onclick = togglePractice;
     $('btnProj').onclick = toggleProject;
     $('btnCatalog').onclick = openCatalog;
@@ -588,43 +586,6 @@ body.proj .msg{font-size:16px}
       }
     });
   }
-  /* ---------- 讲义导出：当前动画取 6 个关键帧拼成 2×3 网格 PNG ---------- */
-  function exportHandout() {
-    if (!frames.length || !cur) { toast('当前没有可导出的动画'); return; }
-    var idxs = [];
-    for (var k = 0; k < 6; k++) idxs.push(Math.round(k * (frames.length - 1) / 5));
-    var done = 0;
-    var cellW = 980, cellH = 490, cols = 2, rows = 3;
-    var canvas = document.createElement('canvas');
-    canvas.width = cols * cellW; canvas.height = rows * cellH + 60;
-    var ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#0f2c5c';
-    ctx.font = 'bold 30px "Microsoft YaHei",sans-serif';
-    ctx.fillText((cur.disp || cur.name) + ' — 关键帧讲义（' + frames.length + ' 帧选 6）', 24, 42);
-    idxs.forEach(function (fi, k2) {
-      var svgStr = cur.render(frames[fi].snap);
-      var xml = new XMLSerializer().serializeToString(new DOMParser().parseFromString(svgStr, 'image/svg+xml').documentElement);
-      var img = new Image();
-      img.onload = function () {
-        var cx = (k2 % cols) * cellW, cy = 60 + Math.floor(k2 / cols) * cellH;
-        ctx.fillStyle = '#ffffff'; ctx.fillRect(cx, cy, cellW, cellH);
-        ctx.drawImage(img, cx, cy, cellW * 0.98, cellH * 0.94);
-        ctx.fillStyle = '#5f6b76'; ctx.font = '20px Consolas,monospace';
-        ctx.fillText('第 ' + (fi + 1) + ' / ' + frames.length + ' 帧', cx + 18, cy + cellH - 10);
-        done++;
-        if (done === 6) {
-          var a = document.createElement('a');
-          a.download = '数据结构-' + (cur.disp || cur.name).replace(CIRC_RE, '') + '-讲义.png';
-          a.href = canvas.toDataURL('image/png');
-          a.click();
-          toast('讲义已导出 PNG（6 关键帧）');
-        }
-      };
-      img.onerror = function () { done++; };
-      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
-    });
-  }
   function keys(e) {
     if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
     if (e.key === 'ArrowRight') { stop(); step(); }
@@ -676,10 +637,10 @@ body.proj .msg{font-size:16px}
     id: 'complexity', ch: 1, name: '时间复杂度可视化',
     note: '教材 1.4 算法与算法分析（增长速度分级、渐近符号）',
     guide: [
-      '播放时曲线**逐点生长**，横纵坐标跟着 n 自动缩放——永远能看清当前形状',
-      '看黑线 O(2ⁿ)：n 每加 1 它就翻一倍；n=10 时它才 1024，n=30 已是 10⁹，n=60 达 10¹⁸——这就是"指数爆炸"',
-      '红虚线 O(n²) 长得快但被黑线远远甩开：n=60 时 3600 对 10¹⁸，差 30 多万倍',
-      '结论：机器快 1000 倍也救不了 O(2ⁿ)——选对复杂度才是关键。考试排序：O(1)<O(log n)<O(n)<O(n log n)<O(n²)<O(2ⁿ)'
+      '播放时曲线逐点生长，横纵坐标每帧自动缩放——n 小的时候大家都是 1，分不出好坏',
+      '看黑线 O(2ⁿ)：n 每加 1，代价就**翻一倍**；对照红线 O(n²) 只是慢慢加——差距越拉越大',
+      'n=10 时 O(2ⁿ)=1024 还不算吓人；n=30 已是 10⁹；n=60 达 10¹⁸——机器快 1000 倍也追不上',
+      '结论：选对复杂度才是关键。考试排序：O(1)<O(log n)<O(n)<O(n log n)<O(n²)<O(2ⁿ)'
     ],
     inputs: [
       { key: 'nmax', label: '最大规模 n', type: 'number', value: 16, min: 4, max: 300 }
@@ -708,24 +669,24 @@ body.proj .msg{font-size:16px}
       var ox = 96, oy = 56, pw = W - ox - 60, ph = H - oy - 150;
       var g = '';
       g += h.txt(W / 2, 30, '常见时间复杂度增长曲线（坐标轴随 n 自动缩放 · 当前 n = ' + n + '）', { size: 17, w: 600 });
-      /* 当前 n 的最大值决定纵轴顶（线性截断但随 n 缩放——每帧只有最高曲线贴顶） */
-      var yMax = 1;
-      vals.forEach(function (x) { if (x.v > yMax) yMax = x.v; });
-      function Y(val) { return oy + ph * (1 - val / yMax); }
+      /* 纵轴：动态对数刻度（顶 = 当前 n 时最大代价），5 个 10ⁿ 刻度；曲线逐点生长 */
+      var yMaxLog = Math.max(1, Math.log10(Math.max.apply(null, vals.map(function (x) { return x.v; }))));
+      function Y(val) { return oy + ph * (1 - Math.log10(Math.max(1, val)) / yMaxLog); }
       function X(nn) { return n <= 1 ? ox : ox + pw * (nn - 1) / (n - 1); }
-      /* 网格与刻度（随缩放变化，少量刻度防拥挤） */
+      var eStep = yMaxLog / 4;
       for (var gy = 0; gy <= 4; gy++) {
-        var y = oy + ph * gy / 4;
+        var e = Math.round(gy * eStep);
+        var y = oy + ph * (1 - Math.min(e, yMaxLog) / yMaxLog);
         g += h.line(ox, y, ox + pw, y, { stroke: '#eef2f7', sw: 1 });
-        g += h.txt(ox - 8, y + 4, fmt(yMax * (4 - gy) / 4), { size: 10.5, fill: C.muted, anchor: 'end' });
+        g += h.txt(ox - 8, y + 4, e === 0 ? '1' : '10' + sup(e), { size: 10.5, fill: C.muted, anchor: 'end' });
       }
       for (var gx = 0; gx <= 4; gx++) {
         var x = ox + pw * gx / 4;
         g += h.line(x, oy, x, oy + ph, { stroke: '#eef2f7', sw: 1 });
         g += h.txt(x, oy + ph + 16, String(Math.round(1 + (n - 1) * gx / 4)), { size: 10, fill: C.muted });
       }
-      g += h.txt(ox + pw / 2, oy + ph + 34, 'n（横轴从 1 到当前 n）', { size: 12, fill: C.muted });
-      g += h.txt(ox - 40, oy - 18, '代价（自动缩放）', { size: 11, fill: C.muted, anchor: 'start' });
+      g += h.txt(ox + pw / 2, oy + ph + 34, 'n（横轴 1 到当前 n）', { size: 12, fill: C.muted });
+      g += h.txt(ox - 40, oy - 18, '代价（每格 ×10）', { size: 11, fill: C.muted, anchor: 'start' });
       /* 曲线：逐点生长到当前 n */
       FNS.forEach(function (f) {
         var pts = [];
@@ -746,7 +707,7 @@ body.proj .msg{font-size:16px}
         g += h.rect(x, y - 12, 14, 14, { fill: it.color, rx: 3 });
         g += h.txt(x + 20, y, it.name + ' = ' + fmt(it.v), { size: 12.5, anchor: 'start', family: 'Consolas,monospace' });
       });
-      g += h.txt(W / 2, H - 10, '看黑线 O(2ⁿ)：n 每加 1 就翻一倍；n=60 时已是 10¹⁸，把 O(n²)=3600 远远压在下面——这就是"指数爆炸"', { size: 12.5, fill: C.muted });
+      g += h.txt(W / 2, H - 10, '纵轴每格 ×10（对数刻度）：黑线 O(2ⁿ) 每抬一格代价就翻 10 倍——n=60 时它已爬到 10¹⁸，而 O(n²) 才 3600', { size: 12.5, fill: C.muted });
       return h.svg(W, H, g);
     }
   });
