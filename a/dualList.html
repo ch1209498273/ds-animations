@@ -20,7 +20,7 @@
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.1 · 构建 2026-09-19 18:40</span>
+  <span class="ver">v2.1 · 构建 2026-09-19 23:24</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -94,9 +94,13 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     function n(f, t, st) { L.push({ f: f, t: t, k: 'next', st: st || '' }); }
     function p(f, t, st) { L.push({ f: f, t: t, k: 'prior', st: st || '' }); }
     if (op === 'ins') {
-      if (stage === 'start' || stage === 'step1') {
+      if (stage === 'start') {
         n(10, 20); n(20, 30); n(30, 40);
         p(20, 10); p(30, 20); p(40, 30);
+      } else if (stage === 'step1') {
+        n(10, 20); n(20, 30); n(30, 40);
+        p(20, 10); p(30, 20); p(40, 30);
+        p(20, 25, 'new');                                // ① s->prior 指向前驱 20
       } else if (stage === 'step2') {
         n(10, 20); n(30, 40);
         n(20, 25, 'new'); n(20, 30, 'cut');
@@ -105,11 +109,17 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         n(10, 20); n(30, 40);
         n(20, 25, 'new'); n(20, 30, 'cut'); n(25, 30, 'new');
         p(20, 10); p(40, 30); p(20, 25, 'new'); p(30, 20);
-      } else {
-        n(10, 20); n(25, 30); n(30, 40);
-        n(20, 25, 'new');
-        p(20, 10); p(40, 30);
-        p(20, 25, 'new'); p(30, 25, 'new'); p(30, 20, 'cut');
+      } else {   // step4 / done / warn：插入完成，5 结点最终形态
+        var isNew = stage === 'step4';
+        n(10, 20, isNew ? 'new' : '');
+        n(20, 25, isNew ? 'new' : '');
+        n(25, 30, isNew ? 'new' : '');
+        n(30, 40);
+        p(20, 10);
+        p(20, 25, isNew ? 'new' : '');
+        p(30, 25, isNew ? 'new' : '');
+        p(40, 30);
+        p(30, 20, stage === 'step4' ? 'cut' : '');
       }
     } else if (op === 'del') {
       if (stage === 'start') {
@@ -170,7 +180,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         F('② p->prior->next = s：前驱 20 的 next 改指 s，**旧链 20→30 断开**（红色虚线）。此刻 30 暂时"够不着"——这正是步骤不能乱的原因。', { stage: 'step2', p: 30, sFloat: 25 }, 'ins2', 1);
         F('③ s->next = p：s 的 next 指向 30。s 与两边的连接已齐三条，只差最后一条。', { stage: 'step3', p: 30, sFloat: 25 }, 'ins3', 2);
         list.splice(2, 0, 25);
-        F('④ p->prior = s：最后才改 30 的 prior（30→20 的旧 prior 断开）。四条新链齐了：10 ⇄ 20 ⇄ 25 ⇄ 30 ⇄ 40。', { stage: 'step4', p: 30 }, 'ins4', 3);
+        nodes.splice(2, 0, 25);                        // 25 正式进入链表（渲染按 5 结点排布）
+        F('④ p->prior = s：最后才改 30 的 prior（30→20 的旧 prior 断开，红色虚线）。四条新链齐了：10 ⇄ 20 ⇄ 25 ⇄ 30 ⇄ 40。', { stage: 'step4', p: 30 }, 'ins4', 3);
         F('为什么顺序不能乱？若先执行④（p->prior = s），30 记住前驱的那条旧链立刻断开——再想执行①时 20 的信息已经丢了。蓝色=新链、红色虚线=断链，回看前四帧体会。', { stage: 'warn' }, 'warn');
         return { code: CODE_I, frames: frames };
       }
