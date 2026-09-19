@@ -117,7 +117,7 @@ body.proj .msg{font-size:16px}
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.1 · 构建 2026-09-19 12:33</span>
+  <span class="ver">v2.1 · 构建 2026-09-19 12:41</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -669,22 +669,30 @@ body.proj .msg{font-size:16px}
       var ox = 96, oy = 56, pw = W - ox - 60, ph = H - oy - 150;
       var g = '';
       g += h.txt(W / 2, 30, '常见时间复杂度增长曲线（坐标轴随 n 自动缩放 · 当前 n = ' + n + '）', { size: 17, w: 600 });
-      /* 纵轴：动态对数刻度（顶 = 当前 n 时最大代价），5 个 10ⁿ 刻度；曲线逐点生长 */
+      /* 纵轴：动态对数刻度（顶 = 当前 n 时最大代价），刻度去重；曲线逐点生长 */
       var yMaxLog = Math.max(1, Math.log10(Math.max.apply(null, vals.map(function (x) { return x.v; }))));
       function Y(val) { return oy + ph * (1 - Math.log10(Math.max(1, val)) / yMaxLog); }
       function X(nn) { return n <= 1 ? ox : ox + pw * (nn - 1) / (n - 1); }
-      var eStep = yMaxLog / 4;
+      var ye = [];
       for (var gy = 0; gy <= 4; gy++) {
-        var e = Math.round(gy * eStep);
-        var y = oy + ph * (1 - Math.min(e, yMaxLog) / yMaxLog);
+        var e = Math.round(gy * yMaxLog / 4);
+        if (ye.indexOf(e) < 0) ye.push(e);
+      }
+      ye.forEach(function (e) {
+        var y = oy + ph * (1 - e / yMaxLog);
         g += h.line(ox, y, ox + pw, y, { stroke: '#eef2f7', sw: 1 });
         g += h.txt(ox - 8, y + 4, e === 0 ? '1' : '10' + sup(e), { size: 10.5, fill: C.muted, anchor: 'end' });
-      }
-      for (var gx = 0; gx <= 4; gx++) {
-        var x = ox + pw * gx / 4;
+      });
+      /* 横轴：整数步长刻度（1 起到 n，不重复） */
+      var xstep = Math.max(1, Math.ceil((n - 1) / 4));
+      var xticks = [1];
+      for (var v = 1 + xstep; v < n; v += xstep) xticks.push(v);
+      if (n > 1) xticks.push(n);
+      xticks.forEach(function (tv) {
+        var x = X(tv);
         g += h.line(x, oy, x, oy + ph, { stroke: '#eef2f7', sw: 1 });
-        g += h.txt(x, oy + ph + 16, String(Math.round(1 + (n - 1) * gx / 4)), { size: 10, fill: C.muted });
-      }
+        g += h.txt(x, oy + ph + 16, String(tv), { size: 10, fill: C.muted });
+      });
       g += h.txt(ox + pw / 2, oy + ph + 34, 'n（横轴 1 到当前 n）', { size: 12, fill: C.muted });
       g += h.txt(ox - 40, oy - 18, '代价（每格 ×10）', { size: 11, fill: C.muted, anchor: 'start' });
       /* 曲线：逐点生长到当前 n */
