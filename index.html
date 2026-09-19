@@ -63,9 +63,6 @@ table.panel td:first-child{color:var(--muted);width:36%}
 .hbtns button{border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;border-radius:6px;
   padding:3px 10px;font-size:12.5px;cursor:pointer;white-space:nowrap}
 .hbtns button:hover,.hbtns button.on{background:rgba(255,255,255,.18)}
-/* 练习模式：解说栏遮罩 */
-.msg.quizcover{cursor:pointer;background:#eef4ff;border-color:#b9d0f5}
-.msg .quizhint{color:#1e4fa3;font-weight:600}
 /* 总目录覆盖层 */
 #catalog{position:fixed;inset:0;background:rgba(15,28,50,.55);z-index:60;overflow:auto;padding:26px 18px}
 #catalog .ovhead{max-width:1060px;margin:0 auto 10px;background:#fff;border-radius:12px;padding:12px 18px;
@@ -117,7 +114,7 @@ body.proj .msg{font-size:16px}
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.1 · 构建 2026-09-19 12:41</span>
+  <span class="ver">v2.1 · 构建 2026-09-19 12:47</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -134,7 +131,6 @@ body.proj .msg{font-size:16px}
       <button id="btnPlay">▶ 自动播放</button>
       <button id="btnShot" title="把当前画面导出为 PNG 图片（可插入课件/试卷）">📷 截图</button>
       <button id="btnLink" title="复制当前页面链接（可直达本模块本帧）">🔗 链接</button>
-      <button id="btnPractice" title="练习模式：隐藏解说，先预测下一步再揭示">🎯 练习</button>
       <button id="btnGuide" title="显示/隐藏使用引导">? 引导</button>
       <label class="inp">速度
         <select id="speed">
@@ -395,12 +391,6 @@ body.proj .msg{font-size:16px}
       return '<tr><td>' + esc(k) + '</td><td>' + p[k] + '</td></tr>';
     }).join('');
     $('msg').innerHTML = f.msg || '';
-    if (practice && revealIdx !== idx) {
-      /* 练习模式：解说与状态面板同时遮住，防止答案泄露 */
-      $('panel').innerHTML = '<tr><td>🎯 练习中</td><td>状态面板已隐藏——预测后点解说栏对答案</td></tr>';
-      $('msg').innerHTML = '<span class="quizhint">🎯 练习中——先预测：下一步会发生什么？</span><br>' +
-        '<span style="font-size:12.5px">看左侧画面的高亮与指针：谁会被比较？谁会被移动？结果是多少？<br>心里想好答案后，<b>点这里</b>查看解说与完整状态。</span>';
-    }
     updateProgress();
   }
 
@@ -448,13 +438,9 @@ body.proj .msg{font-size:16px}
     });
     $('btnShot').onclick = exportFrame;
     $('btnLink').onclick = copyLink;
-    $('btnPractice').onclick = togglePractice;
     $('btnProj').onclick = toggleProject;
     $('btnCatalog').onclick = openCatalog;
     try { if (localStorage.getItem('dsc_proj') === '1') { document.body.classList.add('proj'); $('btnProj').classList.add('on'); } } catch (e) {}
-    $('msg').addEventListener('click', function () {
-      if (practice && revealIdx !== idx) { revealIdx = idx; draw(); }
-    });
   }
   var dismissed = {};
   try { dismissed = JSON.parse(localStorage.getItem('dsc_guide') || '{}') || {}; } catch (e) { dismissed = {}; }
@@ -508,15 +494,6 @@ body.proj .msg{font-size:16px}
     function fail() { window.prompt('全选并复制本页链接（Ctrl+C）：', url); }
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(ok, fail);
     else fail();
-  }
-  /* ---------- 练习模式：先预测下一步，再点击揭示解说 ---------- */
-  var practice = false, revealIdx = -1;
-  function togglePractice() {
-    practice = !practice; revealIdx = -1;
-    $('btnPractice').classList.toggle('on', practice);
-    $('msg').classList.toggle('quizcover', practice);
-    draw();
-    toast(practice ? '练习模式：解说与状态已遮住——先预测，再点解说栏对答案' : '已退出练习模式');
   }
   /* ---------- 投影模式：大字号高对比，便于课堂投屏 ---------- */
   function toggleProject() {
