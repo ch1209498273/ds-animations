@@ -20,7 +20,7 @@
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.1 · 构建 2026-09-19 13:40</span>
+  <span class="ver">v2.1 · 构建 2026-09-19 14:55</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -103,13 +103,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         ['find', '按值查找 LocateElem'], ['get', '取值 GetElem'], ['len', '求表长 Length'],
         ['max', '求最大值 MaxElem'], ['trav', '遍历输出 Traverse']
       ], value: 'find' },
-      { key: 'key', label: 'e / 位序 i', type: 'number', value: 47, min: -999, max: 999 },
+      { key: 'key', label: '查找值 e（按值查找用）', type: 'number', value: 47, min: -999, max: 999 },
+      { key: 'pos', label: '位序 i（取值用）', type: 'number', value: 3, min: 1, max: 12 },
       { key: 'data', label: '初始序列', type: 'text', value: '25,12,47,89,36,14' }
     ],
     run: function (v) {
       var arr = h.parse(v.data);
       if (arr.length < 1 || arr.length > 12) throw Error('请输入 1~12 个整数');
-      var n = arr.length, op = v.op, k = +v.key || 0;
+      var n = arr.length, op = v.op, k = +v.key || 0, pos = Math.round(+v.pos || 0);
       var frames = [], cmp = 0;
       function colors(hl) {
         hl = hl || {};
@@ -141,8 +142,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         if (found < 0) F([3], '扫描全表未找到 ' + k + ' → 返回 0。共比较 ' + n + ' 次——最坏情形 O(n)。', { res: '未找到' }, 'fail');
         F(0, '小结：按值查找 O(n)。等概率成功 ASL=(n+1)/2=' + ((n + 1) / 2).toFixed(1) + '。想 O(1) 查找 → 第 7 章散列表。', { hit: found >= 0 ? found : undefined, res: found >= 0 ? '位序 ' + (found + 1) : '未找到' });
       } else if (op === 'get') {
-        if (k < 1 || k > n) F(0, 'i = ' + k + ' 不合法（合法范围 1 ≤ i ≤ ' + n + '）→ 返回 ERROR。', { res: 'ERROR：i 越界' }, 'err');
-        else F(5, 'elem[' + (k - 1) + '] = ' + arr[k - 1] + '。位序 ' + k + ' 直接映射下标 ' + (k - 1) + '，**一次寻址 O(1)**，与 n 无关。', { hit: k - 1, res: '第 ' + k + ' 个 = ' + arr[k - 1] }, 'ok');
+        if (pos < 1 || pos > n) F(0, 'i = ' + pos + ' 不合法（合法范围 1 ≤ i ≤ ' + n + '）→ 返回 ERROR。', { res: 'ERROR：i 越界' }, 'err');
+        else F(5, 'elem[' + (pos - 1) + '] = ' + arr[pos - 1] + '。位序 ' + pos + ' 直接映射下标 ' + (pos - 1) + '，**一次寻址 O(1)**，与 n 无关。', { hit: pos - 1, res: '第 ' + pos + ' 个 = ' + arr[pos - 1] }, 'ok');
       } else if (op === 'len') {
         F(0, 'L.length 是顺序表结构体里现成的字段：n = ' + n + '，**O(1) 直接读**（链表则要数一遍 O(n)）。', { done: arr.map(function (_, i) { return i; }), res: 'n = ' + n }, 'ok');
       } else if (op === 'max') {

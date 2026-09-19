@@ -20,7 +20,7 @@
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.1 · 构建 2026-09-19 13:40</span>
+  <span class="ver">v2.1 · 构建 2026-09-19 14:55</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -105,13 +105,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       { key: 'op', label: '操作', type: 'select', options: [
         ['find', '按值查找 LocateElem'], ['len', '求表长 Length'], ['get', '取值 GetElem']
       ], value: 'find' },
-      { key: 'key', label: 'e / 位序 i', type: 'number', value: 47, min: -999, max: 999 },
+      { key: 'key', label: '查找值 e（按值查找用）', type: 'number', value: 47, min: -999, max: 999 },
+      { key: 'pos', label: '位序 i（取值用）', type: 'number', value: 3, min: 1, max: 10 },
       { key: 'data', label: '初始序列', type: 'text', value: '25,12,47,89,36,14' }
     ],
     run: function (v) {
       var arr = h.parse(v.data);
       if (arr.length < 1 || arr.length > 10) throw Error('请输入 1~10 个整数');
-      var n = arr.length, op = v.op, k = +v.key || 0;
+      var n = arr.length, op = v.op, k = +v.key || 0, pos = Math.round(+v.pos || 0);
       var frames = [], cmp = 0;
       function F(msg, extra, mk) {
         extra = extra || {};
@@ -137,10 +138,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         for (var i2 = 0; i2 < n; i2++) { cnt++; cmp++; F('第 ' + cnt + ' 次计数：p->data = ' + arr[i2] + '，n = ' + cnt + ' → p 后移。', { at: i2, line: 7 }); }
         F('p 到 NULL，链表长 n = ' + n + '。求表长 O(n)——对比顺序表 O(1) 读字段。', { at: n, res: 'n = ' + n }, 'ok');
       } else {
-        if (k < 1 || k > n) F('i = ' + k + ' 不合法（1 ≤ i ≤ ' + n + '）→ 返回 ERROR。', { at: n, res: 'ERROR', line: 11 }, 'err');
+        if (pos < 1 || pos > n) F('i = ' + pos + ' 不合法（1 ≤ i ≤ ' + n + '）→ 返回 ERROR。', { at: n, res: 'ERROR', line: 11 }, 'err');
         else {
-          for (var i3 = 0; i3 < k; i3++) { cmp++; if (i3 < k - 1) F('j = ' + (i3 + 1) + ' < ' + k + ' → p 后移到第 ' + (i3 + 2) + ' 个结点。', { at: i3, line: 11 }); }
-          F('j = ' + k + ' 到达：p->data = ' + arr[k - 1] + '。取第 ' + k + ' 个元素走了 ' + k + ' 步——O(n)！顺序表同样操作只要 1 步。', { at: k - 1, hit: k - 1, res: '第 ' + k + ' 个 = ' + arr[k - 1] }, 'ok');
+          for (var i3 = 0; i3 < pos; i3++) { cmp++; if (i3 < pos - 1) F('j = ' + (i3 + 1) + ' < ' + pos + ' → p 后移到第 ' + (i3 + 2) + ' 个结点。', { at: i3, line: 11 }); }
+          F('j = ' + pos + ' 到达：p->data = ' + arr[pos - 1] + '。取第 ' + pos + ' 个元素走了 ' + pos + ' 步——O(n)！顺序表同样操作只要 1 步。', { at: pos - 1, hit: pos - 1, res: '第 ' + pos + ' 个 = ' + arr[pos - 1] }, 'ok');
         }
       }
       return { code: CODE, frames: frames };
