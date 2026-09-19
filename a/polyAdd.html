@@ -20,7 +20,7 @@
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.1 · 构建 2026-09-19 15:15</span>
+  <span class="ver">v2.1 · 构建 2026-09-19 15:55</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -164,28 +164,62 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     render: function (s) {
       var W = 980, H = 520;
       var g = '';
-      function polyRow(y, label, ts, hi, color) {
-        var out = h.txt(50, y + 24, label, { size: 13.5, fill: C.muted, anchor: 'start', w: 700 });
-        ts.forEach(function (t, k) {
-          var x = 140 + k * 130;
-          var f = hi === k ? C.amberBg : '#fff', st = hi === k ? C.amber : C.grey;
-          out += h.rect(x, y, 118, 40, { fill: f, stroke: st, sw: hi === k ? 2.4 : 1.5, rx: 6 });
-          out += h.txt(x + 59, y + 25, t.c + 'x' + String(t.e).split('').map(function (d) { return '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d] || d; }).join(''), { size: 14, w: 700, family: 'Consolas,monospace' });
+      function supx(e) { return String(e).split('').map(function (d) { return '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d] || d; }).join(''); }
+      /* 画一条链：头指针盒 → 结点（coef|exp）→ … → NULL；hi=当前指针结点，consumed=之前已处理的灰化，delHi=被删红结点 */
+      function chain(y, label, headName, arr, hi, opts) {
+        opts = opts || {};
+        var out = h.rect(40, y, 74, 40, { fill: '#eef2ff', stroke: C.blue, rx: 6 });
+        out += h.txt(77, y + 25, headName, { size: 14, w: 700, fill: C.blue });
+        out += h.arrow(114, y + 20, 148, y + 20, { stroke: C.blue, sw: 2 });
+        var nLen = arr.length;
+        var step = nLen ? Math.min(150, Math.floor((W - 320) / nLen)) : 150;
+        var nw = step - 22;
+        arr.forEach(function (t2, k) {
+          var x = 150 + k * step;
+          var isHi = hi === k;
+          var isDel = opts.delHi === k;
+          var consumed = opts.consumedBefore != null && k < opts.consumedBefore;
+          var f = '#fff', st = C.grey, sw = 1.5;
+          if (consumed) { f = '#f1f5f9'; st = C.line; }
+          if (isHi && !isDel) { f = opts.delNow ? C.redBg : C.amberBg; st = opts.delNow ? C.red : C.amber; sw = 2.4; }
+          if (isDel) { f = C.redBg; st = C.red; sw = 2.4; }
+          if (opts.li === k) { f = C.greenBg; st = C.green; sw = 2.6; }
+          out += h.rect(x, y, nw, 44, { fill: f, stroke: st, rx: 6, sw: sw, dash: isDel ? '5,4' : null });
+          out += h.line(x + 58, y, x + 58, y + 44, { stroke: st, sw: 1 });
+          out += h.txt(x + 29, y + 27, String(t2.c), { size: 13.5, w: 700, family: 'Consolas,monospace' });
+          out += h.txt(x + 58 + (nw - 58) / 2, y + 27, 'x' + supx(t2.e), { size: 12, family: 'Consolas,monospace' });
+          if (k < nLen - 1) {
+            out += h.arrow(x + nw, y + 22, x + step - 18, y + 22, { stroke: C.grey, sw: 1.7, head: 7 });
+            out += h.txt(x + nw + (step - 22 - nw) / 2, y + 14, 'next', { size: 8.5, fill: C.muted });
+          }
+          if (isHi) {
+            var px = x + nw / 2;
+            out += h.arrow(px, y - 34, px, y - 8, { stroke: C.blue, sw: 2.5 });
+            out += h.txt(px, y - 42, opts.ptr || 'p', { size: 13, fill: C.blue, w: 700 });
+          }
+          if (isDel) out += h.txt(x + nw / 2, y + 62, '✗ 删除', { size: 10.5, fill: C.red, w: 700 });
         });
-        if (!ts.length) out += h.txt(140, y + 25, '（空）', { size: 13, fill: C.muted, anchor: 'start' });
+        /* NULL 尾 */
+        var xe = 150 + nLen * step;
+        if (nLen) {
+          out += h.arrow(xe - step + nw, y + 22, xe - 6, y + 22, { stroke: C.grey, sw: 1.7, head: 7 });
+          out += h.txt(xe + 8, y + 26, '∧', { size: 15, fill: C.muted, w: 700 });
+        } else {
+          out += h.txt(160, y + 26, '（空链）', { size: 13, fill: C.muted, anchor: 'start' });
+        }
         return out;
       }
-      g += h.txt(W / 2, 34, '一元多项式相加：指数升序链表归并', { size: 17, w: 600 });
-      g += polyRow(66, 'A(x)', s.A, s.hiA, C.blue);
-      g += polyRow(126, 'B(x)', s.B, s.hiB, C.green);
-      g += h.txt(W / 2, 208, '↓ 指数小的先走；指数相同系数相加（和为 0 则两删） ↓', { size: 13, fill: C.muted });
-      g += polyRow(230, '和', s.R, -1, C.green);
+      g += h.txt(W / 2, 34, '一元多项式相加：指数升序链表归并（指针逐结点移动）', { size: 17, w: 600 });
+      g += chain(70, 'A(x)', 'pa', s.A, s.hiA, { consumedBefore: s.hiA, ptr: 'pa', delHi: s.del ? s.hiA : null, delNow: !!s.del });
+      g += chain(150, 'B(x)', 'pb', s.B, s.hiB, { consumedBefore: s.hiB, ptr: 'pb', delHi: s.del ? s.hiB : null, delNow: !!s.del });
+      g += h.txt(W / 2, 236, '↓ 指数小的结点先接入结果链；指数相同系数相加（和为 0 则两结点一起删） ↓', { size: 13, fill: C.muted });
+      g += chain(262, '和', 'phead', s.R, s.li, { li: s.li });
       if (s.mark === 'final') {
-        g += h.rect(W / 2 - 260, 320, 520, 54, { fill: C.greenBg, stroke: C.green, rx: 9 });
-        g += h.txt(W / 2, 353, '✓ 相加完成（同类项已合并）', { size: 15, w: 700, fill: C.green });
+        g += h.rect(W / 2 - 260, 356, 520, 54, { fill: C.greenBg, stroke: C.green, rx: 9 });
+        g += h.txt(W / 2, 389, '✓ 相加完成（同类项已合并，抵消项已删除）', { size: 15, w: 700, fill: C.green });
       }
-      g += h.txt(W / 2, 440, '黄色 = 当前比较的两项 ｜ 观察例题中 9x⁸ 与 −9x⁸ 的"抵消删除"', { size: 12.5, fill: C.muted });
-      g += h.txt(W / 2, 472, '这就是"用有序链表表示多项式"的意义：合并/删项都不搬数据', { size: 12.5, fill: C.muted });
+      g += h.txt(W / 2, 452, 'pa / pb 指针逐结点后移：指数小的直接接入；指数相同算系数，和为 0 两结点同时删除', { size: 12.5, fill: C.muted });
+      g += h.txt(W / 2, 482, '这就是"用有序链表表示多项式"的意义：合并、删项只改指针，不搬数据', { size: 12.5, fill: C.muted });
       return h.svg(W, H, g);
     }
   });

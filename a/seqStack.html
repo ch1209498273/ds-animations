@@ -20,7 +20,7 @@
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.1 · 构建 2026-09-19 15:15</span>
+  <span class="ver">v2.1 · 构建 2026-09-19 15:55</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -119,15 +119,20 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           ['pop', '② 出栈演示：连续出栈 → 栈空下溢'],
           ['life', '③ 综合演练：完整生命周期（混合）']
         ], value: 'push'
-      }
+      },
+      { key: 'seq', label: '进栈序列', type: 'text', value: 'A,B,C,D,E,F' }
     ],
     run: function (v) {
       var scene = v.scene || 'push';
       var frames = [];
+      var seq = String(v.seq || '').split(/[,，\s]+/).filter(function (x) { return x !== ''; });
+      if (seq.length < 2 || seq.length > 6) throw Error('进栈序列请输入 2~6 个元素（逗号分隔）');
       var cells = [null, null, null, null, null, null], top = 0;
+      var wait = seq.slice(), pops = [];
       function snap(o) {
         o = o || {};
         o.cells = cells.slice(); o.top = top; o.max = MAXSIZE; o.base = 0; o.scene = scene;
+        o.wait = wait.slice(); o.pops = pops.slice();
         return o;
       }
       function F(line, msg, panel, s) { frames.push({ line: Array.isArray(line) ? line : [line], msg: msg, panel: panel, snap: s }); }
@@ -139,13 +144,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       }
 
       if (scene === 'pop') {
-        /* 出栈演示：先一次性进满，专注出栈 */
-        for (var pf = 0; pf < MAXSIZE; pf++) cells[pf] = 'ABCDEFG'[pf];
-        top = MAXSIZE;
-        F([7, 12], '【出栈演示】为专注于出栈，先一次性把 A～F 六个元素压入栈（相当于连续执行 6 次 Push，中间步骤见"① 进栈演示"）。当前栈满：top − base = 6 == stacksize。',
-          basePanel({ 进栈次序: 'A B C D E F（F 最后进，在栈顶）' }), snap({ note: 'prefill' }));
-        var pops = [];
-        for (var pi = 0; pi < MAXSIZE; pi++) {
+        /* 出栈演示：先按进栈序列一次性进满，专注出栈 */
+        for (var pf = 0; pf < seq.length; pf++) cells[pf] = seq[pf];
+        top = seq.length; wait = [];
+        F([7, 12], '【出栈演示】为专注于出栈，先按进栈序列（' + seq.join(' ') + '）一次性把 ' + seq.length + ' 个元素压入栈（相当于连续执行 ' + seq.length + ' 次 Push，中间步骤见"① 进栈演示"）。当前栈满：top − base = ' + seq.length + (seq.length === MAXSIZE ? ' == stacksize' : ''), 
+          basePanel({ 进栈次序: seq.join(' ') + '（' + seq[seq.length - 1] + ' 最后进，在栈顶）' }), snap({ note: 'prefill' }));
+        for (var pi = 0; pi < seq.length; pi++) {
           F(13, '出栈第 ' + (pi + 1) + ' 次：检查栈空？top = ' + top + ' ≠ base = 0，栈非空，可以出栈。',
             basePanel(), snap({ op: 'pop' }));
           F(14, '--S.top：top 先减 1 → ' + (top - 1) + '（栈顶元素还在下标 ' + (top - 1) + '，只是 top 不再指向"可插入位置"）。',
@@ -170,12 +174,13 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         snap({ note: '空栈' }));
 
       var script = scene === 'push'
-        ? [['push', 'A'], ['push', 'B'], ['push', 'C'], ['push', 'D'], ['push', 'E'], ['push', 'F'], ['push', 'G']]
-        : [['push', 'A'], ['push', 'B'], ['push', 'C'], ['push', 'D'], ['push', 'E'], ['push', 'F'], ['pop'], ['push', 'G'], ['push', 'H'],
-          ['pop'], ['pop'], ['pop'], ['pop'], ['pop'], ['pop'], ['pop']];
-      var pushes = [], pops = [];
+        ? seq.map(function (x) { return ['push', x]; }).concat([['push', 'G']])
+        : seq.map(function (x) { return ['push', x]; }).concat([['pop'], ['push', 'G'], ['push', 'H'],
+          ['pop'], ['pop'], ['pop'], ['pop'], ['pop'], ['pop'], ['pop']]);
+      var pushes = [];
       script.forEach(function (op) {
         if (op[0] === 'push') {
+          if (wait.length && wait[0] === op[1]) wait.shift();
           if (len() === MAXSIZE) {
             F(7, '进栈 ' + op[1] + '：检查 top − base = ' + len() + ' == stacksize = ' + MAXSIZE + '，栈已满！发生【上溢】(overflow)，返回 ERROR，' + op[1] + ' 无法入栈。',
               basePanel({ 结果: 'ERROR（上溢）', 进栈序列: pushes.join(' ') }), snap({ err: '上溢', op: 'push', arg: op[1] }));
@@ -216,7 +221,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       return { code: CODE, frames: frames };
     },
     render: function (s) {
-      var W = 980, H = 470, cw = 96, ch = 64;
+      var W = 980, H = 540, cw = 96, ch = 64;
       var x0 = (W - MAXSIZE * cw) / 2, y0 = 190;
       var g = '';
       var sl = SCENE_LABEL[s.scene] || SCENE_LABEL.push;
@@ -251,6 +256,29 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       if (s.ret != null) {
         g += h.rect(W - 200, y0 - 10, 150, 46, { fill: C.amberBg, stroke: C.amber, rx: 8 });
         g += h.txt(W - 125, y0 + 19, 'e = ' + s.ret, { size: 17, fill: C.amber, w: 700, family: 'Consolas,monospace' });
+      }
+      // 待进栈序列 / 出栈序列展示带（演示依据一目了然）
+      var wy = 470, py3 = 505;
+      if (s.wait && s.wait.length && s.scene !== 'pop') {
+        var wx = 30;
+        g += h.txt(wx, wy, '待进栈序列：', { size: 13, fill: C.muted, anchor: 'start', w: 600 });
+        s.wait.forEach(function (wv, k) {
+          var x = wx + 96 + k * 44;
+          var nx = k === 0;
+          g += h.rect(x, wy - 18, 38, 26, { fill: nx ? C.blueBg : '#fff', stroke: nx ? C.blue : C.line, sw: nx ? 2 : 1, rx: 5 });
+          g += h.txt(x + 19, wy, wv, { size: 13, w: nx ? 700 : 400, fill: nx ? C.blue : C.muted });
+        });
+        g += h.txt(wx + 96 + s.wait.length * 44 + 8, wy, '← 下一个进栈', { size: 11, fill: C.blue, anchor: 'start' });
+      }
+      if (s.pops && s.pops.length) {
+        var px2 = 30;
+        g += h.txt(px2, py3, '出栈序列：', { size: 13, fill: C.muted, anchor: 'start', w: 600 });
+        s.pops.forEach(function (pv, k) {
+          var x = px2 + 82 + k * 44;
+          var last = k === s.pops.length - 1;
+          g += h.rect(x, py3 - 18, 38, 26, { fill: last ? C.amberBg : '#fff', stroke: last ? C.amber : C.line, sw: last ? 2 : 1, rx: 5 });
+          g += h.txt(x + 19, py3, pv, { size: 13, w: last ? 700 : 400, fill: last ? C.amber : C.muted });
+        });
       }
       var note = s.err === '上溢' ? '✗ 上溢 overflow：栈满（top − base == stacksize）还执行进栈'
         : s.err === '下溢' ? '✗ 下溢 underflow：栈空（top == base）还执行出栈'
