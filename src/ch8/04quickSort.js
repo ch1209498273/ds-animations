@@ -41,8 +41,8 @@
         var cs = [];
         for (var i = 0; i < n; i++) cs.push('N');
         for (var k = 0; k < n; k++) if (a._done && a._done[k]) cs[k] = 'D';
-        if (hl.c) cs[hl.c] = 'C';
-        if (hl.s) cs[hl.s] = 'S';
+        if (hl.c != null) cs[hl.c] = 'C';
+        if (hl.s != null) cs[hl.s] = 'S';
         if (hl.p != null) cs[hl.p] = 'P';
         (hl.zone || []).forEach(function (i2) { if (cs[i2] === 'N') cs[i2] = 'P'; });
         return cs;

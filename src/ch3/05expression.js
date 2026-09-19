@@ -50,7 +50,7 @@
     run: function (v) {
       var expr = (v.expr || '').replace(/\s+/g, '').replace(/#$/, '');
       if (!expr.length) throw new Error('请输入表达式，如 3*(7-2)');
-      if (expr.length > 20) expr = expr.slice(0, 20);
+      if (expr.length > 20) throw new Error('表达式过长（' + expr.length + ' 字符 > 20），请缩短后重试');
       for (var c0 = 0; c0 < expr.length; c0++) {
         var ch0 = expr[c0];
         if (!/[0-9+\-*/()]/.test(ch0)) throw new Error('含不支持的字符：" ' + ch0 + ' "（只支持 + - * / ( ) 和数字）');
@@ -112,12 +112,17 @@
           F([10, 11], '计算：弹出 ' + a + ' 和 ' + b + '，运算符 ' + theta + ' → ' + a + ' ' + theta + ' ' + b + ' = ' + r + '，结果压回 OPND。',
             { OPTR: '自底→顶 ' + (optr.join(' ') || '#'), OPND: '自底→顶 ' + opnd.join(' '), 本步计算: a + ' ' + theta + ' ' + b + ' = ' + r },
             snap({ cur: pos, calc: { a: a, theta: theta, b: b, r: r }, action: 'calc' }));
-        } else {
+        } else if (rel === '=') {
           optr.pop();
           F([14], '比较优先级：栈顶 "' + top + '" = 当前 "' + ch + '"（左右括号相遇）→ 弹出括号，脱括号完成，读入下一字符。',
             { OPTR: '自底→顶 ' + (optr.join(' ') || '#'), 比较结果: top + ' = ' + ch + '（脱括号）' },
             snap({ cur: pos, priCell: cell, action: 'meet' }));
           pos++;
+        } else {
+          F([14], '✗ 组合 "' + top + '" 与 "' + ch + '" 无优先级关系——括号不匹配或表达式非法，返回 ERROR。',
+            { 结果: 'ERROR（括号不匹配）' },
+            snap({ cur: pos, priCell: cell, action: 'err', err: '括号不匹配' }));
+          return { code: CODE, frames: frames };
         }
       }
       var result = opnd.pop();

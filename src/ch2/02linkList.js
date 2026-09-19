@@ -120,11 +120,11 @@
           var oldNext = next[p];
           next[sid] = oldNext;
           F(6, '① 先连：s->next = p->next。新结点 s 先接上 p 原来的后继' + (oldNext ? '（值 ' + nodes[oldNext].data + '）' : '（NULL）') + '，链的后半段不丢。',
-            { 's->next': oldNext ? '→ ' + nodes[oldNext].data : '→ NULL' }, snap({ p: p, s: sid, newLink: [sid, oldNext] }));
+            { 's->next': oldNext ? '→ ' + nodes[oldNext].data : '→ NULL', '旧 next': oldNext ? '曾指向 ' + nodes[oldNext].data : '曾指向 NULL' }, snap({ p: p, s: sid, newLink: [sid, oldNext], cutLink: [p, oldNext], cutState: 'will', oldNextVal: oldNext != null ? nodes[oldNext].data : '∧' }));
           next[p] = sid;
           F(7, '② 后断：p->next = s。插入完成：L = ( ' + vals.slice(0, i - 1).concat([e]).concat(vals.slice(i - 1)).join(', ') + ' )。查找位置 O(n)，修改指针 O(1)——指针修改本身不移动任何元素。',
             { 'p->next': '→ s', 's->next': oldNext ? '→ ' + nodes[oldNext].data : '→ NULL' },
-            snap({ p: p, s: sid, done: true }));
+            snap({ p: p, s: sid, newLink: [p, sid], cutLink: [p, oldNext], cutState: 'done', oldNextVal: oldNext != null ? nodes[oldNext].data : '∧', done: true }));
         } else {
           var lostAt = next[p];
           next[p] = sid;                                   // ✗ 先"后连"
@@ -158,7 +158,7 @@
       var after = next[q];
       next[p2] = after;
       F(6, '① 摘链：p->next = q->next。p 越过 q 直接连到后继' + (after ? '（值 ' + nodes[after].data + '）' : '（NULL）') + '，q 脱离链表（此时还没释放）。',
-        { 'p->next': after ? '→ ' + nodes[after].data : '→ NULL' }, snap({ p: p2, q: q, ghost: [q], removed: q }));
+        { 'p->next': after ? '→ ' + nodes[after].data : '→ NULL' }, snap({ p: p2, q: q, ghost: [q], removed: q, newLink: [p2, after], cutLink: [p2, q], cutState: 'done' }));
       F(7, '② free(q) 释放结点 q（值 ' + nodes[q].data + '）。删除完成：L = ( ' + vals.filter(function (_, k) { return k !== i - 1; }).join(', ') + ' )。同样只需改一个指针，不必移动元素。',
         { 结果: '删除成功' }, snap({ p: p2, removed: q, freed: q, done: true }));
       return { code: code, frames: frames };
@@ -197,11 +197,19 @@
         if (isGhost || isLost) { fill = C.greyBg; stroke = C.grey; dash = '5,4'; }
         if (isFreed) { fill = C.redBg; stroke = C.red; dash = '5,4'; }
         var label = isHead ? '头' : nd.data;
-        var dW = 56, pW = 32;
+        var dW = 56, pW = 40;
+        var isNewPtr = s.newLink && s.newLink[0] === id;
+        var ptrFill = isNewPtr ? C.blueBg : fill;
+        var ptrStroke = isNewPtr ? C.blue : stroke;
+        var nxt2 = s.next[id];
+        var ptrTxt = (nxt2 === undefined) ? '' : (nxt2 === null ? '∧' : (nxt2 === 'H' ? '头' : (s.nodes[nxt2] ? s.nodes[nxt2].data : '')));
         g += h.rect(P.x, P.y, dW, nh, { fill: fill, stroke: stroke, sw: sw, rx: 6, dash: dash });
-        g += h.rect(P.x + dW, P.y, pW, nh, { fill: fill, stroke: stroke, sw: sw, rx: 6, dash: dash });
+        g += h.rect(P.x + dW, P.y, pW, nh, { fill: ptrFill, stroke: ptrStroke, sw: isNewPtr ? 2.5 : sw, rx: 6, dash: dash });
         g += h.txt(P.x + dW / 2, P.y + nh / 2 + 6, label, { size: 17, w: 600, fill: isFreed ? C.red : C.ink });
-        g += h.txt(P.x + dW + pW / 2, P.y + nh / 2 + 6, '·', { size: 24, w: 700 });
+        g += h.txt(P.x + dW + pW / 2, P.y + nh / 2 + 6, ptrTxt, { size: 14, w: 700, fill: isNewPtr ? '#fff' : C.ink, family: 'Consolas,monospace' });
+        if (isNewPtr && s.oldNextVal != null) {
+          g += h.txt(P.x + dW + pW / 2, P.y - 10, '原 ' + s.oldNextVal, { size: 10, fill: C.red, w: 600 });
+        }
         if (isHead) g += h.txt(P.x + dW / 2, P.y - 10, '头结点 L', { size: 12, fill: C.blue });
         if (isS) g += h.txt(P.x + dW / 2, P.y - 10, 's（新结点）', { size: 12, fill: C.amber, w: 600 });
         if (isFreed) g += h.txt(P.x + dW / 2, P.y - 10, '✗ 已 free', { size: 12, fill: C.red });
@@ -229,6 +237,20 @@
         if (s.selfLoopDone && to === from) return;
         g += h.arrow(x1, y1, x2, y2, { stroke: stroke, sw: sw, dash: dash, head: 7 });
       });
+      // 断开的旧链（红虚线）+ 标注
+      if (s.cutLink) {
+        var cf = s.cutLink[0], ct = s.cutLink[1];
+        if (pos[cf] && pos[ct] && cf !== ct) {
+          var A2 = pos[cf], B2 = pos[ct];
+          var mx2 = (A2.x + 92 + B2.x) / 2, my2 = A2.y + nh / 2;
+          if (s.cutState === 'done') {
+            g += h.arrow(A2.x + 92, my2 + 18, B2.x + 30, B2.y + nh / 2 + (B2.y > A2.y ? -6 : 18), { stroke: C.red, sw: 2.2, dash: '6,4', head: 7 });
+            g += h.txt(mx2, my2 + 40, '✗ 已断开', { size: 10.5, fill: C.red, w: 700 });
+          } else {
+            g += h.txt(mx2, my2 - 14, '✗ 即将断开', { size: 10.5, fill: C.red, w: 700 });
+          }
+        }
+      }
       // 指针 p / q
       function ptr(id, name, col) {
         if (!id || !pos[id]) return;

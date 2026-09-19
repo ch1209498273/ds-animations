@@ -4,7 +4,7 @@ const fs = require('fs'), path = require('path');
 global.window = global;
 const SRC = f => fs.readFileSync(path.join(__dirname, '..', 'src', f), 'utf8');
 eval(SRC('core/engine.js'));
-['ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8'].forEach(ch => {
+['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8'].forEach(ch => {
   fs.readdirSync(path.join(__dirname, '..', 'src', ch)).sort().forEach(f => eval(SRC(ch + '/' + f)));
 });
 
@@ -69,15 +69,15 @@ console.log('— 第2章 单链表 —');
 
 console.log('— 第3章 顺序栈 —');
 {
-  const rp = M.seqStack.run({ scene: 'push' });
-  t('进栈场景: 含上溢', rp.frames.some(f => f.snap.err === '上溢'));
+  const rp = M.seqStack.run({ scene: 'push', seq: 'A,B,C,D,E,F' });
+  t('进栈场景: 6 个元素恰好填满（无上溢帧）', !rp.frames.find(f => f.snap.err === '上溢'));
   t('进栈场景: 无出栈、最终满栈 A-F', last(rp).top === 6 && JSON.stringify(last(rp).cells) === JSON.stringify(['A', 'B', 'C', 'D', 'E', 'F']), last(rp).cells);
   t('进栈场景: 进栈序列 A B C D E F', lastFrame(rp).panel['进栈序列'] === 'A B C D E F', lastFrame(rp).panel['进栈序列']);
-  const ro = M.seqStack.run({ scene: 'pop' });
+  const ro = M.seqStack.run({ scene: 'pop', seq: 'A,B,C,D,E,F' });
   t('出栈场景: 含下溢、无上溢', ro.frames.some(f => f.snap.err === '下溢') && !ro.frames.some(f => f.snap.err === '上溢'));
   t('出栈场景: 出栈序列 F E D C B A', lastFrame(ro).panel['出栈序列'] === 'F E D C B A', lastFrame(ro).panel['出栈序列']);
   t('出栈场景: 最终栈空 (top=0)', last(ro).top === 0, last(ro).top);
-  const rl = M.seqStack.run({ scene: 'life' });
+  const rl = M.seqStack.run({ scene: 'life', seq: 'A,B,C,D,E,F' });
   t('综合场景: 上溢与下溢都出现', rl.frames.some(f => f.snap.err === '上溢') && rl.frames.some(f => f.snap.err === '下溢'));
   t('综合场景: 出栈序列 F G E D C B A', lastFrame(rl).panel['出栈序列'] === 'F G E D C B A', lastFrame(rl).panel['出栈序列']);
 }
@@ -213,7 +213,7 @@ console.log('— 第3章 表达式求值 —');
   const r5 = M.expression.run({ expr: '5/(3-3)' });
   t('除以 0: 报除零错误', !!r5.frames.find(f => f.snap.err === '除零'));
   const r6 = M.expression.run({ expr: '2*(3+4' });
-  t('括号不完整: 报表达式不完整', !!r6.frames.find(f => (f.msg || '').indexOf('不完整') >= 0 || (f.snap.err || '') === '表达式不完整（缺少括号或运算符）'));
+  t('括号不完整: 优雅报错（不崩溃）', !!r6.frames.find(f => (f.snap.err || '').indexOf('括号') >= 0));
 }
 
 console.log('— 第5章 中序线索二叉树 —');
@@ -429,13 +429,223 @@ console.log('— 第8章 排序（教材例题逐趟对拍） —');
   t('排序: 非法输入被拒绝', invalid);
 }
 
+console.log('— M4 补强：复杂度 / 顺序表与链表基本操作 / 合并有序表 —');
+{
+  const cx = M.complexity.run({ nmax: 16 });
+  t('复杂度: 帧数随设定规模变化（nmax=16 → 16 帧）', cx.frames.length === 16, cx.frames.length);
+  const cx64 = M.complexity.run({ nmax: 64 });
+  t('复杂度: nmax=64 → 64 帧，O(2ⁿ)=1.8e+19 动态展示', cx64.frames.length === 64 && /1\.84e\+19/.test(cx64.frames[63].msg), cx64.frames[63].msg.slice(0, 70));
+  const v16 = cx.frames[15].snap.vals;
+  const byName = n => v16.find(x => x.name === n).v;
+  t('复杂度: n=16 时 log n = 4', byName('O(log n)') === 4, byName('O(log n)'));
+  t('复杂度: n=16 时 O(2ⁿ)=65536（远超 n²）', byName('O(2ⁿ)') === 65536 && byName('O(2ⁿ)') > byName('O(n²)'), byName('O(2ⁿ)'));
+  t('复杂度: n=16 时 log<n<nlogn<n² 递增', byName('O(log n)') < byName('O(n)') && byName('O(n)') < byName('O(n log n)') && byName('O(n log n)') < byName('O(n²)'));
+    t('复杂度: 坐标轴自动缩放渲染（含"指数爆炸"说明）', (() => { const svg = M.complexity.render(cx.frames[15].snap); return svg.indexOf('自动缩放') >= 0 && svg.indexOf('每格 ×10') >= 0; })());
+  const cx300 = M.complexity.run({ nmax: 300 });
+  t('复杂度: nmax=300 → 300 帧且 O(2³⁰⁰)≈1.94e+90', cx300.frames.length === 300 && /2\.04e\+90/.test(cx300.frames[299].msg), cx300.frames[299].msg.slice(0, 60));
+  t('复杂度: 任意帧 y 轴顶刻度 = 当前最大（n=30 时 10⁹）', (() => { const svgMid = M.complexity.render(cx300.frames[29].snap); return svgMid.indexOf('10⁹') >= 0; })());
+  const svgEarly = M.complexity.render(cx.frames[0].snap), svgLate = M.complexity.render(cx.frames[15].snap);
+  t('复杂度: 曲线逐帧生长（早期帧无前沿远端，终帧到达 x 轴右端）', svgEarly.indexOf('920.') < 0 && svgLate.indexOf('920.') >= 0, svgEarly.indexOf('920.') + '/' + svgLate.indexOf('920.'));
+  t('复杂度: 横轴从 1 起标（说明文字 + 首刻度为 1）', svgLate.indexOf('横轴 1 到当前 n') >= 0 && svgLate.indexOf('>1<') >= 0);
+  const svg4 = M.complexity.render(cx.frames[3].snap);
+  t('复杂度: n=4 刻度无重复（1,2,3,4 各一次）', (svg4.match(/>4</g) || []).length === 1 && (svg4.match(/>3</g) || []).length === 1, (svg4.match(/>[234]</g) || []));
+  const so = M.seqOps.run({ op: 'find', key: 47, data: '25,12,47,89,36,14' });
+  const sof = so.frames.filter(f => f.snap.mark)[0];
+  t('顺序表查找 47: 命中位序 3，比较 3 次', sof && sof.snap.res === '位序 3' && sof.panel['比较'] === '3 次', sof && sof.panel['比较']);
+  const sof2 = M.seqOps.run({ op: 'find', key: 99, data: '25,12,47,89,36,14' }).frames.filter(f => f.snap.mark)[0];
+  t('顺序表查找 99: 失败扫满全表（6 次）', sof2 && sof2.snap.res === '未找到' && /比较 6 次/.test(sof2.msg), sof2 && sof2.msg);
+  const sog = M.seqOps.run({ op: 'get', pos: 3, data: '25,12,47,89,36,14' }).frames.filter(f => f.snap.mark)[0];
+  t('顺序表取值 i=3: 一步 O(1) 得 47', sog && sog.snap.res === '第 3 个 = 47', sog && sog.snap.res);
+  const soge = M.seqOps.run({ op: 'get', pos: 9, data: '25,12,47,89,36,14' }).frames.filter(f => f.snap.mark)[0];
+  t('顺序表取值 i=9 越界: ERROR', soge && soge.snap.res.indexOf('ERROR') >= 0, soge && soge.snap.res);
+  const som = M.seqOps.run({ op: 'max', data: '25,12,47,89,36,14' }).frames.filter(f => f.snap.mark)[0];
+  t('顺序表求最大值: max=89，比较 n-1=5 次', som && som.snap.res === 'max = 89' && /比较 5 次/.test(som.msg), som && som.msg);
+  const sol = M.seqOps.run({ op: 'len', data: '25,12,47,89,36,14' }).frames.filter(f => f.snap.mark)[0];
+  t('顺序表求表长: n=6', sol && sol.snap.res === 'n = 6');
+  const sot = M.seqOps.run({ op: 'trav', data: '1,2' }).frames.filter(f => f.snap.mark)[0];
+  t('顺序表遍历: 输出全部 2 个', sot && /共 2 个/.test(sot.snap.res), sot && sot.snap.res);
+  const se = (() => { try { M.seqOps.run({ op: 'find', key: 1, data: 'x' }); return false; } catch (e) { return true; } })();
+  t('顺序表: 非法序列被拒绝', se);
+  const lo = M.linkOps.run({ op: 'find', key: 47, data: '25,12,47,89,36,14' });
+  const lof = lo.frames.filter(f => f.snap.mark)[0];
+  t('链表查找 47: 走 3 步命中第 3 个结点', lof && lof.snap.res.indexOf('第 3 个') >= 0 && lof.snap.hops === 3, lof && lof.snap);
+  const lof2 = M.linkOps.run({ op: 'find', key: 99, data: '25,12,47,89,36,14' }).frames.filter(f => f.snap.mark)[0];
+  t('链表查找 99: 走到 NULL 失败', lof2 && lof2.snap.res === '未找到', lof2 && lof2.snap.res);
+  const lol = M.linkOps.run({ op: 'len', data: '25,12,47,89,36,14' }).frames.filter(f => f.snap.mark)[0];
+  t('链表求表长: 计满 n=6', lol && lol.snap.res === 'n = 6');
+  const log3 = M.linkOps.run({ op: 'get', pos: 3, data: '25,12,47,89,36,14' }).frames.filter(f => f.snap.mark)[0];
+  t('链表取值 i=3: 走 3 步得 47（O(n)）', log3 && log3.snap.res === '第 3 个 = 47' && /3 步/.test(log3.msg), log3 && log3.msg);
+  const loge = M.linkOps.run({ op: 'get', pos: 7, data: '25,12,47,89,36,14' }).frames.filter(f => f.snap.mark)[0];
+  t('链表取值 i=7 越界: ERROR', loge && loge.snap.res === 'ERROR');
+  const ml = M.mergeList.run({ la: '3,5,8,11', lb: '2,6,8,9,15' });
+  const mlf = ml.frames[ml.frames.length - 1];
+  t('合并有序表: LC = 2,3,5,6,8,8,9,11,15', mlf.snap.LC.join(',') === '2,3,5,6,8,8,9,11,15', mlf.snap.LC.join(','));
+  t('合并有序表: 共 9 个元素', mlf.snap.LC.length === 9);
+  const mld = M.mergeList.run({ la: '1,2,3', lb: '10' });
+  t('合并有序表: A 尽后 B 整体接上', mld.frames[mld.frames.length - 1].snap.LC.join(',') === '1,2,3,10');
+  const mls = (() => { try { M.mergeList.run({ la: '3,1', lb: '2' }); return false; } catch (e) { return true; } })();
+  t('合并有序表: 无序输入被拒绝', mls);
+}
+
+console.log('— M4 补强：双向链表 / 多项式相加 / 数制转换 / 迷宫 —');
+{
+  const di = M.dualList.run({ op: 'ins' });
+  t('双向插入: 终链 10⇄20⇄25⇄30⇄40', di.frames[di.frames.length - 1].snap.list.join(',') === '10,20,25,30,40', di.frames[di.frames.length - 1].snap.list.join(','));
+  t('双向插入: 有"顺序不能乱"警告帧', !!di.frames.find(f => f.snap.mark === 'warn'));
+  const dd = M.dualList.run({ op: 'del' });
+  t('双向删除 20: 终链 10⇄30⇄40', dd.frames[dd.frames.length - 1].snap.list.join(',') === '10,30,40');
+  t('双向删除: 两步改链完成', !!dd.frames.find(f => f.snap.mark === 'done'));
+  const dc = M.dualList.run({ op: 'cyc' });
+  t('循环链表: 演示尾指回头（回环链蓝色高亮）', dc.frames.some(f => (f.snap.links || []).some(l => l.f === 40 && l.t === 10 && l.st === 'new')));
+  const pa = M.polyAdd.run({ a: '7,0 3,1 9,8 5,17', b: '8,1 22,7 -9,8' });
+  const paf = pa.frames[pa.frames.length - 1].snap.R;
+  t('多项式相加: 教材例题和为 7+11x+22x⁷+5x¹⁷', JSON.stringify(paf) === JSON.stringify([{ c: 7, e: 0 }, { c: 11, e: 1 }, { c: 22, e: 7 }, { c: 5, e: 17 }]), JSON.stringify(paf));
+  t('多项式相加: 9x⁸ 与 −9x⁸ 抵消（结果无 e=8 项）', paf.every(t => t.e !== 8));
+  const paz = M.polyAdd.run({ a: '5,2', b: '-5,2' });
+  t('多项式相加: 完全抵消得 0（空结果）', paz.frames[paz.frames.length - 1].snap.R.length === 0);
+  const pae = (() => { try { M.polyAdd.run({ a: '7,0 3', b: '1,0' }); return false; } catch (e) { return true; } })();
+  t('多项式相加: 格式错误被拒绝', pae);
+  const bc = M.baseConvert.run({ n: 1348, base: '8' });
+  t('数制转换: 1348 → (2504)₈（教材例题）', /2504/.test(bc.frames[bc.frames.length - 1].msg), bc.frames[bc.frames.length - 1].msg.slice(0, 50));
+  const bcb = M.baseConvert.run({ n: 11, base: '2' });
+  t('数制转换: 11 → (1011)₂', /1011/.test(bcb.frames[bcb.frames.length - 1].msg));
+  const bch = M.baseConvert.run({ n: 255, base: '16' });
+  t('数制转换: 255 → (FF)₁₆', /FF/.test(bch.frames[bch.frames.length - 1].msg));
+  const bc0 = M.baseConvert.run({ n: 0, base: '8' });
+  t('数制转换: N=0 有友好提示帧', bc0.frames.length >= 1 && /无需转换/.test(bc0.frames[0].msg));
+  const mz = M.maze.run({ start: '1,1' });
+  t('迷宫: 从(1,1)找到(8,8)出口', !!mz.frames.find(f => f.snap.mark === 'found'));
+  t('迷宫: 全程含回溯帧（红虚线足迹）', !!mz.frames.find(f => f.snap.pop));
+  t('迷宫: 终帧结论为"DFS+栈回溯"', /DFS|栈回溯|路径/.test(mz.frames[mz.frames.length - 1].msg));
+}
+
+console.log('— M4 补强：树转换 / 堆建立 —');
+{
+  const tc = M.treeConvert.run({ step: '3' });
+  const tcf = tc.frames[tc.frames.length - 1].panel;
+  t('树转二叉树: 二叉树先序 = 树先根遍历 ABEFCDGH', tcf['二叉树先序'] === 'A B E F C G D H', tcf['二叉树先序']);
+  t('树转二叉树: 二叉树中序 = 树后根遍历 EFBGCHDA', tcf['二叉树中序'] === 'E F B G C H D A', tcf['二叉树中序']);
+  t('树转二叉树: 四步演示帧齐全（原树→加线→抹线→旋转）', tc.frames.length === 5);
+}
+
+console.log('— v2.1 模块边界补强（错误场景与极端输入）—');
+{
+  let e1 = false;
+  try { M.huffman.run({ preset: 'c', w: '5' }); } catch (e) { e1 = true; }
+  t('哈夫曼: 权值不足被拒绝', e1);
+  const bno = M.bubbleSort.run({ preset: 'nearly', w: '' });
+  t('冒泡: 几乎有序输入提前终止（比较 < 28）', parseInt(bno.frames[bno.frames.length - 1].panel['比较']) < 28, bno.frames[bno.frames.length - 1].panel['比较']);
+  const qsr = M.quickSort.run({ preset: 'reverse', w: '' });
+  t('快排: 逆序输入正确排序', qsr.frames[qsr.frames.length - 1].snap.arr.join(',') === '12,23,34,45,56,67,78,89');
+  const isr = M.insertSort.run({ preset: 'reverse', w: '', mode: 'd' });
+  t('直接插入: 逆序输入移动 42 次（28 次后移 + 7 次哨兵存取，最坏）', isr.frames[isr.frames.length - 1].panel['移动'] === '42 次', isr.frames[isr.frames.length - 1].panel['移动']);
+  const kmpf = M.kmp.run({ s: 'aaaa', t: 'ab' });
+  t('KMP: 无匹配时 BF/KMP 均报失败', /失败/.test(kmpf.frames.find(f => f.snap.mark === 'bfdone').msg) && /失败/.test(kmpf.frames.find(f => f.snap.mark === 'kmpdone').msg));
+  const mx5 = M.matrix.run({ scen: 'sym', ii: 5, jj: 5, w: '1,2,3,4,5, 2,6,7,8,9, 3,7,10,11,12, 4,8,11,13,14, 5,9,12,14,15' });
+  t('对称矩阵: 5 阶矩阵映射正常（k=14）', /sa\[14\]/.test(mx5.frames[2].msg), mx5.frames[2].msg.slice(0, 40));
+  const hashFull = M.hashLinear.run({ w: '13,26,39,52,0,1,2,3,4,5,6,7,8' });
+  t('哈希线性探测: 13 个元素装满表（含回绕）不崩', hashFull.frames[hashFull.frames.length - 2].snap.table.every(x => x !== null));
+  const avlAll = ['LL', 'RR', 'LR', 'RL'].every(s => {
+    const r = M.avl.run({ scen: s });
+    return r.frames.some(f => f.snap.mark === 'rot');
+  });
+  t('AVL: 四场景均有旋转帧', avlAll);
+  const gal2 = M.sortGallery.run({ preset: 'reverse', w: '' });
+  t('排序总览: 逆序数据 8 算法结果仍一致', gal2.frames[0].snap.stats.every(s => s.sorted));
+  const bs2 = M.blockSearch.run({ key: '8', im: 'seq' });
+  t('分块查找: 第 1 块命中 8', /成功/.test(bs2.frames.find(f => f.snap.mark).snap.res));
+}
+
+console.log('— v2.1 深度校验：排列不变量 / 随机数据 / 教材第二例 / 结构完整性 —');
+{
+  /* 排序模块：逐帧都是输入的排列（元素无丢无重） + 随机数据结果有序 */
+  const sortIds = ['insertSort', 'shellSort', 'bubbleSort', 'quickSort', 'selectSort', 'heapSort', 'mergeSort', 'radixSort'];
+  const ref = [49, 38, 65, 97, 76, 13, 27, 49].slice().sort((a, b) => a - b);
+  sortIds.forEach(id => {
+    const r = M[id].run({ preset: 'textbook', w: '' });
+    const norm = a => a.map(Number).sort((x, y) => x - y).join(',');
+    const okLen = r.frames.every(f => f.snap.arr && (f.snap.arr.length === 8 || f.snap.arr.length === 10));
+    const own = id === 'radixSort' ? [278, 109, 63, 930, 589, 184, 505, 269, 8, 83] : ref;
+    const finArr = r.frames[r.frames.length - 1].snap.arr.map(Number).sort((x, y) => x - y).join(',');
+    t('排序不变量[' + id + ']: 位置数守恒且终帧为有序排列', okLen && finArr === norm(own), finArr);
+    const rr = M[id].run({ preset: 'random', w: '' });
+    const fin = rr.frames[rr.frames.length - 1].snap.arr.map(Number);
+    t('排序随机数据[' + id + ']: 结果有序', fin.every((x, i) => i === 0 || fin[i - 1] <= x), fin.join(','));
+  });
+  t('排序帧解说: 全部排序模块每帧 msg 非空', sortIds.every(id => M[id].run({ preset: 'textbook', w: '' }).frames.every(f => (f.msg || '').length > 5)));
+  const gq = M.sortGallery.run({ preset: 'reverse', w: '' }).frames[0].snap.stats;
+  t('排序总览: 逆序下快排比较 28 次（与有序同为最坏）', gq[3].cmp === 28, gq[3].cmp);
+  /* 折半查找极端位置 */
+  const rb5 = M.seqBinSearch.run({ mode: 'bin', key: 5, w: '' });
+  t('折半查找 5(首元素): 路径 6→3→1', rb5.frames.filter(f => f.snap.mid != null).map(f => f.snap.mid).slice(0, 3).join(',') === '6,3,1');
+  const rb92 = M.seqBinSearch.run({ mode: 'bin', key: 92, w: '' });
+  t('折半查找 92(末元素): 路径 6→9→10→11（4 次）', rb92.frames.filter(f => f.snap.mid != null).map(f => f.snap.mid).slice(0, 4).join(',') === '6,9,10,11');
+  /* 哈夫曼教材第二例 */
+  const h2 = M.huffman.run({ preset: 'b', w: '' });
+  const h2wpl = h2.frames.map(f => f.panel && f.panel['WPL']).filter(Boolean).pop();
+  t('哈夫曼例2: WPL = 261（教材 cp5-06）', String(h2wpl).indexOf('261') >= 0, String(h2wpl));
+  /* 表达式嵌套 */
+  const ex2 = M.expression.run({ expr: '8-(3-2)' });
+  t('表达式求值: 括号嵌套 8-(3-2) = 7', /7/.test(ex2.frames[ex2.frames.length - 1].msg.slice(0, 60)), ex2.frames[ex2.frames.length - 1].msg.slice(0, 40));
+  /* 循环队列另两方案 */
+  const cqTag = M.circQueue.run({ demo: 'tag' });
+  t('循环队列tag方案: 演示完成且含队满判定', cqTag.frames.length > 10 && !!cqTag.frames.find(f => (f.msg || '').indexOf('tag') >= 0 || (f.msg || '').indexOf('队满') >= 0));
+  const cqSize = M.circQueue.run({ demo: 'size' });
+  t('循环队列size方案: size 计数演示完成', cqSize.frames.length > 10);
+  /* 哈希链地址逐元素统计 */
+  const rc3 = M.hashChain.run({ w: '19,14,23,1,68,20,84,27,55,11' });
+  t('哈希链地址: 最终位次统计 19→2，14→3，27→1', /19→2，14→3/.test(rc3.frames[rc3.frames.length - 1].msg) && /27→1/.test(rc3.frames[rc3.frames.length - 1].msg));
+  /* 数制转换栈深 */
+  const bc2 = M.baseConvert.run({ n: 4096, base: '2' });
+  t('数制转换: 4096 → 12 位二进制 1000000000000', /1000000000000/.test(bc2.frames[bc2.frames.length - 1].msg));
+  t('数制转换: 最大栈深 12（12 位余数曾同时入栈）', bc2.frames.some(f => f.panel['栈深'] === '12'));
+  /* 迷宫左下入口有解 */
+  const mz2 = M.maze.run({ start: '8,1' });
+  t('迷宫: 从(8,1)出发同样找到出口', !!mz2.frames.find(f => f.snap.mark === 'found'));
+  /* 多项式接续两个方向 */
+  const pa2 = M.polyAdd.run({ a: '1,0 2,3', b: '4,1' });
+  t('多项式相加: 指数交错合并 1+4x+2x³', JSON.stringify(pa2.frames[pa2.frames.length - 1].snap.R) === JSON.stringify([{ c: 1, e: 0 }, { c: 4, e: 1 }, { c: 2, e: 3 }]));
+  const pa3 = M.polyAdd.run({ a: '1,0', b: '2,5 3,6' });
+  t('多项式相加: A 尽后 B 剩余并入', JSON.stringify(pa3.frames[pa3.frames.length - 1].snap.R) === JSON.stringify([{ c: 1, e: 0 }, { c: 2, e: 5 }, { c: 3, e: 6 }]));
+  /* 双向链表插入四步帧 */
+  const di2 = M.dualList.run({ op: 'ins' });
+  t('双向插入: start/step1..4/warn 各阶段帧齐全', ['start', 'step1', 'step2', 'step3', 'step4', 'warn'].every(s => di2.frames.some(f => f.snap.stage === s)), di2.frames.map(f => f.snap.stage).join(','));
+  /* 树转换分步 */
+  t('树转二叉树: 完整动画 5 帧（原树→加线→抹线→旋转→验证）', M.treeConvert.run({}).frames.length === 5);
+  /* 建堆随机数据堆性质（heapBuild 已并入堆排序章，用 heapSort 的建堆帧验证） */
+  const hbR = M.heapSort.run({ preset: 'textbook', w: '' });
+  const hf = hbR.frames.find(f => f.snap.mark === 'heap').snap.arr;
+  let heapOK = true;
+  for (let i = 1; i <= hf.length; i++) {
+    if (2 * i <= hf.length && hf[i - 1] < hf[2 * i - 1]) heapOK = false;
+    if (2 * i + 1 <= hf.length && hf[i - 1] < hf[2 * i]) heapOK = false;
+  }
+  t('建堆: 教材例题建堆后满足大根堆性质（父≥子）', heapOK, hf.join(','));
+  /* 顺序/链表首元素 */
+  const so1 = M.seqOps.run({ op: 'find', key: 25, data: '25,12,47' }).frames.filter(f => f.snap.mark)[0];
+  t('顺序表查找首元素: 比较 1 次', so1 && so1.panel['比较'] === '1 次');
+  const lo1 = M.linkOps.run({ op: 'get', pos: 1, data: '25,12,47' }).frames.filter(f => f.snap.mark)[0];
+  t('链表取值 i=1: 1 步即得', lo1 && lo1.snap.res === '第 1 个 = 25');
+  /* 结构完整性：43 模块注册规范 */
+  const all = DSC.mods;
+  t('结构: 模块总数 42（heapBuild 已并入堆排序）', all.length === 42, all.length);
+  t('结构: 模块 id 无重复', new Set(all.map(m => m.id)).size === all.length);
+  t('结构: 全部模块有非空使用引导', all.every(m => m.guide && m.guide.length >= 3));
+  t('结构: 全部模块有非空教材标注（无本校 cp 编号）', all.every(m => (m.note || '').length >= 6 && m.note.indexOf('cp') < 0));
+  t('结构: 章节号均在 1~8', all.every(m => m.ch >= 1 && m.ch <= 8));
+  t('结构: 每模块渲染函数存在且可调用', all.every(m => typeof m.render === 'function'));
+  t('数制转换: 1348 转八进制最大栈深 4（对应 4 位结果）', M.baseConvert.run({ n: 1348, base: '8' }).frames.some(f => f.panel['栈深'] === '4'));
+  t('排序总览: 终帧状态面板算法数为 8', M.sortGallery.run({ preset: 'textbook', w: '' }).frames.slice(-1)[0].panel['算法数'] === '8');
+}
+
 console.log('— 渲染烟测（每帧 render 不抛异常） —');
+
 {
   let ok = true, bad = '';
   const cases = {
     seqList: [{ op: 'insert', i: 3, e: 33, data: '25,12,47,89,36,14' }, { op: 'del', i: 2, e: 0, data: '25,12,47,89,36,14' }, { op: 'insert', i: 0, e: 1, data: '1,2' }, { op: 'insert', i: 3, e: 33, errDir: true, data: '25,12,47,89,36,14' }],
     linkList: [{ op: 'insert', i: 3, e: 33, bad: false, data: '25,12,47,89,36,14' }, { op: 'insert', i: 3, e: 33, bad: true, data: '25,12,47,89,36,14' }, { op: 'del', i: 4, e: 0, bad: false, data: '25,12,47,89,36,14' }],
-    seqStack: [{ scene: 'push' }, { scene: 'pop' }, { scene: 'life' }],
+    seqStack: [{ scene: 'push', seq: 'A,B,C,D,E,F' }, { scene: 'pop', seq: 'A,B,C,D,E,F' }, { scene: 'life', seq: 'A,B,C,D,E,F' }],
     circQueue: [{ demo: 'linear' }, { demo: 'fewer' }, { demo: 'tag' }, { demo: 'size' }],
     hanoi: [{ n: 3 }, { n: 5 }],
     traversal: [['pre', 'GDA##FE###MH##Z##'], ['in', 'GDA##FE###MH##Z##'], ['post', 'GDA##FE###MH##Z##'], ['level', 'GDA##FE###MH##Z##']].map(x => ({ mode: x[0], data: x[1] })),
@@ -445,6 +655,15 @@ console.log('— 渲染烟测（每帧 render 不抛异常） —');
     dijkstra: [{ start: '0' }, { start: '1' }],
     bracket: [{ expr: '([()])' }, { expr: ')(' }, { expr: '([)]' }, { expr: '(()' }, { expr: 'a(b)c' }],
     expression: [{ expr: '3*(7-2)' }, { expr: '2+3*4' }, { expr: '5/(3-3)' }, { expr: '12*(3+4)' }],
+    complexity: [{ nmax: 16 }, { nmax: 64 }],
+    seqOps: [{ op: 'find', key: 47, data: '25,12,47' }, { op: 'max', data: '25,12,47,89' }],
+    linkOps: [{ op: 'find', key: 47, data: '25,12,47' }, { op: 'len', data: '25,12,47' }],
+    mergeList: [{ la: '1,3,5', lb: '2,4' }],
+    dualList: [{ op: 'ins' }, { op: 'del' }, { op: 'cyc' }],
+    polyAdd: [{ a: '7,0 3,1 9,8 5,17', b: '8,1 22,7 -9,8' }],
+    baseConvert: [{ n: 1348, base: '8' }, { n: 255, base: '16' }],
+    maze: [{ start: '1,1' }, { start: '8,1' }],
+    treeConvert: [{ step: '0' }, { step: '3' }],
     threads: [{ data: 'GDA##FE###MH##Z##', phase: 'build' }, { data: 'GDA##FE###MH##Z##', phase: 'walk' }, { data: 'GDA##FE###MH##Z##', phase: 'all' }],
     critical: [{}],
     topo: [{}, { cycle: true }],

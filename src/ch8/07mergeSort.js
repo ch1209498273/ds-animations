@@ -82,7 +82,7 @@
 
       msort(0, n - 1);
       view = work.slice();
-      F(15, '排序完成：' + view.join(' ') + '。n 个元素共归并 ⌈log₂n⌉ 层、每层 O(n)，任何输入都稳定在 O(n log n)；相等时优先取左半保证稳定。空间代价 O(n) 是它的短板——但这个"有序段合并"思想让归并成为磁盘外排序的基石。', {}, 'final');
+      F(14, '排序完成：' + view.join(' ') + '。n 个元素共归并 ⌈log₂n⌉ 层、每层 O(n)，任何输入都稳定在 O(n log n)；相等时优先取左半保证稳定。空间代价 O(n) 是它的短板——但这个"有序段合并"思想让归并成为磁盘外排序的基石。', {}, 'final');
       return { code: CODE, frames: frames };
     },
     render: function (s) {

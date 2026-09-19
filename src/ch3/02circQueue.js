@@ -45,6 +45,12 @@
   DSC.reg({
     id: 'circQueue', ch: 3, name: '④ 假溢出与循环队列：入队与出队',
     note: '教材 3.5 队列的表示和操作的实现（假溢出、队空/队满三方案）',
+    guide: [
+      '场景①假溢出：普通顺序队列 front 单向右移——前面明明有空位却"队满"，这就是必须循环的原因',
+      '场景②循环队列（少用一空间，教材主推）：指针取模后移，队满判定 (rear+1)%M == front',
+      '场景③/④ size 计数与 tag 标志：牺牲一个空间换一个变量，两方案的队空/队满判定各不相同',
+      '看右下面板：队长公式、队空/队满判定随每一步实时更新'
+    ],
     inputs: [
       {
         key: 'demo', label: '演示场景', type: 'select', options: [
@@ -59,6 +65,7 @@
       var demo = v.demo || 'linear';
       var frames = [];
       var cells = [null, null, null, null, null, null], front = 0, rear = 0, size = 0, tag = 0;
+      var wait = ['a', 'b', 'c', 'd', 'e', 'f', 'g'], popped = [];
       var linearMode = demo === 'linear';
       var scheme = linearMode ? null : demo;
       var code = linearMode ? [
@@ -87,6 +94,7 @@
         o = o || {};
         o.cells = cells.slice(); o.front = front; o.rear = rear; o.M = M;
         o.demo = demo; o.linearMode = linearMode; o.scheme = scheme; o.size = size; o.tag = tag;
+        o.wait = wait.slice(); o.popped = popped.slice();
         o.length = linearMode ? (rear - front)
           : (scheme === 'size' ? size
             : (scheme === 'tag' ? (front === rear ? (tag === 1 ? M : 0) : (rear - front + M) % M)
@@ -129,15 +137,19 @@
         ['a', 'b', 'c', 'd', 'e'].forEach(function (ch2) {
           F([7], '入队 ' + ch2 + '：rear = ' + rear + ' 未到数组末尾，放入 base[' + rear + ']。', cond(), snap({ lastIdx: rear, op: 'enq', arg: ch2 }));
           cells[rear] = ch2;
+          wait.shift();
           rear++;
           F([8], 'rear++ → ' + rear + '。' + (rear === M ? 'rear 已到达数组末尾！' : ''), cond(), snap({ moved: 'rear', op: 'enq', arg: ch2 }));
         });
-        F([14, 15], '出队 a、b：front 从 0 右移到 2，下标 0、1 腾空。队列还剩 c、d、e，front = 2、rear = 5。',
+        popped.push('a', 'b');
+        F([14], '接下来连续出队 2 次（验证队头指针 front 的单向右移）：将被取走的是 a、b。', cond(), snap({ note: '预告' }));
+        F([14, 15], '出队 a、b：front 从 0 右移到 2，下标 0、1 腾空（出队序列见下方展示带）。队列还剩 c、d、e，front = 2、rear = 5。',
           cond(), snap({ lastIdx: 1, ret: 'b', op: 'deq', note: 'deq2' }));
         cells[0] = null; cells[1] = null; front = 2;
         F([14, 15], '当前状态：下标 0、1 已空，队中元素为 c、d、e（下标 2～4）。', cond(), snap({ note: 'afterdeq' }));
         F([7], '入队 f：rear = 5 < M = 6，放入 base[5]。', cond(), snap({ lastIdx: 5, op: 'enq', arg: 'f' }));
         cells[5] = 'f';
+        wait.shift();
         rear = 6;
         F([8], 'rear++ → 6，已到达数组末尾。', cond(), snap({ moved: 'rear', op: 'enq', arg: 'f' }));
         F([6], '再想入队 g：判满 rear == M = 6 → 返回 ERROR！可是下标 0、1 明明空着——【前面空着却不能再入队】，这就是【假溢出】。原因：front 之前的空间，单向右移的指针永远回不去。',
@@ -174,6 +186,8 @@
           }
           F(L_JUDGE_FULL, '入队 ' + op[1] + '：判满 ' + judgeTxt + '，未满。', cond(), snap({ op: 'enq', arg: op[1] }));
           cells[rear] = op[1];
+          var wi = wait.indexOf(op[1]);
+          if (wi >= 0) wait.splice(wi, 1);
           F(L_PLACE, 'Q.base[' + rear + '] = ' + op[1] + '：元素放入下标 ' + rear + '。', cond(), snap({ lastIdx: rear, op: 'enq', arg: op[1] }));
           var oldRear = rear;
           rear = (rear + 1) % M;
@@ -192,6 +206,7 @@
           }
           F(L_JUDGE_EMPTY, '出队：判空非空。', cond(), snap({ op: 'deq' }));
           var e = cells[front];
+          popped.push(e);
           F(L_TAKE, 'e = Q.base[' + front + '] = ' + e + '：取出队头元素。', cond(), snap({ lastIdx: front, ret: e, op: 'deq' }));
           var oldFront = front;
           front = (front + 1) % M;
@@ -208,7 +223,7 @@
               : 'front = ' + front + ' == rear = ' + rear + ' 且 tag = ' + tag + '（最近是入队），【队满】';
           F(L_JUDGE_FULL, '关键点：再想入队时判满 ' + judgeTxt2 + '。' +
             (scheme === 'fewer'
-              ? '注意此刻 front 位置其实还空着——这正是"少用一个空间"的代价：用一格换来了队空（front==rear）与队满（(rear+1)%M==front）两个条件不混淆。'
+              ? '注意此刻 rear 所指的格子必须空着——这正是"少用一个空间"的代价：用一格换来了队空（front==rear）与队满（(rear+1)%M==front）两个条件不混淆。'
               : '本方案 front==rear 时队空与队满都可能，靠' + (scheme === 'size' ? 'size' : 'tag') + '区分。'),
             cond(), snap({ op: 'full' }));
         } else {
@@ -229,10 +244,35 @@
     }
   });
 
+  /* 序列展示带：待入队 / 出队序列（演示依据） */
+  function drawStrips(s, y) {
+    var g = '';
+    if (s.wait && s.wait.length) {
+      g += h.txt(30, y, '待入队序列：', { size: 13, fill: C.muted, anchor: 'start', w: 600 });
+      s.wait.forEach(function (wv, k) {
+        var x = 30 + 96 + k * 44;
+        var nx = k === 0;
+        g += h.rect(x, y - 18, 38, 26, { fill: nx ? C.blueBg : '#fff', stroke: nx ? C.blue : C.line, sw: nx ? 2 : 1, rx: 5 });
+        g += h.txt(x + 19, y, wv, { size: 13, w: nx ? 700 : 400, fill: nx ? C.blue : C.muted });
+      });
+      g += h.txt(30 + 96 + s.wait.length * 44 + 8, y, '← 下一个入队', { size: 11, fill: C.blue, anchor: 'start' });
+    }
+    if (s.popped && s.popped.length) {
+      g += h.txt(510, y, '出队序列：', { size: 13, fill: C.muted, anchor: 'start', w: 600 });
+      s.popped.forEach(function (pv, k) {
+        var x = 510 + 82 + k * 44;
+        var last = k === s.popped.length - 1;
+        g += h.rect(x, y - 18, 38, 26, { fill: last ? C.amberBg : '#fff', stroke: last ? C.amber : C.line, sw: last ? 2 : 1, rx: 5 });
+        g += h.txt(x + 19, y, pv, { size: 13, w: last ? 700 : 400, fill: last ? C.amber : C.muted });
+      });
+    }
+    return g;
+  }
+
   /* ---------- 场景① 渲染：普通顺序队列（大图） ---------- */
   function renderLinear(s) {
-    var W = 980, H = 470, cw = 100, ch = 64;
-    var x0 = (W - M * cw) / 2, y0 = 210;
+    var W = 980, H = 560, cw = 100, ch = 64;
+    var x0 = (W - M * cw) / 2, y0 = 190;
     var g = '';
     g += h.txt(30, 36, '场景① 普通顺序队列（不循环）——为什么需要循环队列', { size: 17, w: 600, anchor: 'start', fill: C.amber });
     for (var k = 0; k < M; k++) {
@@ -269,12 +309,13 @@
     var nc = s.err ? C.red : (s.done ? C.green : C.amber);
     g += h.rect(W / 2 - 310, H - 58, 620, 34, { fill: s.err ? C.redBg : (s.done ? C.greenBg : C.amberBg), stroke: nc, rx: 8 });
     g += h.txt(W / 2, H - 36, note, { size: 13.5, fill: nc, w: 600 });
+    g += drawStrips(s, 470);
     return h.svg(W, H, g);
   }
 
   /* ---------- 场景②④ 渲染：循环队列（环形） ---------- */
   function renderRing(s) {
-    var W = 980, H = 470, cx = 400, cy = 258, R = 130, bw = 64, bh = 44;
+    var W = 980, H = 640, cx = 400, cy = 258, R = 130, bw = 64, bh = 44;
     var g = '';
     g += h.txt(W - 30, 40, '循环队列（M = ' + s.M + '，方案：' + (s.scheme === 'fewer' ? '少用一空间，最多存 ' + (s.M - 1) + ' 个' : 'size/tag 计，可存满 ' + s.M + ' 个') + '）', { size: 16, w: 600, anchor: 'end' });
     g += h.circle(cx, cy, R, { fill: 'none', stroke: C.line, sw: 1.5, dash: '3,5' });
@@ -346,6 +387,7 @@
     var nc = s.err ? C.red : C.blue;
     g += h.rect(W / 2 - 310, H - 50, 620, 34, { fill: s.err ? C.redBg : C.blueBg, stroke: nc, rx: 8 });
     g += h.txt(W / 2, H - 28, note, { size: 13.5, fill: nc, w: 600 });
+    g += drawStrips(s, 588);
     return h.svg(W, H, g);
   }
 })();

@@ -82,7 +82,7 @@
     (function i2(n) { if (!n) return; i2(n.l); ino.push(n.ch); i2(n.r); })(root);
     (function p2(n) { if (!n) return; p2(n.l); p2(n.r); post.push(n.ch); })(root);
     var q = [root];
-    while (q.length) { var p = q.shift(); lvl.push(p.ch); if (p.l) q.push(p.l); if (p.r) q.push(p.r); }
+    while (q.length) { var p = q.shift(); if (p) lvl.push(p.ch); if (p && p.l) q.push(p.l); if (p && p.r) q.push(p.r); }
     return { pre: pre, in: ino, post: post, level: lvl };
   }
 
@@ -127,19 +127,23 @@
         edges.forEach(function (e) { e.hl = (e.b.id === nd.id); });
         F(mode === 'level' ? 4 : (mode === 'pre' ? 2 : mode === 'in' ? 3 : 4),
           '★ 访问 ' + nd.ch + '（' + (mode === 'level' ? '出队即访问' : '第 ' + pass + ' 次经过——' + NAMES[mode] + '在此时访问') + '）。已访问：' + seq.join(' '),
-          { 已访问序列: seq.join(' ') || '（空）', 当前: '访问 ' + nd.ch + '（第' + pass + '次经过时）' },
+          { 已访问序列: seq.join(' ') || '（空）', 当前: mode === 'level' ? '出队并访问 ' + nd.ch : '访问 ' + nd.ch + '（第' + pass + '次经过时）' },
           snap({}));
       }
       if (mode === 'level') {
-        if (!root) { return { code: code, frames: frames }; }
+        if (!root) {
+          F(0, '树为空（T == NULL）：层次遍历结束，无结点可访问。输入框换成非空树（如 GDA##FE###MH##Z##）再试。', { 结果: '空树' }, snap({ done: true }));
+          return { code: code, frames: frames };
+        }
         queue.push(root.id);
         F(2, '根结点 ' + root.ch + ' 入队。', { 队列: '队头 → ' + queue.map(function (id) { return byId[id].ch; }).join(' ') + ' ← 队尾' }, snap({}));
         while (queue.length) {
           var pid = queue.shift();
           visit(byId[pid], 0);
           setState(pid, 'done');
-          if (byId[pid].l) { queue.push(byId[pid].l.id); F(5, byId[pid].ch + ' 的左孩子 ' + byId[pid].l.ch + ' 入队。', { 队列: queue.map(function (id) { return byId[id].ch; }).join(' ') || '（空）' }, snap({})); }
-          if (byId[pid].r) { queue.push(byId[pid].r.id); F(6, byId[pid].ch + ' 的右孩子 ' + byId[pid].r.ch + ' 入队。', { 队列: queue.map(function (id) { return byId[id].ch; }).join(' ') || '（空）' }, snap({})); }
+          var qTxt = function () { return queue.length ? '队头 → ' + queue.map(function (id) { return byId[id].ch; }).join(' ') + ' ← 队尾' : '（空）'; };
+          if (byId[pid].l) { queue.push(byId[pid].l.id); F(5, byId[pid].ch + ' 的左孩子 ' + byId[pid].l.ch + ' 入队。', { 队列: qTxt() }, snap({})); }
+          if (byId[pid].r) { queue.push(byId[pid].r.id); F(6, byId[pid].ch + ' 的右孩子 ' + byId[pid].r.ch + ' 入队。', { 队列: qTxt() }, snap({})); }
         }
         F(3, '队列空，层次遍历结束：' + seq.join(' ') + '。借助【队列】实现"先访问先扩展"。',
           { 层次序列: seq.join(' '), 四种序列对比: '先 ' + orders.pre.join('') + ' ｜ 中 ' + orders.in.join('') + ' ｜ 后 ' + orders.post.join('') + ' ｜ 层 ' + orders.level.join('') },
@@ -247,8 +251,8 @@
         g += h.txt(180 + Math.max(s.queue.length, 1) * 70 + 16, qy + 8, '← 队尾', { size: 14, fill: C.muted, anchor: 'start' });
       }
       if (s.done) {
-        var c = s.nodes.filter(function (n) { return n.state === 'visited'; }).length;
-        g += h.txt(W - 130, 470, '访问结点数：' + c + '（每结点恰好 1 次）', { size: 13, fill: C.green });
+        var c = (s.seq || []).length;
+        g += h.txt(W - 130, 470, '访问结点数：' + c + ' / ' + s.nodes.length + '（每结点恰好 1 次）', { size: 13, fill: C.green });
       }
       // 输出序列条（访问一个落一个）
       var modeShort = { pre: '先序', in: '中序', post: '后序', level: '层次' }[s.mode];

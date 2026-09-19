@@ -29,15 +29,16 @@
       '左括号一律进栈；遇到右括号时与栈顶配对，配对成功才弹出',
       '三种失败情形：① 栈空遇右括号 ② 栈顶类型不符 ③ 扫描结束栈非空',
       '把表达式改成自己的用例，观察它在哪一步、以哪种方式失败',
-      '对照右侧伪代码：栈只记左括号，右括号负责"销账"'
+      '对照右侧伪代码：栈只记左括号，右括号负责"销账"（全角括号会自动按半角处理）'
     ],
     inputs: [
       { key: 'expr', label: '表达式', type: 'text', value: '([()])' }
     ],
     run: function (v) {
-      var expr = (v.expr || '').split('');
+      var FW = { '（': '(', '）': ')', '【': '[', '】': ']', '［': '[', '］': ']', '｛': '{', '｝': '}' };
+      var expr = (v.expr || '').split('').map(function (c) { return FW[c] || c; });
       if (!expr.length) throw new Error('请输入表达式（可含 ( ) [ ] { } 与普通字符）');
-      if (expr.length > 18) expr = expr.slice(0, 18);
+      if (expr.length > 24) throw new Error('表达式过长（' + (v.expr || '').length + ' 字符 > 24），逐步演示超出单屏，请缩短后重试——不要截断，截断会造成误判');
       var frames = [];
       var stack = [];
       function snap(o) {

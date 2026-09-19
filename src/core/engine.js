@@ -26,7 +26,7 @@
         .map(Number).filter(function (x) { return !isNaN(x); });
     },
     svg: function (w, hh, inner) {
-      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + hh + '">' + inner + '</svg>';
+      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + hh + '" role="img">' + inner + '</svg>';
     },
     txt: function (x, y, s, o) {
       o = o || {};
@@ -93,8 +93,10 @@
   var CIRCLED = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺';
   var CIRC_RE = /^[①-⑳㉑-㉟㊱-㊺]+\s*/;
   function autoNumber() {
+    var fixed = window.DSC_SINGLE && window.DSC_SINGLE.no;   // 单页模式：使用全站编号
     DSC.mods.forEach(function (m, i) {
-      m.disp = (CIRCLED[i] || (i + 1) + '.') + ' ' + m.name.replace(CIRC_RE, '');
+      var no = fixed || (i + 1);
+      m.disp = (CIRCLED[no - 1] || no + '.') + ' ' + m.name.replace(CIRC_RE, '');
     });
   }
 
@@ -116,6 +118,15 @@
 
   function init() {
     autoNumber();
+    if (window.DSC_SINGLE) {
+      document.body.classList.add('single');
+      var bk = document.createElement('a');
+      bk.className = 'backlink';
+      bk.href = '../index.html';
+      bk.textContent = '← 全部动画';
+      var hb = document.querySelector('.hbtns');
+      if (hb) hb.insertBefore(bk, hb.firstChild);
+    }
     var chapters = [];
     DSC.mods.forEach(function (m) { if (chapters.indexOf(m.ch) < 0) chapters.push(m.ch); });
     chapters.sort(function (a, b) { return a - b; });
@@ -128,11 +139,14 @@
     });
     bindControls();
     document.addEventListener('keydown', keys);
+    window.addEventListener('hashchange', function () { applyHash(parseHash()); });
     applyHash(parseHash());
   }
 
   function applyHash(h) {
-    var target = h && h.m ? DSC.mods.filter(function (x) { return x.id === h.m; })[0] : null;
+    var target = null;
+    if (h && h.m) target = DSC.mods.filter(function (x) { return x.id === h.m; })[0];
+    if (!target && window.DSC_SINGLE) target = DSC.mods[0];
     selectChapter(target ? target.ch : DSC.mods.length ? DSC.mods[0].ch : 2);
     if (target) {
       var pill = document.querySelector('#modbar .pill[data-id="' + target.id + '"]');
@@ -141,7 +155,7 @@
         var c = $('inp_' + sp.key);
         if (c && h[sp.key] != null) {
           if (sp.type === 'checkbox') c.checked = (h[sp.key] === '1' || h[sp.key] === 'true');
-          else c.value = h[sp.key];
+          else c.value = clean(h[sp.key]);
         }
       });
       build();
@@ -204,7 +218,7 @@
     var v = {};
     cur.inputs.forEach(function (s) {
       var c = $('inp_' + s.key);
-      v[s.key] = s.type === 'checkbox' ? c.checked : (s.type === 'number' ? +c.value : c.value);
+      v[s.key] = s.type === 'checkbox' ? c.checked : (s.type === 'number' ? +c.value : clean(c.value));
     });
     return v;
   }
@@ -235,10 +249,7 @@
     $('panel').innerHTML = keysArr.map(function (k) {
       return '<tr><td>' + esc(k) + '</td><td>' + p[k] + '</td></tr>';
     }).join('');
-    $('msg').innerHTML = f.msg || '';
-    if (practice && revealIdx !== idx) {
-      $('msg').innerHTML = '<span class="quizhint">🎯 练习中——先预测：下一步会发生什么？点此处看解说</span>';
-    }
+    $('msg').innerHTML = (f.msg || '').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
     updateProgress();
   }
 
@@ -280,19 +291,20 @@
     }
     $('seek').addEventListener('input', onSeek);
     $('seek').addEventListener('change', onSeek);
-    $('btnGuide').onclick = function () { renderGuide(true); };
+    $('btnGuide').onclick = function () {
+      var g = $('guide');
+      if (!g.hidden) { g.hidden = true; return; }   // 已显示 → 再点收起
+      if (!(cur && cur.guide && cur.guide.length)) { toast('本动画没有使用引导'); return; }
+      renderGuide(true);
+    };
     $('guide').addEventListener('click', function (e) {
       if (e.target.id === 'btnGo') { rememberDismissed(cur.id); $('guide').hidden = true; }
     });
     $('btnShot').onclick = exportFrame;
     $('btnLink').onclick = copyLink;
-    $('btnPractice').onclick = togglePractice;
     $('btnProj').onclick = toggleProject;
     $('btnCatalog').onclick = openCatalog;
     try { if (localStorage.getItem('dsc_proj') === '1') { document.body.classList.add('proj'); $('btnProj').classList.add('on'); } } catch (e) {}
-    $('msg').addEventListener('click', function () {
-      if (practice && revealIdx !== idx) { revealIdx = idx; draw(); }
-    });
   }
   var dismissed = {};
   try { dismissed = JSON.parse(localStorage.getItem('dsc_guide') || '{}') || {}; } catch (e) { dismissed = {}; }
@@ -304,8 +316,9 @@
     var g = $('guide');
     if (!cur) { g.hidden = true; return; }
     if (cur.guide && cur.guide.length && (force || !dismissed[cur.id])) {
+      var boldify = function (s) { return esc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>'); };
       g.innerHTML = '<div class="gt">💡 使用引导 · ' + esc(cur.disp || cur.name) + '</div><ol>' +
-        cur.guide.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') +
+        cur.guide.map(function (s) { return '<li>' + boldify(s) + '</li>'; }).join('') +
         '</ol><button id="btnGo">开始演示 ▶</button>';
       g.hidden = false;
     } else {
@@ -330,6 +343,11 @@
       var ctx = canvas.getContext('2d');
       ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'rgba(15,44,92,0.6)';
+      ctx.font = 'bold 30px "Microsoft YaHei",sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText('© 芦老师聊AI · 数据结构互动课件', canvas.width - 36, canvas.height - 26);
+      ctx.textAlign = 'left';
       var a = document.createElement('a');
       var name = (cur ? (cur.disp || cur.name).replace(CIRC_RE, '') : '帧');
       a.download = '数据结构-' + name + '-第' + (idx + 1) + '帧.png';
@@ -341,20 +359,11 @@
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
   }
   function copyLink() {
-    var url = location.href;
-    function ok() { toast('链接已复制，可直接分享'); }
+    var url = cur ? (moduleURL(cur) + '#f=' + idx) : location.href;
+    function ok() { toast('已复制该动画单页链接（含当前帧）'); }
     function fail() { window.prompt('全选并复制本页链接（Ctrl+C）：', url); }
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(ok, fail);
     else fail();
-  }
-  /* ---------- 练习模式：先预测下一步，再点击揭示解说 ---------- */
-  var practice = false, revealIdx = -1;
-  function togglePractice() {
-    practice = !practice; revealIdx = -1;
-    $('btnPractice').classList.toggle('on', practice);
-    $('msg').classList.toggle('quizcover', practice);
-    draw();
-    toast(practice ? '练习模式：先自己预测，再点击解说栏揭示' : '已退出练习模式');
   }
   /* ---------- 投影模式：大字号高对比，便于课堂投屏 ---------- */
   function toggleProject() {
@@ -364,9 +373,11 @@
   }
   /* ---------- 总目录：按章分组全景，一键直达 / 复制深链接 ---------- */
   function moduleURL(m) {
-    return location.origin + location.pathname + '#m=' + m.id;
+    var dir = location.pathname.replace(/[^/]*$/, '');   // 当前目录（主站或 a/）
+    return location.origin + dir + (document.body.classList.contains('single') ? '' : 'a/') + m.id + '.html';
   }
   function openCatalog() {
+    if (document.getElementById('catalog')) return;
     var html = '<div class="ovhead"><b>📚 全部动画目录</b><span>' + DSC.mods.length + ' 个动画 · 点击卡片直达</span>' +
       '<button id="ovClose">✕</button></div>';
     var chapters = [];
@@ -379,6 +390,7 @@
         html += '<div class="ovcard" data-id="' + m.id + '"><b>' + esc(m.disp || m.name) + '</b>' +
           '<span>' + esc(m.note || '') + '</span>' +
           '<div class="ovbtns"><button data-act="go">打开 ▶</button>' +
+          '<button data-act="qr">二维码</button>' +
           '<button data-act="copy">复制链接</button></div></div>';
       });
       html += '</div>';
@@ -395,8 +407,26 @@
       if (!m) return;
       if (act === 'go') {
         document.body.removeChild(ov);
-        location.hash = '#m=' + m.id;
-        applyHash(parseHash());
+        if (window.DSC_SINGLE) { location.href = moduleURL(m); return; }
+        location.hash = '#m=' + m.id;        // hashchange 监听统一处理
+      } else if (act === 'qr') {
+        var old = document.getElementById('qrbox');
+        if (old) old.parentNode.removeChild(old);
+        var qb = document.createElement('div');
+        qb.id = 'qrbox';
+        qb.innerHTML = '<div class="qrt"><b>' + esc(m.disp || m.name) + '</b> 手机扫码直达<button id="qrx">✕</button></div><div class="qrb"></div>';
+        document.body.appendChild(qb);
+        try {
+          var qr = window.qrcode ? window.qrcode(0, 'M') : null;
+          if (qr) {
+            qr.addData(moduleURL(m));
+            qr.make();
+            qb.querySelector('.qrb').innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+          } else {
+            qb.querySelector('.qrb').textContent = '二维码组件未加载';
+          }
+        } catch (e) { qb.querySelector('.qrb').textContent = '链接过长，请用复制链接'; }
+        qb.addEventListener('click', function (ev) { if (ev.target.id === 'qrx' || ev.target === qb) qb.parentNode.removeChild(qb); });
       } else if (act === 'copy') {
         var url = moduleURL(m);
         if (navigator.clipboard && navigator.clipboard.writeText)
@@ -405,8 +435,16 @@
       }
     });
   }
+  function clean(s) { return String(s).replace(/[<>]/g, ''); }
+  function closeOverlays() {
+    var ov = document.getElementById('catalog');
+    if (ov) ov.parentNode.removeChild(ov);
+    var qb = document.getElementById('qrbox');
+    if (qb) qb.parentNode.removeChild(qb);
+  }
   function keys(e) {
-    if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+    if (/INPUT|SELECT|TEXTAREA|BUTTON/.test(e.target.tagName)) return;
+    if (e.key === 'Escape') { closeOverlays(); return; }
     if (e.key === 'ArrowRight') { stop(); step(); }
     else if (e.key === 'ArrowLeft') { stop(); back(); }
     else if (e.key === ' ') { e.preventDefault(); play(); }

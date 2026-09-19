@@ -100,16 +100,16 @@
 
       /* KMP */
       var i2 = 0, j2 = 0, kc = 0;
-      F(14, '阶段二 · KMP：同样的主串与模式，j 失配时沿 next 滑动。', { phase: 'KMP', si: 0, ti: 0, cmps: 0 }, 'kmpstart');
+      F(15, '阶段二 · KMP：同样的主串与模式，j 失配时沿 next 滑动。', { phase: 'KMP', si: 0, ti: 0, cmps: 0 }, 'kmpstart');
       while (i2 < S.length && j2 < T.length) {
         kc++;
         var m2 = S[i2] === T[j2];
-        if (m2) { F(20, 'KMP 比较 #' + kc + '：S[' + (i2 + 1) + ']=' + S[i2] + ' = T[' + (j2 + 1) + ']=' + T[j2] + '，前进。', { phase: 'KMP', si: i2, ti: j2, cmps: kc }); i2++; j2++; }
-        else if (j2 === 0) { F(21, 'KMP 比较 #' + kc + '：S[' + (i2 + 1) + ']=' + S[i2] + ' ≠ T[1]=' + T[0] + '，模式头失配 → 直接右移一位。', { phase: 'KMP', si: i2, ti: j2, cmps: kc }); i2++; }
-        else { var nj = nx[j2 + 1] - 1; F(21, 'KMP 比较 #' + kc + '：S[' + (i2 + 1) + ']=' + S[i2] + ' ≠ T[' + (j2 + 1) + ']=' + T[j2] + ' → j 滑到 next[' + (j2 + 1) + ']=' + (nj + 1) + '，**i 不回退**！', { phase: 'KMP', si: i2, ti: j2, cmps: kc }); j2 = nj; }
+        if (m2) { F(18, 'KMP 比较 #' + kc + '：S[' + (i2 + 1) + ']=' + S[i2] + ' = T[' + (j2 + 1) + ']=' + T[j2] + '，前进。', { phase: 'KMP', si: i2, ti: j2, cmps: kc }); i2++; j2++; }
+        else if (j2 === 0) { F(19, 'KMP 比较 #' + kc + '：S[' + (i2 + 1) + ']=' + S[i2] + ' ≠ T[1]=' + T[0] + '，模式头失配 → 直接右移一位。', { phase: 'KMP', si: i2, ti: j2, cmps: kc }); i2++; }
+        else { var nj = nx[j2 + 1] - 1; F(19, 'KMP 比较 #' + kc + '：S[' + (i2 + 1) + ']=' + S[i2] + ' ≠ T[' + (j2 + 1) + ']=' + T[j2] + ' → j 滑到 next[' + (j2 + 1) + ']=' + (nj + 1) + '，**i 不回退**！', { phase: 'KMP', si: i2, ti: j2, cmps: kc }); j2 = nj; }
       }
       var kRes = j2 >= T.length ? '成功：匹配位置 = 主串第 ' + (i2 - T.length + 1) + ' 位' : '失败';
-      F(25, 'KMP 结束：' + kRes + '，共比较 ' + kc + ' 次。', { phase: 'KMP', cmps: kc, si: i2, ti: j2 }, 'kmpdone');
+      F(21, 'KMP 结束：' + kRes + '，共比较 ' + kc + ' 次。', { phase: 'KMP', cmps: kc, si: i2, ti: j2 }, 'kmpdone');
       F(0, '对照结论：BF ' + bfc + ' 次 vs KMP ' + kc + ' 次。next 只需 O(n) 预处理一次；对同一模式的多次查找都可复用。主串越长、模式前缀重复越多，KMP 优势越大。', { phase: 'KMP', cmps: kc, mark: 'final' });
       return { code: CODE_BF.concat(CODE_KMP), frames: frames };
     },

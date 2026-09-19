@@ -3,7 +3,7 @@
   var DSC = window.DSC, h = DSC.h, C = DSC.C;
   var N = 6;
   var EDGES = [[1, 2], [1, 3], [2, 5], [3, 5], [4, 5], [4, 6]];
-  var POS = { 1: [470, 90], 2: [290, 210], 3: [650, 210], 4: [290, 450], 5: [650, 450], 6: [470, 565] };
+  var POS = { 1: [470, 90], 2: [290, 210], 3: [630, 210], 4: [290, 450], 5: [630, 450], 6: [470, 565] };
 
   var CODE = {
     dfs: [
@@ -96,12 +96,14 @@
             }
           });
           checkCell = null;
+          var backOver = seq.length === N;   // 全部访问完：不再逐帧演示回溯
           stack.pop();
-          F(0, 'DFS(v' + u + ') 结束，回溯到' + (stack.length ? stack[stack.length - 1] : '调用者') + '。', { 递归栈: stack.join(' → ') || '（空）' }, snap({}));
+          if (!backOver) F(0, 'DFS(v' + u + ') 结束，回溯到' + (stack.length ? stack[stack.length - 1] : '调用者') + '。', { 递归栈: stack.join(' → ') || '（空）' }, snap({}));
         }
         F(0, '存储结构：【' + (storage === 'mat' ? '邻接矩阵' : '邻接表') + '】。visited[] 初始化为 false。从 v' + start + ' 出发深度优先遍历。' +
           (storage === 'mat' ? '邻接点按编号升序依次扫描。' : '注意右侧邻接表由【头插法】建立——邻居顺序与输入边序相反，扫描按表内顺序进行。'), { 方法: 'DFS', 存储: storage === 'mat' ? '邻接矩阵' : '邻接表', 序列: '（待生成）' }, snap({}));
         dfs(start);
+        F(0, '★ 深度优先遍历完成：全部 ' + N + ' 个结点已访问，递归调用逐层返回、栈清空，算法结束。序列为 ' + seq.join(' → ') + '。注意：同一个图存储结构不同，遍历序列可能不同；DFS 只保证访问所有结点，不保证最短路径。时间复杂度 O(n²)（邻接矩阵）或 O(n+e)（邻接表）。', { 已访问序列: seq.join(' → '), 递归栈: '（空）' }, snap({ done: true }));
       } else {
         function bfs(s0) {
           visited[s0] = true; seq.push(s0); queue.push(s0); cur = s0;
@@ -127,7 +129,7 @@
         bfs(start);
       }
       cur = null;
-      F(0, (method === 'dfs' ? '深度优先' : '广度优先') + '遍历完成：从 v' + start + ' 出发的序列为 ' + seq.join(' → ') + '。注意：同一个图存储结构不同（邻接矩阵/邻接表）遍历序列可能不同——序列不唯一，但同一存储下结果确定。时间复杂度 O(n²)（邻接矩阵）或 O(n+e)（邻接表）。',
+      if (method === 'bfs') F(0, '广度优先遍历完成：从 v' + start + ' 出发的序列为 ' + seq.join(' → ') + '。注意：同一个图存储结构不同（邻接矩阵/邻接表）遍历序列可能不同——序列不唯一，但同一存储下结果确定。时间复杂度 O(n²)（邻接矩阵）或 O(n+e)（邻接表）。',
         { 遍历序列: seq.join(' → '), 生成树边: treeEdges.map(function (e) { return 'v' + e[0] + '—v' + e[1]; }).join(', ') },
         snap({ done: true }));
       return { code: code, frames: frames };
@@ -152,7 +154,8 @@
         g += h.circle(P[0], P[1], r, { fill: fill, stroke: stroke, sw: sw });
         g += h.txt(P[0], P[1] + 7, 'v' + k, { size: 16, w: 700 });
       }
-      // 右侧：邻接矩阵 或 邻接表
+      // 右侧：邻接矩阵 或 邻接表（先垫白底板，防止左图越界元素压住文字）
+      g += h.rect(740, 42, 232, 556, { fill: '#ffffff', stroke: 'none' });
       var mx = 762, my = 96, cell = 28;
       if (s.storage === 'list') {
         var rowGap = 38;

@@ -76,6 +76,10 @@
       var ino = [];
       (function w(nd) { if (!nd) return; w(nd.l); ino.push(nd); w(nd.r); })(root);
       var frames = [];
+      if (!root) {
+        frames.push({ line: [0], msg: '树为空（输入 "#"）：中序线索化结束，无结点可线索化。换成非空树（如 GDA##FE###MH##Z##）再试。', panel: { 结果: '空树' }, snap: { nodes: [], links: [], seq: [], cur: null, done: true } });
+        return { code: CODE, frames: frames };
+      }
       function snap(o) {
         o = o || {};
         o.nodes = all.map(function (n) {

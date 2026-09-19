@@ -58,7 +58,7 @@
           F(1, '折半查索引表：ID[' + (mid + 1) + '].max=' + idx[mid] + (idx[mid] >= key ? ' ≥ ' : ' < ') + key + (idx[mid] >= key ? ' → 块（或更左）' : ' → 右半') + '。', { phase: '索引表(折半)', curB: mid, visit: visit });
           if (idx[mid] >= key) { blk = mid; hi = mid - 1; } else lo = mid + 1;
         }
-        if (blk < 0) { F(2, '索引表全部 < key：key 比所有块上界都大 → 查找失败。', { phase: '索引表', visit: visit, res: '失败：key 不在表中' }, 'fail'); return { code: CODE, frames: frames }; }
+        if (blk < 0) { F(3, '索引表全部 < key：key 比所有块上界都大 → 查找失败。', { phase: '索引表', visit: visit, res: '失败：key 不在表中' }, 'fail'); return { code: CODE, frames: frames }; }
         F(1, '确定所在块：第 ' + (blk + 1) + ' 块（其上界 ' + idx[blk] + ' ≥ ' + key + '，且前一块上界 < key）。', { phase: '索引表', blk: blk, visit: visit });
       } else {
         var blk = -1;
@@ -70,15 +70,15 @@
         if (blk < 0) { F(2, '所有块上界都 < key → 查找失败（只比较了 B=' + B + ' 次索引——这是分块的优点）。', { phase: '索引表', visit: visit, res: '失败：key 不在表中' }, 'fail'); return { code: CODE, frames: frames }; }
       }
 
-      F(3, '进入第 ' + (blk + 1) + ' 块（位置 ' + (blk * S + 1) + '~' + ((blk + 1) * S) + '），块内无序 → 只能顺序扫描。', { phase: '块内', blk: blk, visit: visit });
+      F(4, '进入第 ' + (blk + 1) + ' 块（位置 ' + (blk * S + 1) + '~' + ((blk + 1) * S) + '），块内无序 → 只能顺序扫描。', { phase: '块内', blk: blk, visit: visit });
       var hit = -1;
       for (var k2 = 0; k2 < S; k2++) {
         var p = blk * S + k2;
         cmp++;
-        if (st[p] === key) { hit = p; F(5, 'ST[' + (p + 1) + ']=' + st[p] + ' = key，命中！共比较 ' + cmp + ' 次（索引 + 块内）。', { phase: '块内', blk: blk, curI: p, hit: p, res: '成功：第 ' + (p + 1) + ' 个元素' }, 'found'); break; }
-        F(4, 'ST[' + (p + 1) + ']=' + st[p] + ' ≠ ' + key + '，继续。', { phase: '块内', blk: blk, curI: p, visit: visit });
+        if (st[p] === key) { hit = p; F(6, 'ST[' + (p + 1) + ']=' + st[p] + ' = key，命中！共比较 ' + cmp + ' 次（索引 + 块内）。', { phase: '块内', blk: blk, curI: p, hit: p, res: '成功：第 ' + (p + 1) + ' 个元素' }, 'found'); break; }
+        F(5, 'ST[' + (p + 1) + ']=' + st[p] + ' ≠ ' + key + '，继续。', { phase: '块内', blk: blk, curI: p, visit: visit });
       }
-      if (hit < 0) F(5, '块内扫完没有命中 → 查找失败（key 不在表中，但绝不会出现在其他块）。', { phase: '块内', blk: blk, res: '失败：key 不在表中' }, 'fail');
+      if (hit < 0) F(7, '块内扫完没有命中 → 查找失败（key 不在表中，但绝不会出现在其他块）。', { phase: '块内', blk: blk, res: '失败：key 不在表中' }, 'fail');
       var aslIdx = v.im === 'bin' ? Math.ceil(Math.log2(B + 1)) : (B + 1) / 2;
       F(0, '小结：等概率下 ASL = 索引查找 + 块内查找。本例 3 块每块 5 个：顺序索引 + 顺序块内 = (' + (B + 1) + '/2)+(' + (S + 1) + '/2) = 5；若索引用折半 ≈ ' + (Math.ceil(Math.log2(B + 1)) + (S + 1) / 2).toFixed(1) + '。n 越大，分块相对整体顺序查找的优势越明显。', { res: hit >= 0 ? '成功' : '失败' });
       return { code: CODE, frames: frames };

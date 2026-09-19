@@ -21,8 +21,9 @@
     ],
     run: function (v) {
       var a = (v.data || '').split(/[,，\s]+/).filter(function (s) { return s !== ''; }).map(Number);
+      var valsOrig = a.slice();
       if (a.some(function (x) { return Number.isNaN(x); })) throw new Error('初始序列请输入逗号分隔的数字，如 25,12,47,89,36,14');
-      if (a.length > MAXSIZE) a = a.slice(0, MAXSIZE);
+      if (a.length > MAXSIZE) throw new Error('最多 ' + MAXSIZE + ' 个元素（当前 ' + a.length + ' 个），请删减初始序列');
       if (a.length === 0) throw new Error('初始序列不能为空');
       var ins = v.op === 'insert';
       var code = ins ? [
@@ -79,7 +80,7 @@
               { j: String(je) + '（错误方向）', 已移动: moves + ' 次', 被覆盖: '下标 ' + (je + 1) + ' 原值丢失' },
               snap(n, { rawLen: n + 1, from: je, to: je + 1, errDir: true }));
           }
-          F(4, '✗ 错误结果：L = ( ' + a.slice(0, n + 1).join(', ') + ' )——原 89、36、14 已被 47 覆盖，数据被破坏，e 也无处可插。结论：后移必须从最后一个元素开始（j 从 n−1 递减到 i−1）。',
+          F(4, '✗ 错误结果：L = ( ' + a.slice(0, n + 1).join(', ') + ' )——原 ' + valsOrig.slice(+v.i).join('、') + ' 已被 ' + (+v.e) + ' 覆盖，数据被破坏，e 也无处可插。结论：后移必须从最后一个元素开始（j 从 n−1 递减到 i−1）。',
             { 结果: '数据被覆盖（错误）', 移动次数: moves + ' 次' },
             snap(n, { rawLen: n + 1, errDir: true, done: true, err: '方向错误' }));
           return { code: code, frames: frames };

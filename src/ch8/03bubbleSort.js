@@ -35,10 +35,10 @@
       function colors(hl) {
         var cs = [];
         for (var i = 0; i < n; i++) cs.push(hl.doneFrom != null && i >= hl.doneFrom ? 'D' : 'N');
-        if (hl.c1) cs[hl.c1] = 'C';
-        if (hl.c2) cs[hl.c2] = 'C';
-        if (hl.s1) cs[hl.s1] = 'S';
-        if (hl.s2) cs[hl.s2] = 'S';
+        if (hl.c1 != null) cs[hl.c1] = 'C';
+        if (hl.c2 != null) cs[hl.c2] = 'C';
+        if (hl.s1 != null) cs[hl.s1] = 'S';
+        if (hl.s2 != null) cs[hl.s2] = 'S';
         return cs;
       }
       function F(line, msg, extra, mk) {

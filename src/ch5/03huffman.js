@@ -84,7 +84,8 @@
       function snap(o) {
         o = o || {};
         o.ht = HT.map(function (t) { return t ? { w: t.w, ch: t.ch, parent: t.parent, lch: t.lch, rch: t.rch } : null; });
-        o.n = n; o.m = m; o.codes = codes; o.wpl = wpl; o.treeReady = treeReady;
+        o.n = n; o.m = m; o.codes = Object.assign({}, codes); o.wpl = wpl; o.treeReady = treeReady;
+        o.codeTable = HT.slice(1, n + 1).filter(function (t) { return t.ch && codes[t.ch]; }).map(function (t) { return { ch: t.ch, code: codes[t.ch] }; });
         o.coords = coords; o.hl = o.hl || {}; o.decode = decode ? { at: decode.at, step: decode.step, out: decode.out.slice() } : null;
         o.decodeBits = decodeBits ? decodeBits.slice() : null; o.decodeOut = decodeOut.slice();
         o.maxIdx = curMaxIdx;
@@ -174,8 +175,9 @@
         F(L_CODE_ONE, '读树验证：从根出发 ' + readStr + '，得 ' + codeStr + ' ✓ 与回溯逆置的结果一致。',
           { code: codeStr }, snap({ hl: { path: path }, coding: snapCoding(coding) }));
       }
-      F(22, '编码完成：' + HT.slice(1, n + 1).map(function (t) { return t.ch + '=' + codes[t.ch]; }).join('，') + '。任一字符的编码都不是另一个的前缀（前缀编码）——因为字符只会出现在叶子上。',
-        { WPL: String(wpl), 前缀编码: '叶子 → 无前缀冲突' }, snap({ doneCodes: true }));
+      var codeTable = HT.slice(1, n + 1).map(function (t) { return { ch: t.ch, code: codes[t.ch], w: t.weight }; });
+      F(22, '编码完成！右侧为【编码表】（字符 → 编码，按 WPL 最优构造）。任一字符的编码都不是另一个的前缀（前缀编码）——因为字符只会出现在叶子上。后续译码将对照此表进行。',
+        { WPL: String(wpl), 前缀编码: '叶子 → 无前缀冲突' }, snap({ doneCodes: true, codeTable: codeTable.map(function (x) { return { ch: x.ch, code: x.code }; }) }));
       var codeDoneAt = frames.length - 1;
 
       /* 译码演示 */
@@ -338,6 +340,16 @@
         if (!(s.decode.out || []).length) g += h.txt(ox + 64, dy + 20, '（暂无，读到叶子才输出）', { size: 12.5, fill: C.muted, anchor: 'start' });
         var atN = s.ht[s.decode.at];
         g += h.txt(W - 40, dy + 20, 'p → ' + (atN.ch ? '叶子 ' + atN.ch + '(' + atN.w + ')' : 'HT[' + s.decode.at + '] 权' + atN.w), { size: 13, fill: C.blue, w: 600, anchor: 'end' });
+      }
+      if (s.codeTable && s.codeTable.length) {
+        var tw = Math.min(150, Math.floor((W - 80) / s.codeTable.length)), tx0 = W - 20 - s.codeTable.length * tw, ty0 = H - 96;
+        g += h.txt(tx0 - 10, ty0 - 26, '编码表', { size: 13.5, w: 700, anchor: 'start', fill: C.ink });
+        s.codeTable.forEach(function (ct, k) {
+          var x = tx0 + k * tw;
+          g += h.rect(x, ty0 - 20, tw - 12, 64, { fill: '#fff', stroke: C.blue, sw: 1.4, rx: 6 });
+          g += h.txt(x + (tw - 12) / 2, ty0 + 2, ct.ch, { size: 13, w: 700, fill: C.blue });
+          g += h.txt(x + (tw - 12) / 2, ty0 + 30, ct.code, { size: 16, w: 700, fill: C.ink, family: 'Consolas,monospace' });
+        });
       }
       return h.svg(W, H, g);
     }

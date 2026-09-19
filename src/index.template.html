@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="43 个可交互数据结构算法动画：线性表、栈队列、串数组、树、图、查找、排序全部章节，教材例题对拍验证，单文件零依赖，点开即用。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="《数据结构》互动课件 —— 43 个算法动画">
+<meta property="og:description" content="覆盖《数据结构（C语言版）》全部 8 章核心算法，教材例题逐帧对拍，在线点开即用，也可下载离线使用。">
+<meta property="og:url" content="https://ch1209498273.github.io/ds-animations/">
+<meta property="og:image" content="https://ch1209498273.github.io/ds-animations/assets/banner.png">
 <title>《数据结构》互动课件</title>
 <style>/*__CSS__*/</style>
 </head>
@@ -31,7 +37,6 @@
       <button id="btnPlay">▶ 自动播放</button>
       <button id="btnShot" title="把当前画面导出为 PNG 图片（可插入课件/试卷）">📷 截图</button>
       <button id="btnLink" title="复制当前页面链接（可直达本模块本帧）">🔗 链接</button>
-      <button id="btnPractice" title="练习模式：隐藏解说，先预测下一步再揭示">🎯 练习</button>
       <button id="btnGuide" title="显示/隐藏使用引导">? 引导</button>
       <label class="inp">速度
         <select id="speed">
@@ -41,8 +46,8 @@
           <option value="4">4×</option>
         </select>
       </label>
-      <input type="range" id="seek" min="0" max="0" value="0" title="拖动跳转到任意一步">
-      <span id="pos" class="pos"></span>
+      <input type="range" id="seek" min="0" max="0" value="0" title="拖动跳转到任意一步" aria-label="播放进度">
+      <span id="pos" class="pos" aria-live="polite"></span>
     </div>
   </section>
   <aside class="side">
@@ -50,7 +55,7 @@
     <div class="codebox"><pre id="code"></pre></div>
     <div class="sidehead">状态面板</div>
     <table class="panel" id="panel"></table>
-    <div id="msg" class="msg"></div>
+    <div id="msg" class="msg" aria-live="polite"></div>
   </aside>
 </main>
 <script>
@@ -59,6 +64,7 @@
 <script>
 //__MODULES__
 </script>
+<footer class="foot">© 2026 <b>芦老师聊AI</b> · 版权归芦老师聊AI所有，未经授权不得商用 ｜ 数据结构互动课件 · 免费用于课堂教学与个人学习</footer>
 <span id="toast" hidden style="position:fixed;right:18px;bottom:18px;background:#0f2c5c;color:#fff;padding:9px 16px;border-radius:8px;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:99"></span>
 </body>
 </html>

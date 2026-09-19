@@ -117,10 +117,10 @@
         })(node.l, pred.v);
       } else if (node.l || node.r) {
         var child = node.l || node.r;
-        F([7], delVal + ' 只有一个孩子（' + child.v + '）——单孩子情形：孩子直接顶替它的位置。', { cur: delVal, path: path2 });
+        F([6], delVal + ' 只有一个孩子（' + child.v + '）——单孩子情形：孩子直接顶替它的位置。', { cur: delVal, path: path2 });
         replaceNode(root, delVal, child);
       } else {
-        F([6], delVal + ' 是叶子——情形①：直接删除，不留空位。', { cur: delVal, path: path2 });
+        F([5], delVal + ' 是叶子——情形①：直接删除，不留空位。', { cur: delVal, path: path2 });
         replaceNode(root, delVal, null);
       }
       var io2 = []; inorder(root, io2);

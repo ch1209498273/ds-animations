@@ -130,7 +130,7 @@
           var hot = s.k === k;
           g += h.rect(x, sy, sw2 - 4, 44, { fill: hot ? C.blueBg : '#fff', stroke: hot ? C.blue : C.grey, sw: hot ? 2.6 : 1.3, rx: 5 });
           g += h.txt(x + (sw2 - 4) / 2, sy + 27, String(val), { size: 14, w: 700 });
-          g += h.txt(x + (sw2 - 4) / 2, sy + 62, String(k + 1), { size: 10, fill: hot ? C.blue : C.muted, w: hot ? 700 : 400 });
+          g += h.txt(x + (sw2 - 4) / 2, sy + 62, String(k), { size: 10, fill: hot ? C.blue : C.muted, w: hot ? 700 : 400 });
         });
         if (s.k) g += h.txt(sx0 + (s.k - 1) * sw2 + (sw2 - 4) / 2, sy + 86, '↑ k=' + s.k, { size: 12, fill: C.blue, w: 700 });
         g += h.txt(560, 300, '映射公式（下标从 0 起）：', { size: 13.5, anchor: 'start', w: 600 });

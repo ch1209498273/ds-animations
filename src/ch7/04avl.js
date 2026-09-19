@@ -59,12 +59,12 @@
     run: function (v) {
       var seq = SCEN[v.scen] || SCEN.LL;
       var frames = [], root = null;
-      function F(line, msg, hl) {
+      function F(line, msg, hl, mk) {
         hl = hl || {};
         frames.push({
           line: Array.isArray(line) ? line : [line], msg: msg,
           panel: (function () { var io = []; inorder(root, io); return { 中序: io.map(function (x) { return x.v; }).join(' ≤ ') || '（空）', '最大|bf|': String(io.reduce(function (m, x) { return Math.max(m, Math.abs(x.bf)); }, 0)) }; })(),
-          snap: { tree: cloneT(root), hl: hl, mark: hl.mark }
+          snap: { tree: cloneT(root), hl: hl, mark: mk || hl.mark }
         });
       }
       function insertAVL(val) {
@@ -79,22 +79,23 @@
         if (dir === 'l') par.l = mk(val); else par.r = mk(val);
         /* 更新高度并找最浅失衡点 */
         (function updAll(n2) { if (!n2) return; updAll(n2.l); updAll(n2.r); upd(n2); })(root);
-        F(1, '插入 ' + val + '（叶子），向上检查平衡因子。', { newv: val, path: path }, 'ins' + val);
+        F(14, '插入 ' + val + '（叶子），向上检查平衡因子。', { newv: val, path: path }, 'ins' + val);
         var a = null, apar = null, adir = '';
         (function findU(n2, p, d) {
           if (!n2) return;
           findU(n2.l, n2, 'l'); findU(n2.r, n2, 'r');
           if (Math.abs(bf(n2)) > 1 && !a) { a = n2; apar = p; adir = d; }
         })(root, null, '');
-        if (!a) { F(0, '所有结点 |bf| ≤ 1，无需旋转。', { path: path }); return; }
-        F(0, CASEINFO[v.scen].split('：')[0] + '：结点 ' + a.v + ' 失衡（bf = ' + bf(a) + '），需要旋转。', { bad: a.v, path: path });
+        if (!a) { F(14, '所有结点 |bf| ≤ 1，无需旋转。', { path: path }); return; }
+        F(6, CASEINFO[v.scen].split('：')[0] + '：结点 ' + a.v + ' 失衡（bf = ' + bf(a) + '），需要旋转。', { bad: a.v, path: path });
         var caseType = v.scen;
         if (caseType === 'LL') { root = (a === root) ? rotr(a) : (function () { if (apar.l === a) apar.l = rotr(a); else apar.r = rotr(a); return root; })(); }
         else if (caseType === 'RR') { root = (a === root) ? rotl(a) : (function () { if (apar.l === a) apar.l = rotl(a); else apar.r = rotl(a); return root; })(); }
-        else if (caseType === 'LR') { F(0, 'LR 第一步：对左孩子 ' + a.l.v + ' 左旋。', { bad: a.v, sub: a.l.v }); a.l = rotl(a.l); F(0, 'LR 第二步：对 ' + a.v + ' 右旋。', { bad: a.v }); root = (a === root) ? rotr(a) : (function () { if (apar.l === a) apar.l = rotr(a); else apar.r = rotr(a); return root; })(); }
-        else { F(0, 'RL 第一步：对右孩子 ' + a.r.v + ' 右旋。', { bad: a.v, sub: a.r.v }); a.r = rotr(a.r); F(0, 'RL 第二步：对 ' + a.v + ' 左旋。', { bad: a.v }); root = (a === root) ? rotl(a) : (function () { if (apar.l === a) apar.l = rotl(a); else apar.r = rotl(a); return root; })(); }
+        else if (caseType === 'LR') { F(9, 'LR 第一步：对左孩子 ' + a.l.v + ' 左旋。', { bad: a.v, sub: a.l.v }); a.l = rotl(a.l); F(1, 'LR 第二步：对 ' + a.v + ' 右旋。', { bad: a.v }); root = (a === root) ? rotr(a) : (function () { if (apar.l === a) apar.l = rotr(a); else apar.r = rotr(a); return root; })(); }
+        else { F(0, 'RL 第一步：对右孩子 ' + a.r.v + ' 右旋。', { bad: a.v, sub: a.r.v }); a.r = rotr(a.r); F(4, 'RL 第二步：对 ' + a.v + ' 左旋。', { bad: a.v }); root = (a === root) ? rotl(a) : (function () { if (apar.l === a) apar.l = rotl(a); else apar.r = rotl(a); return root; })(); }
         (function updAll2(n2) { if (!n2) return; updAll2(n2.l); updAll2(n2.r); upd(n2); })(root);
-        F(0, '旋转完成：新子树根 = ' + root.v + '。中序序列不变，全部 |bf| ≤ 1。', { newv: root.v }, 'rot');
+        var finLine = (v.scen === 'RR' || v.scen === 'RL') ? 4 : 1;
+        F(finLine, '旋转完成：新子树根 = ' + root.v + '。中序序列不变，全部 |bf| ≤ 1。', { newv: root.v }, 'rot');
       }
       seq.forEach(insertAVL);
       var io = []; inorder(root, io);

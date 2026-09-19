@@ -34,6 +34,12 @@
   DSC.reg({
     id: 'seqStack', ch: 3, name: '③ 顺序栈：进栈与出栈',
     note: '教材 3.3 栈的表示和操作的实现（栈空/栈满判定、上溢/下溢）',
+    guide: [
+      '场景①进栈：观察 *S.top++ 两步——先放元素、top 再加 1；栈满判定 top−base==stacksize',
+      '场景②出栈：--S.top 后再取元素；栈空判定 top==base',
+      '场景③生命周期：完整走一遍"建栈→用栈→销毁栈"，理解栈空间的动态分配',
+      '每个操作前都有边界判断帧——上溢/下溢就是在这里被拦截的'
+    ],
     inputs: [
       {
         key: 'scene', label: '演示场景', type: 'select', options: [
@@ -41,15 +47,20 @@
           ['pop', '② 出栈演示：连续出栈 → 栈空下溢'],
           ['life', '③ 综合演练：完整生命周期（混合）']
         ], value: 'push'
-      }
+      },
+      { key: 'seq', label: '进栈序列', type: 'text', value: 'A,B,C,D,E,F' }
     ],
     run: function (v) {
       var scene = v.scene || 'push';
       var frames = [];
+      var seq = String(v.seq || '').split(/[,，\s]+/).filter(function (x) { return x !== ''; });
+      if (seq.length < 2 || seq.length > 6) throw Error('进栈序列请输入 2~6 个元素（逗号分隔）');
       var cells = [null, null, null, null, null, null], top = 0;
+      var wait = seq.slice(), pops = [];
       function snap(o) {
         o = o || {};
         o.cells = cells.slice(); o.top = top; o.max = MAXSIZE; o.base = 0; o.scene = scene;
+        o.wait = wait.slice(); o.pops = pops.slice();
         return o;
       }
       function F(line, msg, panel, s) { frames.push({ line: Array.isArray(line) ? line : [line], msg: msg, panel: panel, snap: s }); }
@@ -61,13 +72,12 @@
       }
 
       if (scene === 'pop') {
-        /* 出栈演示：先一次性进满，专注出栈 */
-        for (var pf = 0; pf < MAXSIZE; pf++) cells[pf] = 'ABCDEFG'[pf];
-        top = MAXSIZE;
-        F([7, 12], '【出栈演示】为专注于出栈，先一次性把 A～F 六个元素压入栈（相当于连续执行 6 次 Push，中间步骤见"① 进栈演示"）。当前栈满：top − base = 6 == stacksize。',
-          basePanel({ 进栈次序: 'A B C D E F（F 最后进，在栈顶）' }), snap({ note: 'prefill' }));
-        var pops = [];
-        for (var pi = 0; pi < MAXSIZE; pi++) {
+        /* 出栈演示：先按进栈序列一次性进满，专注出栈 */
+        for (var pf = 0; pf < seq.length; pf++) cells[pf] = seq[pf];
+        top = seq.length; wait = [];
+        F([7, 12], '【出栈演示】为专注于出栈，先按进栈序列（' + seq.join(' ') + '）一次性把 ' + seq.length + ' 个元素压入栈（相当于连续执行 ' + seq.length + ' 次 Push，中间步骤见"① 进栈演示"）。当前栈满：top − base = ' + seq.length + (seq.length === MAXSIZE ? ' == stacksize' : ''), 
+          basePanel({ 进栈次序: seq.join(' ') + '（' + seq[seq.length - 1] + ' 最后进，在栈顶）' }), snap({ note: 'prefill' }));
+        for (var pi = 0; pi < seq.length; pi++) {
           F(13, '出栈第 ' + (pi + 1) + ' 次：检查栈空？top = ' + top + ' ≠ base = 0，栈非空，可以出栈。',
             basePanel(), snap({ op: 'pop' }));
           F(14, '--S.top：top 先减 1 → ' + (top - 1) + '（栈顶元素还在下标 ' + (top - 1) + '，只是 top 不再指向"可插入位置"）。',
@@ -79,7 +89,7 @@
         }
         F(13, '再出栈：检查 top == base，【栈空】！发生【下溢】(underflow)，返回 ERROR。栈里已经没有任何元素可取。',
           basePanel({ 结果: 'ERROR（下溢）' }), snap({ err: '下溢', op: 'pop' }));
-        F([12, 13], '出栈演示结束。要点：① 栈空判定 top == base；② 下溢 = "空还出"；③ 出栈序列 F E D C B A 与进栈次序 A B C D E F 恰好相反——这就是 LIFO。出栈时间复杂度 O(1)。',
+        F([12, 13], '出栈演示结束。要点：① 栈空判定 top == base；② 下溢 = "空还出"；③ 出栈序列 ' + pops.join(' ') + ' 与进栈次序 ' + seq.join(' ') + ' 恰好相反——这就是 LIFO。出栈时间复杂度 O(1)。',
           { 出栈序列: pops.join(' '), 栈长: 'top − base = 0' }, snap({ done: true }));
         return { code: CODE, frames: frames };
       }
@@ -92,14 +102,15 @@
         snap({ note: '空栈' }));
 
       var script = scene === 'push'
-        ? [['push', 'A'], ['push', 'B'], ['push', 'C'], ['push', 'D'], ['push', 'E'], ['push', 'F'], ['push', 'G']]
-        : [['push', 'A'], ['push', 'B'], ['push', 'C'], ['push', 'D'], ['push', 'E'], ['push', 'F'], ['pop'], ['push', 'G'], ['push', 'H'],
-          ['pop'], ['pop'], ['pop'], ['pop'], ['pop'], ['pop'], ['pop']];
-      var pushes = [], pops = [];
+        ? seq.map(function (x) { return ['push', x]; })
+        : seq.map(function (x) { return ['push', x]; }).concat([['pop'], ['push', 'G'], ['push', 'H'],
+          ['pop'], ['pop'], ['pop'], ['pop'], ['pop'], ['pop'], ['pop']]);
+      var pushes = [];
       script.forEach(function (op) {
         if (op[0] === 'push') {
+          if (wait.length && wait[0] === op[1]) wait.shift();
           if (len() === MAXSIZE) {
-            F(7, '进栈 ' + op[1] + '：检查 top − base = ' + len() + ' == stacksize = ' + MAXSIZE + '，栈已满！发生【上溢】(overflow)，返回 ERROR，' + op[1] + ' 无法入栈。',
+            F(7, '进栈 ' + op[1] + '：检查 top − base = ' + len() + ' == stacksize = ' + MAXSIZE + '，栈已满！发生【上溢】(overflow)，返回 ERROR，' + op[1] + ' 无法入栈。（你的进栈序列本身超出了栈容量 ' + MAXSIZE + '——上溢由数据决定，不是演示强加的）',
               basePanel({ 结果: 'ERROR（上溢）', 进栈序列: pushes.join(' ') }), snap({ err: '上溢', op: 'push', arg: op[1] }));
             return;
           }
@@ -129,7 +140,7 @@
         }
       });
       if (scene === 'push') {
-        F([7, 8], '进栈演示结束。要点：① 每次进栈先判栈满（top − base == stacksize）；② *S.top++ 两步：先放元素、top 再加 1；③ 进栈序列 A B C D E F——后进者位置更高；④ 上溢 = "满还进"。进栈时间复杂度 O(1)。',
+        F([7, 8], '进栈演示结束。要点：① 每次进栈先判栈满（top − base == stacksize）；② *S.top++ 两步：先放元素、top 再加 1；③ 进栈序列 ' + pushes.join(' ') + '——后进者位置更高。' + (len() >= MAXSIZE ? '本序列恰好填满栈容量——若再多一个元素就会【上溢】。' : '想看【上溢】，把进栈序列加长到 ' + (MAXSIZE + 1) + ' 个以上。') + '进栈时间复杂度 O(1)。',
           { 进栈序列: pushes.join(' '), 栈长: 'top − base = ' + len() }, snap({ done: true }));
       } else {
         F([7, 13], '综合演练结束。要点：① 栈空 = top == base，栈满 = top − base == stacksize；② 上溢是"满还进"、下溢是"空还出"；③ 出栈序列 ' + pops.join(' ') + ' 与进栈次序相反（LIFO）。进栈/出栈时间复杂度均为 O(1)。',
@@ -138,7 +149,7 @@
       return { code: CODE, frames: frames };
     },
     render: function (s) {
-      var W = 980, H = 470, cw = 96, ch = 64;
+      var W = 980, H = 540, cw = 96, ch = 64;
       var x0 = (W - MAXSIZE * cw) / 2, y0 = 190;
       var g = '';
       var sl = SCENE_LABEL[s.scene] || SCENE_LABEL.push;
@@ -173,6 +184,29 @@
       if (s.ret != null) {
         g += h.rect(W - 200, y0 - 10, 150, 46, { fill: C.amberBg, stroke: C.amber, rx: 8 });
         g += h.txt(W - 125, y0 + 19, 'e = ' + s.ret, { size: 17, fill: C.amber, w: 700, family: 'Consolas,monospace' });
+      }
+      // 待进栈序列 / 出栈序列展示带（演示依据一目了然）
+      var wy = 470, py3 = 505;
+      if (s.wait && s.wait.length && s.scene !== 'pop') {
+        var wx = 30;
+        g += h.txt(wx, wy, '待进栈序列：', { size: 13, fill: C.muted, anchor: 'start', w: 600 });
+        s.wait.forEach(function (wv, k) {
+          var x = wx + 96 + k * 44;
+          var nx = k === 0;
+          g += h.rect(x, wy - 18, 38, 26, { fill: nx ? C.blueBg : '#fff', stroke: nx ? C.blue : C.line, sw: nx ? 2 : 1, rx: 5 });
+          g += h.txt(x + 19, wy, wv, { size: 13, w: nx ? 700 : 400, fill: nx ? C.blue : C.muted });
+        });
+        g += h.txt(wx + 96 + s.wait.length * 44 + 8, wy, '← 下一个进栈', { size: 11, fill: C.blue, anchor: 'start' });
+      }
+      if (s.pops && s.pops.length) {
+        var px2 = 30;
+        g += h.txt(px2, py3, '出栈序列：', { size: 13, fill: C.muted, anchor: 'start', w: 600 });
+        s.pops.forEach(function (pv, k) {
+          var x = px2 + 82 + k * 44;
+          var last = k === s.pops.length - 1;
+          g += h.rect(x, py3 - 18, 38, 26, { fill: last ? C.amberBg : '#fff', stroke: last ? C.amber : C.line, sw: last ? 2 : 1, rx: 5 });
+          g += h.txt(x + 19, py3, pv, { size: 13, w: last ? 700 : 400, fill: last ? C.amber : C.muted });
+        });
       }
       var note = s.err === '上溢' ? '✗ 上溢 overflow：栈满（top − base == stacksize）还执行进栈'
         : s.err === '下溢' ? '✗ 下溢 underflow：栈空（top == base）还执行出栈'

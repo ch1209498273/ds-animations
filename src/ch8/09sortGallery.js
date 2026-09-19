@@ -88,14 +88,14 @@
       stats.forEach(function (st, i) {
         frames.push({
           line: [1, 2], msg: '【' + st.name + '】比较 ' + st.cmp + ' 次、移动/交换 ' + st.mov + ' 次；复杂度 最好 ' + st.best + ' / 最坏 ' + st.worst + '，空间 ' + st.space + '；' + (st.stableClaim ? '稳定' : '不稳定') + '。' + (i === 0 ? '逐个算法过一遍，最后给出汇总表。' : ''),
-          panel: { 算法: st.name, 比较: st.cmp + ' 次', 移动: st.mov + ' 次', 稳定: st.stable ? '✓' : '✗' },
+          panel: { 算法: st.name, 比较: st.cmp + ' 次', 移动: st.mov + ' 次', 稳定: st.stableClaim ? '✓ 是' : '✗ 否' },
           snap: { arr: a.slice(), cur: i, stats: stats }
         });
       });
       frames.push({
         line: [3], msg: '汇总：8 种算法结果一致（' + sortedRef.join(' ') + '），代价大不相同。经验法则：基本有序 → 插入/冒泡；要求稳定 + 稳定 O(n log n) → 归并；空间苛刻 + 平均最快 → 快排；最坏也有 O(n log n) 且 O(1) 空间 → 堆排；位数固定的整数/多关键字 → 基数。',
         panel: { 结论: '见表格', 算法数: '8', 数据: a.join(',') },
-        snap: { arr: a.slice(), cur: -1, stats: stats, mark: 'final' }
+        snap: { arr: sortedRef.slice(), cur: -1, stats: stats, mark: 'final' }
       });
       return { code: CODE, frames: frames };
     },

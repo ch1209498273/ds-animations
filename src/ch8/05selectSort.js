@@ -32,8 +32,8 @@
         hl = hl || {};
         var cs = [];
         for (var i = 0; i < n; i++) cs.push(hl.doneFrom != null && i < hl.doneFrom ? 'D' : 'N');
-        if (hl.c) cs[hl.c] = 'C';
-        if (hl.m) cs[hl.m] = 'P';
+        if (hl.c != null) cs[hl.c] = 'C';
+        if (hl.m != null) cs[hl.m] = 'P';
         if (hl.s1 != null) { cs[hl.s1] = 'S'; cs[hl.s2] = 'S'; }
         return cs;
       }

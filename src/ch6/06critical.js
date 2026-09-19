@@ -39,10 +39,10 @@
     run: function () {
       var frames = [];
       var ve = [], vl = [];
-      for (var q = 0; q < N; q++) { ve.push(0); vl.push(0); }
+      for (var q = 0; q < N; q++) { ve.push(null); vl.push(null); }
       function snap(o) {
         o = o || {};
-        o.ve = ve.slice(); o.vl = vl.slice();
+        o.ve = ve.map(function (x) { return x == null ? null : x; }); o.vl = vl.map(function (x) { return x == null ? null : x; });
         o.act = ARCS.map(function (a) {
           var e = ve[a.from], l = vl[a.to] - a.w;
           return { name: a.name, from: a.from, to: a.to, w: a.w, e: e, l: l, slack: l - e, crit: l === e };
@@ -54,8 +54,8 @@
       function F(line, msg, panel, s) { frames.push({ line: Array.isArray(line) ? line : [line], msg: msg, panel: panel, snap: s }); }
       function pOf(extra) {
         var p = {};
-        for (var j = 0; j < N; j++) p['ve[' + NAMES[j] + ']'] = String(ve[j]);
-        for (var j2 = 0; j2 < N; j2++) p['vl[' + NAMES[j2] + ']'] = String(vl[j2]);
+        for (var j = 0; j < N; j++) p['ve[' + NAMES[j] + ']'] = ve[j] == null ? '—' : String(ve[j]);
+        for (var j2 = 0; j2 < N; j2++) p['vl[' + NAMES[j2] + ']'] = vl[j2] == null ? '—' : String(vl[j2]);
         if (extra) for (var k in extra) p[k] = extra[k];
         return p;
       }
@@ -138,7 +138,7 @@
         g += h.txt(P[0], P[1] + 7, NAMES[k], { size: 16, w: 700 });
         if (s.phase === 've' || s.phase === 'vl' || s.phase === 'act' || s.done) {
           g += h.rect(P[0] - 32, P[1] - r - 30, 64, 24, { fill: '#fff', stroke: C.line, rx: 5 });
-          g += h.txt(P[0], P[1] - r - 22, 've ' + s.ve[k], { size: 11.5, fill: C.blue, w: 600, family: 'Consolas,monospace' });
+          if (s.ve[k] != null) g += h.txt(P[0], P[1] - r - 22, 've ' + s.ve[k], { size: 11.5, fill: C.blue, w: 600, family: 'Consolas,monospace' });
           g += h.txt(P[0], P[1] - r - 10, 'vl ' + s.vl[k], { size: 11.5, fill: C.green, w: 600, family: 'Consolas,monospace' });
         }
         if (isSrc) g += h.txt(P[0], P[1] + 44, '源点', { size: 12, fill: C.blue, w: 600 });
