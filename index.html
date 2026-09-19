@@ -117,7 +117,7 @@ body.proj .msg{font-size:16px}
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.1 · 构建 2026-09-19 11:32</span>
+  <span class="ver">v2.1 · 构建 2026-09-19 11:37</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -719,19 +719,21 @@ body.proj .msg{font-size:16px}
       }
       g += h.txt(ox + pw / 2, oy + ph + 34, 'n', { size: 12, fill: C.muted });
       g += h.txt(ox - 44, oy - 18, '代价（×10/格）', { size: 11, fill: C.muted, anchor: 'start' });
-      /* 曲线：对数映射 log10(max(1,v)) */
+      /* 曲线：对数映射 log10(max(1,v))；逐帧只画到当前 n——曲线随 n 生长 */
       function Y(val) { return oy + ph * (1 - Math.log10(Math.max(1, val)) / yMax); }
       FNS.forEach(function (f) {
         var pts = [];
         for (var k = 0; k <= 72; k++) {
           var nn = 1 + (NMAX - 1) * k / 72;
+          if (nn > n + 1e-9) break;          // 生长前沿：只画到当前 n
           pts.push([ox + pw * (nn - 1) / (NMAX - 1), Y(f.f(nn))]);
         }
+        if (pts.length < 2) return;
         g += '<path d="M' + pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' L') + '" fill="none" stroke="' + f.color + '" stroke-width="2.2" opacity="0.92"/>';
       });
-      /* 当前 n 竖线 + 数值点 */
+      /* 当前 n 竖线（生长前沿）+ 数值点 */
       var cx = ox + pw * (n - 1) / (NMAX - 1);
-      g += h.line(cx, oy, cx, oy + ph, { stroke: C.ink, sw: 1.6, dash: '5,4' });
+      if (n > 1) g += h.line(cx, oy, cx, oy + ph, { stroke: C.ink, sw: 1.6, dash: '5,4' });
       FNS.forEach(function (f) {
         g += h.circle(cx, Y(f.f(n)), 5.5, { fill: f.color, stroke: '#fff', sw: 1.5 });
       });
