@@ -117,7 +117,7 @@ body.proj .msg{font-size:16px}
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.1 · 构建 2026-09-19 12:07</span>
+  <span class="ver">v2.1 · 构建 2026-09-19 12:21</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -722,9 +722,9 @@ body.proj .msg{font-size:16px}
       for (var gx = 0; gx <= 4; gx++) {
         var x = ox + pw * gx / 4;
         g += h.line(x, oy, x, oy + ph, { stroke: '#eef2f7', sw: 1 });
-        g += h.txt(x, oy + ph + 16, String(Math.round((n - 1) * gx / 4) + (gx ? 1 : 0)), { size: 10, fill: C.muted });
+        g += h.txt(x, oy + ph + 16, String(Math.round(1 + (n - 1) * gx / 4)), { size: 10, fill: C.muted });
       }
-      g += h.txt(ox + pw / 2, oy + ph + 34, 'n（横轴右端 = 当前 n）', { size: 12, fill: C.muted });
+      g += h.txt(ox + pw / 2, oy + ph + 34, 'n（横轴从 1 到当前 n）', { size: 12, fill: C.muted });
       g += h.txt(ox - 40, oy - 18, '代价（自动缩放）', { size: 11, fill: C.muted, anchor: 'start' });
       /* 曲线：逐点生长到当前 n */
       FNS.forEach(function (f) {
