@@ -20,7 +20,7 @@
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.1 · 构建 2026-09-19 15:55</span>
+  <span class="ver">v2.1 · 构建 2026-09-19 17:42</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -172,8 +172,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         out += h.txt(77, y + 25, headName, { size: 14, w: 700, fill: C.blue });
         out += h.arrow(114, y + 20, 148, y + 20, { stroke: C.blue, sw: 2 });
         var nLen = arr.length;
-        var step = nLen ? Math.min(150, Math.floor((W - 320) / nLen)) : 150;
+        var step = nLen ? Math.max(88, Math.min(150, Math.floor((W - 320) / nLen))) : 150;
         var nw = step - 22;
+        var cfs = nw < 100 ? 12 : 13.5;
         arr.forEach(function (t2, k) {
           var x = 150 + k * step;
           var isHi = hi === k;
@@ -186,8 +187,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           if (opts.li === k) { f = C.greenBg; st = C.green; sw = 2.6; }
           out += h.rect(x, y, nw, 44, { fill: f, stroke: st, rx: 6, sw: sw, dash: isDel ? '5,4' : null });
           out += h.line(x + 58, y, x + 58, y + 44, { stroke: st, sw: 1 });
-          out += h.txt(x + 29, y + 27, String(t2.c), { size: 13.5, w: 700, family: 'Consolas,monospace' });
-          out += h.txt(x + 58 + (nw - 58) / 2, y + 27, 'x' + supx(t2.e), { size: 12, family: 'Consolas,monospace' });
+          out += h.txt(x + 29, y + 27, String(t2.c), { size: cfs, w: 700, family: 'Consolas,monospace' });
+          out += h.txt(x + 58 + (nw - 58) / 2, y + 27, 'x' + supx(t2.e), { size: cfs - 1.5, family: 'Consolas,monospace' });
           if (k < nLen - 1) {
             out += h.arrow(x + nw, y + 22, x + step - 18, y + 22, { stroke: C.grey, sw: 1.7, head: 7 });
             out += h.txt(x + nw + (step - 22 - nw) / 2, y + 14, 'next', { size: 8.5, fill: C.muted });

@@ -20,7 +20,7 @@
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.1 · 构建 2026-09-19 15:55</span>
+  <span class="ver">v2.1 · 构建 2026-09-19 17:42</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -182,10 +182,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         F('两步改链完成，全程 O(1)。单链表要走到同样效果，得先从头遍历找前驱——O(n)。这就是"多一个 prior 指针"买来的能力。', { stage: 'done' }, 'done');
         return { code: CODE_D, frames: frames };
       }
-      F('循环链表：尾结点 40 的 next **不指向 NULL**，而是指回头结点（蓝色回环链）。', { stage: 'start', walk: 40 }, 'cyc0', 0);
-      F('意义①：从**任意结点**出发都能走完全表。比如从尾结点 40 出发：40 → 10 → 20 → 30——单链表从尾出发只能看到 NULL。', { stage: 'walk', walk: 40 }, 'cyc1', 1);
-      F('意义②：若再设一个尾指针 rear，则 rear->next 就是头——表头与表尾的操作都 O(1)；两条循环链表合并只需改两次指针。', { stage: 'done', walk: 10 }, 'cyc2', 2);
-      F('对比：单链表想找尾结点必须从头发 O(n)；循环链表里"头"和"尾"是相邻的。', { stage: 'done' }, 'done');
+      F('循环链表：尾结点 40 的 next **不指向 NULL**，而是指回头结点（蓝色回环链）。任务：假设手里只有尾结点 40，要走完全表——单链表此刻已经绝望（后面是 NULL），循环链表可以。', { stage: 'start', walk: 40 }, 'cyc0', 0);
+      F('第 1 步：访问 40（尾结点）。沿它的 next 走——单链表这里就是 NULL 终结；循环链表走的是【蓝色回环链】。', { stage: 'walk', walk: 40 }, 'cyc1', 1);
+      F('第 2 步：经回环链到达头结点 10。走到头了也没关系——继续沿 next 前进。', { stage: 'walk', walk: 10 }, 'cyc2', 2);
+      F('第 3 步：访问 20。', { stage: 'walk', walk: 20 }, 'cyc3', 3);
+      F('第 4 步：访问 30。全表 4 个结点从"尾结点出发"全部走完——单链表做不到，这就是循环的价值。', { stage: 'walk', walk: 30 }, 'cyc4', 4);
+      F('意义②：若再设一个尾指针 rear，则 rear->next 就是头——表头与表尾的操作都 O(1)；两条循环链表合并只需改两次指针。', { stage: 'done' }, 'done');
       return { code: CODE_D, frames: frames };
     },
     render: function (s) {

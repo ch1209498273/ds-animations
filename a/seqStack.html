@@ -20,7 +20,7 @@
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.1 · 构建 2026-09-19 15:55</span>
+  <span class="ver">v2.1 · 构建 2026-09-19 17:42</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -174,7 +174,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         snap({ note: '空栈' }));
 
       var script = scene === 'push'
-        ? seq.map(function (x) { return ['push', x]; }).concat([['push', 'G']])
+        ? seq.map(function (x) { return ['push', x]; })
         : seq.map(function (x) { return ['push', x]; }).concat([['pop'], ['push', 'G'], ['push', 'H'],
           ['pop'], ['pop'], ['pop'], ['pop'], ['pop'], ['pop'], ['pop']]);
       var pushes = [];
@@ -182,7 +182,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         if (op[0] === 'push') {
           if (wait.length && wait[0] === op[1]) wait.shift();
           if (len() === MAXSIZE) {
-            F(7, '进栈 ' + op[1] + '：检查 top − base = ' + len() + ' == stacksize = ' + MAXSIZE + '，栈已满！发生【上溢】(overflow)，返回 ERROR，' + op[1] + ' 无法入栈。',
+            F(7, '进栈 ' + op[1] + '：检查 top − base = ' + len() + ' == stacksize = ' + MAXSIZE + '，栈已满！发生【上溢】(overflow)，返回 ERROR，' + op[1] + ' 无法入栈。（你的进栈序列本身超出了栈容量 ' + MAXSIZE + '——上溢由数据决定，不是演示强加的）',
               basePanel({ 结果: 'ERROR（上溢）', 进栈序列: pushes.join(' ') }), snap({ err: '上溢', op: 'push', arg: op[1] }));
             return;
           }
@@ -212,7 +212,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         }
       });
       if (scene === 'push') {
-        F([7, 8], '进栈演示结束。要点：① 每次进栈先判栈满（top − base == stacksize）；② *S.top++ 两步：先放元素、top 再加 1；③ 进栈序列 A B C D E F——后进者位置更高；④ 上溢 = "满还进"。进栈时间复杂度 O(1)。',
+        F([7, 8], '进栈演示结束。要点：① 每次进栈先判栈满（top − base == stacksize）；② *S.top++ 两步：先放元素、top 再加 1；③ 进栈序列 ' + pushes.join(' ') + '——后进者位置更高。' + (len() >= MAXSIZE ? '本序列恰好填满栈容量——若再多一个元素就会【上溢】。' : '想看【上溢】，把进栈序列加长到 ' + (MAXSIZE + 1) + ' 个以上。') + '进栈时间复杂度 O(1)。',
           { 进栈序列: pushes.join(' '), 栈长: 'top − base = ' + len() }, snap({ done: true }));
       } else {
         F([7, 13], '综合演练结束。要点：① 栈空 = top == base，栈满 = top − base == stacksize；② 上溢是"满还进"、下溢是"空还出"；③ 出栈序列 ' + pops.join(' ') + ' 与进栈次序相反（LIFO）。进栈/出栈时间复杂度均为 O(1)。',

@@ -20,7 +20,7 @@
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.1 · 构建 2026-09-19 15:55</span>
+  <span class="ver">v2.1 · 构建 2026-09-19 17:42</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -214,6 +214,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           F([8], 'rear++ → ' + rear + '。' + (rear === M ? 'rear 已到达数组末尾！' : ''), cond(), snap({ moved: 'rear', op: 'enq', arg: ch2 }));
         });
         popped.push('a', 'b');
+        F([14], '接下来连续出队 2 次（验证队头指针 front 的单向右移）：将被取走的是 a、b。', cond(), snap({ note: '预告' }));
         F([14, 15], '出队 a、b：front 从 0 右移到 2，下标 0、1 腾空（出队序列见下方展示带）。队列还剩 c、d、e，front = 2、rear = 5。',
           cond(), snap({ lastIdx: 1, ret: 'b', op: 'deq', note: 'deq2' }));
         cells[0] = null; cells[1] = null; front = 2;
@@ -342,7 +343,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   /* ---------- 场景① 渲染：普通顺序队列（大图） ---------- */
   function renderLinear(s) {
-    var W = 980, H = 500, cw = 100, ch = 64;
+    var W = 980, H = 560, cw = 100, ch = 64;
     var x0 = (W - M * cw) / 2, y0 = 190;
     var g = '';
     g += h.txt(30, 36, '场景① 普通顺序队列（不循环）——为什么需要循环队列', { size: 17, w: 600, anchor: 'start', fill: C.amber });
@@ -380,7 +381,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     var nc = s.err ? C.red : (s.done ? C.green : C.amber);
     g += h.rect(W / 2 - 310, H - 58, 620, 34, { fill: s.err ? C.redBg : (s.done ? C.greenBg : C.amberBg), stroke: nc, rx: 8 });
     g += h.txt(W / 2, H - 36, note, { size: 13.5, fill: nc, w: 600 });
-    g += drawStrips(s, 462);
+    g += drawStrips(s, 470);
     return h.svg(W, H, g);
   }
 

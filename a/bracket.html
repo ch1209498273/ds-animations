@@ -20,7 +20,7 @@
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.1 · 构建 2026-09-19 15:55</span>
+  <span class="ver">v2.1 · 构建 2026-09-19 17:42</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -109,7 +109,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     run: function (v) {
       var expr = (v.expr || '').split('');
       if (!expr.length) throw new Error('请输入表达式（可含 ( ) [ ] { } 与普通字符）');
-      if (expr.length > 18) expr = expr.slice(0, 18);
+      if (expr.length > 24) throw new Error('表达式过长（' + (v.expr || '').length + ' 字符 > 24），逐步演示超出单屏，请缩短后重试——不要截断，截断会造成误判');
       var frames = [];
       var stack = [];
       function snap(o) {

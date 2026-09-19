@@ -20,7 +20,7 @@
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.1 · 构建 2026-09-19 15:55</span>
+  <span class="ver">v2.1 · 构建 2026-09-19 17:42</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -120,27 +120,24 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       '右侧演示结果：A 的左孩子是 B（第一个孩子），B 的右链 B→C→D 恰是 A 的三个兄弟孩子',
       '性质：树的**先根遍历** = 对应二叉树的先序遍历；树的**后根遍历** = 对应二叉树的中序遍历（左下面板可验）'
     ],
-    inputs: [
-      { key: 'step', label: '演示步骤', type: 'select', options: [
-        ['0', '原树'], ['1', '① 加兄弟线'], ['2', '② 抹孩子线'], ['3', '③ 旋转成二叉树']
-      ], value: '3' }
-    ],
+    inputs: [],
     run: function (v) {
-      var step = +v.step;
       var frames = [], bin = toBinary(TREE);
       var pre = [], ino = [];
       preorder(bin, pre); inorder(bin, ino);
       function F(line, msg, s) {
-        frames.push({ line: [line], msg: msg, panel: { 二叉树先序: pre.join(' '), 二叉树中序: ino.join(' ') }, snap: { step: step, mark: s && s.mark } });
+        frames.push({ line: [line], msg: msg, panel: { 二叉树先序: pre.join(' '), 二叉树中序: ino.join(' ') }, snap: { step: s, mark: (s && s.mark) || null } });
       }
       var msgs = [
-        '原树 T：A 有 3 个孩子 B、C、D；B 有 E、F；C 有 G；D 有 H。',
-        '① 加线：在所有相邻兄弟间加线 → B—C—D、E—F。',
-        '② 抹线：每个结点只保留与**第一个**孩子的连线（A—B、B—E、C—G、D—H），抹掉 A—C、A—D、B—F。',
-        '③ 旋转 45°：横着的兄弟线变成右指针，竖着的孩子线变成左指针——一棵二叉树！左链=第一个孩子，右链=兄弟。'
+        '原树 T：A 有 3 个孩子 B、C、D；B 有 E、F；C 有 G；D 有 H。下一步：兄弟间加线。',
+        '① 加线：在所有相邻兄弟间加线 → B—C—D、E—F（蓝色）。',
+        '② 抹线：每个结点只保留与**第一个**孩子的连线（A—B、B—E、C—G、D—H），抹掉 A—C、A—D、B—F（红色虚线）。',
+        '③ 旋转 45°：横着的兄弟线变成右指针，竖着的孩子线变成左指针——一棵二叉树！左链=第一个孩子，右链=兄弟。',
+        '验证：二叉树先序 ' + pre.join(' ') + ' == 树的先根遍历；二叉树中序 ' + ino.join(' ') + ' == 树的后根遍历。森林 = 每棵树转二叉树后，把根用右链串起来。'
       ];
-      for (var s = 0; s <= step; s++) F(s, msgs[s], s === step && s === 3 ? { mark: 'final' } : null);
-      F(0, '验证：二叉树先序 ' + pre.join(' ') + ' == 树的先根遍历；二叉树中序 ' + ino.join(' ') + ' == 树的后根遍历（E F B G C H D A 的后根序即 E F B G C H D A）。森林 = 每棵树转二叉树后，把根用右链串起来。', { mark: 'final' });
+      msgs.forEach(function (msg, s) {
+        F(s, msg, s === 4 ? { mark: 'final' } : null);
+      });
       return { code: CODE, frames: frames };
     },
     render: function (s) {

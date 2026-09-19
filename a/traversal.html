@@ -20,7 +20,7 @@
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.1 · 构建 2026-09-19 15:55</span>
+  <span class="ver">v2.1 · 构建 2026-09-19 17:42</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -199,7 +199,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         edges.forEach(function (e) { e.hl = (e.b.id === nd.id); });
         F(mode === 'level' ? 4 : (mode === 'pre' ? 2 : mode === 'in' ? 3 : 4),
           '★ 访问 ' + nd.ch + '（' + (mode === 'level' ? '出队即访问' : '第 ' + pass + ' 次经过——' + NAMES[mode] + '在此时访问') + '）。已访问：' + seq.join(' '),
-          { 已访问序列: seq.join(' ') || '（空）', 当前: '访问 ' + nd.ch + '（第' + pass + '次经过时）' },
+          { 已访问序列: seq.join(' ') || '（空）', 当前: mode === 'level' ? '出队并访问 ' + nd.ch : '访问 ' + nd.ch + '（第' + pass + '次经过时）' },
           snap({}));
       }
       if (mode === 'level') {
@@ -210,8 +210,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           var pid = queue.shift();
           visit(byId[pid], 0);
           setState(pid, 'done');
-          if (byId[pid].l) { queue.push(byId[pid].l.id); F(5, byId[pid].ch + ' 的左孩子 ' + byId[pid].l.ch + ' 入队。', { 队列: queue.map(function (id) { return byId[id].ch; }).join(' ') || '（空）' }, snap({})); }
-          if (byId[pid].r) { queue.push(byId[pid].r.id); F(6, byId[pid].ch + ' 的右孩子 ' + byId[pid].r.ch + ' 入队。', { 队列: queue.map(function (id) { return byId[id].ch; }).join(' ') || '（空）' }, snap({})); }
+          var qTxt = function () { return queue.length ? '队头 → ' + queue.map(function (id) { return byId[id].ch; }).join(' ') + ' ← 队尾' : '（空）'; };
+          if (byId[pid].l) { queue.push(byId[pid].l.id); F(5, byId[pid].ch + ' 的左孩子 ' + byId[pid].l.ch + ' 入队。', { 队列: qTxt() }, snap({})); }
+          if (byId[pid].r) { queue.push(byId[pid].r.id); F(6, byId[pid].ch + ' 的右孩子 ' + byId[pid].r.ch + ' 入队。', { 队列: qTxt() }, snap({})); }
         }
         F(3, '队列空，层次遍历结束：' + seq.join(' ') + '。借助【队列】实现"先访问先扩展"。',
           { 层次序列: seq.join(' '), 四种序列对比: '先 ' + orders.pre.join('') + ' ｜ 中 ' + orders.in.join('') + ' ｜ 后 ' + orders.post.join('') + ' ｜ 层 ' + orders.level.join('') },
