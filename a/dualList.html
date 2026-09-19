@@ -20,7 +20,7 @@
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.1 · 构建 2026-09-19 23:24</span>
+  <span class="ver">v2.1 · 构建 2026-09-20 00:05</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -135,6 +135,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         p(30, 10, 'new'); p(30, 20, 'cut'); p(40, 30);
         p(20, 10, 'cut'); p(20, 30, 'cut');
       }
+    } else if (op === 'bad') {
+      n(10, 20); n(20, 30); n(30, 40);
+      p(20, 10); p(40, 30);
+      if (stage === 'w1') { p(30, 25, 'new'); p(30, 20, 'cut'); }
+      if (stage === 'w2' || stage === 'w3' || stage === 'w4') { p(30, 25, 'new'); p(30, 20, 'cut'); p(25, 25, 'cut'); }
+      if (stage === 'w3') { n(25, 25, 'cut'); }
+      if (stage === 'w4' || stage === 'w5') { n(25, 30, 'new'); }
+      if (stage === 'w5') { p(30, 25); p(25, 25, 'cut'); }
     } else {
       n(10, 20); n(20, 30); n(30, 40);
       n(40, 10, stage === 'start' ? 'new' : '');
@@ -156,7 +164,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       { key: 'op', label: '场景', type: 'select', options: [
         ['ins', '双向插入：在 30 前插入 25（四步改链）'],
         ['del', '双向删除：删除 20（两步跨过）'],
-        ['cyc', '循环链表：为什么"绕回去"有价值']
+        ['cyc', '循环链表：为什么"绕回去"有价值'],
+        ['bad', '错误演示：顺序颠倒成 ④①②③（链断）']
       ], value: 'ins' }
     ],
     run: function (v) {
@@ -183,6 +192,16 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         nodes.splice(2, 0, 25);                        // 25 正式进入链表（渲染按 5 结点排布）
         F('④ p->prior = s：最后才改 30 的 prior（30→20 的旧 prior 断开，红色虚线）。四条新链齐了：10 ⇄ 20 ⇄ 25 ⇄ 30 ⇄ 40。', { stage: 'step4', p: 30 }, 'ins4', 3);
         F('为什么顺序不能乱？若先执行④（p->prior = s），30 记住前驱的那条旧链立刻断开——再想执行①时 20 的信息已经丢了。蓝色=新链、红色虚线=断链，回看前四帧体会。', { stage: 'warn' }, 'warn');
+        return { code: CODE_I, frames: frames };
+      }
+      if (op === 'bad') {
+        F('错误演示：把正确顺序 ①②③④ 颠倒成 **④①②③**。初始状态正常，s（蓝虚线框）待接入，p 指向 30。', { stage: 'start', p: 30, sFloat: 25 }, 'bad0', 0);
+        F('④ p->prior = s：30 的 prior 改指 s（蓝色新链），30→20 的旧 prior **立刻断开**（红色虚线）。此刻 20 的信息只存在于"已经断开的旧链"里——没有任何结点记得它！', { stage: 'w1', p: 30, sFloat: 25 }, 'bad1', 3);
+        F('① s->prior = p->prior：而 p->prior 已经是 s 自己 → **s->prior 指向 s，形成自环**！前驱 20 的信息永久丢失。', { stage: 'w2', p: 30, sFloat: 25 }, 'bad2', 1);
+        F('② p->prior->next = s：p->prior 是 s → s->next = s，**next 也自环了**。正向链 10→20→30→40 看似完好——隐患藏在反向。', { stage: 'w3', p: 30, sFloat: 25 }, 'bad3', 2);
+        F('③ s->next = p：s 接上了 30。表面看四步都执行了……', { stage: 'w4', p: 30, sFloat: 25 }, 'bad4', 3);
+        F('后果检查：从 40 沿 prior 回走：40 → 30 → s → s → s…… **死循环**！20 和 10 从反向链上永远消失；这个"链表"只有正向能用，反向已坏——这就是颠倒顺序的代价。', { stage: 'w5', sFloat: 25 }, 'bad5', 4);
+        F('结论：四步的正确顺序本质是"**先用 ① s->prior 备份前驱，再用 ② 改前驱的 next**"。任何先改后备份的顺序都会丢信息。对照正确场景再走一遍。', { stage: 'w5' }, 'done');
         return { code: CODE_I, frames: frames };
       }
       if (op === 'del') {
@@ -236,6 +255,13 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         if (!A || !B) return;
         var stroke = lk.st === 'new' ? C.blue : lk.st === 'cut' ? C.red : C.grey;
         var sw = lk.st === 'new' ? 2.8 : lk.st === 'cut' ? 1.8 : 1.7;
+        if (String(lk.f) === String(lk.t)) {
+          var lp = pos(lk.f);
+          var lc = lk.st === 'cut' ? C.red : C.blue;
+          g += h.curve(lp.x + 6, lp.y, lp.x + cw - 6, lp.y, lp.x + cw / 2, lp.y - 20, { stroke: lc, sw: 2.2, dash: lk.st === 'cut' ? '4,3' : null, head: 7 });
+          g += h.txt(lp.x + cw / 2, lp.y - 26, '自环', { size: 10.5, fill: lc, w: 700 });
+          return;
+        }
         var involveS = (s.sFloat != null) && (String(lk.f) === String(s.sFloat) || String(lk.t) === String(s.sFloat));
         if (involveS) {
           var sxp = pos(s.sFloat);
