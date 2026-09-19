@@ -117,7 +117,7 @@ body.proj .msg{font-size:16px}
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：更大字号，适合课堂投屏">🖥 投影</button>
   </span>
-  <span class="ver">v2.1 · 构建 2026-09-19 02:16</span>
+  <span class="ver">v2.1 · 构建 2026-09-19 11:29</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -397,7 +397,10 @@ body.proj .msg{font-size:16px}
     }).join('');
     $('msg').innerHTML = f.msg || '';
     if (practice && revealIdx !== idx) {
-      $('msg').innerHTML = '<span class="quizhint">🎯 练习中——先预测：下一步会发生什么？点此处看解说</span>';
+      /* 练习模式：解说与状态面板同时遮住，防止答案泄露 */
+      $('panel').innerHTML = '<tr><td>🎯 练习中</td><td>状态面板已隐藏——预测后点解说栏对答案</td></tr>';
+      $('msg').innerHTML = '<span class="quizhint">🎯 练习中——先预测：下一步会发生什么？</span><br>' +
+        '<span style="font-size:12.5px">看左侧画面的高亮与指针：谁会被比较？谁会被移动？结果是多少？<br>心里想好答案后，<b>点这里</b>查看解说与完整状态。</span>';
     }
     updateProgress();
   }
@@ -515,7 +518,7 @@ body.proj .msg{font-size:16px}
     $('btnPractice').classList.toggle('on', practice);
     $('msg').classList.toggle('quizcover', practice);
     draw();
-    toast(practice ? '练习模式：先自己预测，再点击解说栏揭示' : '已退出练习模式');
+    toast(practice ? '练习模式：解说与状态已遮住——先预测，再点解说栏对答案' : '已退出练习模式');
   }
   /* ---------- 投影模式：大字号高对比，便于课堂投屏 ---------- */
   function toggleProject() {
@@ -640,7 +643,7 @@ body.proj .msg{font-size:16px}
 </script>
 <script>
 /* ==================== ch1/01complexity.js ==================== */
-/* 动画：时间复杂度可视化——常见阶的增长曲线与逐 n 数值对比（教材 1.4） */
+/* 动画：时间复杂度可视化——常见阶的增长曲线（对数纵轴）与逐 n 数值对比（教材 1.4） */
 (function () {
   var DSC = window.DSC, h = DSC.h, C = DSC.C;
 
@@ -651,7 +654,8 @@ body.proj .msg{font-size:16px}
     '  O(n)      线性阶：扫一遍（顺序查找）',
     '  O(n log n)：分治一层 O(n) × log n 层（归并/快排平均）',
     '  O(n²)     平方阶：双重循环（简单排序）',
-    '  O(2ⁿ)     指数阶：子集枚举——n 稍大就不可行'
+    '  O(2ⁿ)     指数阶：子集枚举——n 稍大就不可行',
+    '对数纵轴：每上升一格 = 代价 ×10。直线 = 指数增长！'
   ];
 
   var FNS = [
@@ -662,82 +666,83 @@ body.proj .msg{font-size:16px}
     { name: 'O(n²)', f: function (n) { return n * n; }, color: '#dc2626' },
     { name: 'O(2ⁿ)', f: function (n) { return Math.pow(2, n); }, color: '#0f172a' }
   ];
+  function sup(k) { return String(k).split('').map(function (d) { return '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d] || d; }).join(''); }
+  function fmt(x) { return x < 1e6 ? String(Math.round(x * 10) / 10) : x.toExponential(2); }
 
   DSC.reg({
     id: 'complexity', ch: 1, name: '时间复杂度可视化',
     note: '教材 1.4 算法与算法分析（增长速度分级、渐近符号）',
     guide: [
-      '拖动 n（或自动播放）：看各阶曲线如何随问题规模"起飞"——复杂度比较的是**增长速度**，不是某一点的值',
-      'n=10 时 n² 与 n log n 只差几倍；n=50 已经差一个数量级；n 再大，O(2ⁿ) 直接跳出图表',
-      '结论：机器快 1000 倍也救不了 O(2ⁿ)——选对复杂度才是算法设计的核心',
-      '面试/考试常问：把各阶从低到高排序 O(1) < O(log n) < O(n) < O(n log n) < O(n²) < O(2ⁿ)'
+      '拖动进度条观察 n = 1 → 你设定的最大规模：纵轴是**对数刻度**（每格 ×10），直线 = 指数增长',
+      '对数轴下各阶曲线**不会重叠**：O(n²) 近似一条直线，O(2ⁿ) 更陡——这是它们真实的倍数关系',
+      'n=10 时 n² 与 n log n 只差几倍；n=50 已经差一个数量级；n 再大，O(2ⁿ) 直接天文数字',
+      '结论：机器快 1000 倍也救不了 O(2ⁿ)——选对复杂度才是算法设计的核心。考试排序：O(1)<O(log n)<O(n)<O(n log n)<O(n²)<O(2ⁿ)'
     ],
     inputs: [
-      { key: 'n', label: '问题规模 n', type: 'number', value: 16, min: 1, max: 64 }
+      { key: 'nmax', label: '最大规模 n', type: 'number', value: 16, min: 4, max: 64 }
     ],
     run: function (v) {
-      var NMAX = 32;
+      var NMAX = Math.min(64, Math.max(4, Math.round(+v.nmax || 16)));
       var frames = [];
       for (var n = 1; n <= NMAX; n++) {
         var vals = FNS.map(function (f) { return { name: f.name, v: f.f(n), color: f.color }; });
         frames.push({
-          line: [n % 6 + 1], msg: 'n = ' + n + '：' + vals.map(function (x) { return x.name + ' = ' + fmt(x.v); }).join('，') + (n === 1 ? '。拖动进度条或自动播放观察增长。' : n === NMAX ? '。注意 O(2³²) 已是天文数字。' : ''),
+          line: [n % 8 + 1], msg: 'n = ' + n + '：' + vals.map(function (x) { return x.name + ' = ' + fmt(x.v); }).join('，') + (n === 1 ? '。拖动进度条观察各阶增长（对数轴，每格 ×10）。' : n === NMAX ? '。O(2^' + NMAX + ') 已是 ' + fmt(Math.pow(2, NMAX)) + '——指数阶在真实机器上不可行。' : ''),
           panel: (function () {
             var p = {};
             vals.forEach(function (x) { p[x.name] = fmt(x.v); });
             return p;
           })(),
-          snap: { n: n, vals: vals, mark: n === NMAX ? 'final' : undefined }
+          snap: { n: n, nmax: NMAX, vals: vals, mark: n === NMAX ? 'final' : undefined }
         });
       }
-      function fmt(x) { return x < 1e6 ? (Math.round(x * 10) / 10 + '') : x.toExponential(2); }
       return { code: CODE, frames: frames };
     },
     render: function (s) {
       var W = 980, H = 500;
-      var n = s.n, NMAX = 32, CAP = 200;
-      var ox = 90, oy = 60, pw = W - ox - 70, ph = H - oy - 130;
+      var n = s.n, NMAX = s.nmax || 32;
+      var ox = 96, oy = 56, pw = W - ox - 60, ph = H - oy - 150;
+      var yMax = NMAX * Math.LN10 * 0.4343;   // log10(2^NMAX)
       var g = '';
-      g += h.txt(W / 2, 32, '常见时间复杂度增长曲线（当前 n = ' + n + '）', { size: 17, w: 600 });
-      /* 网格 */
-      for (var gy = 0; gy <= 4; gy++) {
-        var y = oy + ph * gy / 4;
+      g += h.txt(W / 2, 30, '常见时间复杂度增长曲线（对数纵轴 · 当前 n = ' + n + '）', { size: 17, w: 600 });
+      /* 横网格：10^0,10^3,… */
+      var step = yMax > 12 ? 3 : (yMax > 5 ? 2 : 1);
+      for (var e = 0; e <= yMax + 0.001; e += step) {
+        var y = oy + ph * (1 - e / yMax);
         g += h.line(ox, y, ox + pw, y, { stroke: '#eef2f7', sw: 1 });
-        g += h.txt(ox - 8, y + 4, String(CAP - CAP * gy / 4), { size: 10, fill: C.muted, anchor: 'end' });
+        g += h.txt(ox - 8, y + 4, e === 0 ? '1' : '10' + sup(e), { size: 10.5, fill: C.muted, anchor: 'end' });
       }
       for (var gx = 0; gx <= 4; gx++) {
         var x = ox + pw * gx / 4;
         g += h.line(x, oy, x, oy + ph, { stroke: '#eef2f7', sw: 1 });
-        g += h.txt(x, oy + ph + 16, String(NMAX * gx / 4), { size: 10, fill: C.muted });
+        g += h.txt(x, oy + ph + 16, String(Math.round(NMAX * gx / 4)), { size: 10, fill: C.muted });
       }
       g += h.txt(ox + pw / 2, oy + ph + 34, 'n', { size: 12, fill: C.muted });
-      /* 曲线 */
+      g += h.txt(ox - 44, oy - 18, '代价（×10/格）', { size: 11, fill: C.muted, anchor: 'start' });
+      /* 曲线：对数映射 log10(max(1,v)) */
+      function Y(val) { return oy + ph * (1 - Math.log10(Math.max(1, val)) / yMax); }
       FNS.forEach(function (f) {
         var pts = [];
-        for (var k = 1; k <= 64; k++) {
-          var nn = 1 + (NMAX - 1) * k / 64;
-          var val = Math.min(f.f(nn), CAP);
-          pts.push([ox + pw * (nn - 1) / (NMAX - 1), oy + ph * (1 - val / CAP)]);
+        for (var k = 0; k <= 72; k++) {
+          var nn = 1 + (NMAX - 1) * k / 72;
+          pts.push([ox + pw * (nn - 1) / (NMAX - 1), Y(f.f(nn))]);
         }
-        g += '<path d="M' + pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' L') + '" fill="none" stroke="' + f.color + '" stroke-width="2.2" opacity="0.9"/>';
+        g += '<path d="M' + pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' L') + '" fill="none" stroke="' + f.color + '" stroke-width="2.2" opacity="0.92"/>';
       });
       /* 当前 n 竖线 + 数值点 */
       var cx = ox + pw * (n - 1) / (NMAX - 1);
       g += h.line(cx, oy, cx, oy + ph, { stroke: C.ink, sw: 1.6, dash: '5,4' });
       FNS.forEach(function (f) {
-        var val = Math.min(f.f(n), CAP);
-        var y = oy + ph * (1 - val / CAP);
-        g += h.circle(cx, y, 5.5, { fill: f.color, stroke: '#fff', sw: 1.5 });
+        g += h.circle(cx, Y(f.f(n)), 5.5, { fill: f.color, stroke: '#fff', sw: 1.5 });
       });
       /* 图例（按当前值排序） */
       var sorted = FNS.map(function (f) { return { name: f.name, v: f.f(n), color: f.color }; }).sort(function (a, b) { return a.v - b.v; });
       sorted.forEach(function (it, i) {
-        var y = oy + ph + 58 + i * 0;
-        var x = ox + i * 150;
+        var x = ox + (i % 3) * 190, y = oy + ph + 56 + Math.floor(i / 3) * 24;
         g += h.rect(x, y - 12, 14, 14, { fill: it.color, rx: 3 });
-        g += h.txt(x + 20, y, it.name + ' = ' + (it.v < 1e6 ? Math.round(it.v * 10) / 10 : it.v.toExponential(1)), { size: 12.5, anchor: 'start', family: 'Consolas,monospace' });
+        g += h.txt(x + 20, y, it.name + ' = ' + fmt(it.v), { size: 12.5, anchor: 'start', family: 'Consolas,monospace' });
       });
-      g += h.txt(W / 2, H - 8, '纵轴截断于 200：n² 在 n≈15 出图、O(2ⁿ) 在 n=8 就触顶——指数阶不可行', { size: 12.5, fill: C.muted });
+      g += h.txt(W / 2, H - 10, '对数刻度（每格 ×10）：曲线永不上顶重叠——O(n²) 近似直线、O(2ⁿ) 一路更陡，倍数关系一目了然', { size: 12.5, fill: C.muted });
       return h.svg(W, H, g);
     }
   });
