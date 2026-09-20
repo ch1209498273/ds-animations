@@ -29,7 +29,7 @@
   <section class="card">
     <div class="modtitle"><b id="modname"></b><span id="modnote2" class="modnote"></span></div>
     <div id="guide" class="guidebox" hidden></div>
-    <div id="stage"></div>
+    <div id="stage"><div id="canvas"></div></div>
     <div class="controls">
       <div id="inputs" class="inputs"></div>
       <button id="btnReset">⟲ 重置</button>
@@ -47,6 +47,12 @@
           <option value="4">4×</option>
         </select>
       </label>
+      <span class="zoomgrp" role="group" aria-label="画面缩放">
+        <button id="btnZoomOut" title="缩小画面（Ctrl+滚轮）">－</button>
+        <span id="zoomLv" class="pos" aria-live="off">100%</span>
+        <button id="btnZoomIn" title="放大画面（Ctrl+滚轮）">＋</button>
+        <button id="btnZoomFit" title="恢复适配窗口">⤢ 适配</button>
+      </span>
       <input type="range" id="seek" min="0" max="0" value="0" title="拖动跳转到任意一步" aria-label="播放进度">
       <span id="pos" class="pos" aria-live="polite"></span>
     </div>

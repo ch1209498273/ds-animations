@@ -102,6 +102,56 @@
 
   /* ---------- 状态 ---------- */
   var cur = null, frames = [], code = [], idx = 0, timer = null, speed = 1;
+  var zoom = 1, ZMIN = 1, ZMAX = 6, ZK = 1.25;
+
+  /* ---------- 舞台缩放：画布按 viewBox 比例适配，再乘缩放档位，超出部分由 #stage 滚动 ---------- */
+  function fitCanvas() {
+    var st = $('stage'), cv = $('canvas'), svg = cv.querySelector('svg');
+    if (!svg) return;
+    var vb = svg.viewBox.baseVal;
+    if (!vb || !vb.width || !vb.height) return;
+    // 用 border box 而非 clientWidth/Height：后者会随滚动条有无变化，
+    // 让"适配"算出依赖当前滚动状态、缩放来回抖动
+    var r = st.getBoundingClientRect();
+    var k = Math.max(0.05, Math.min((r.width - 10) / vb.width, (r.height - 10) / vb.height));
+    cv.style.width = Math.round(vb.width * k * zoom) + 'px';
+    cv.style.height = Math.round(vb.height * k * zoom) + 'px';
+  }
+  function setZoom(z) {
+    zoom = Math.max(ZMIN, Math.min(ZMAX, z));
+    fitCanvas();
+    $('zoomLv').textContent = Math.round(zoom * 100) + '%';
+  }
+  function bindStageZoomPan() {
+    var st = $('stage');
+    $('btnZoomIn').onclick = function () { setZoom(zoom * ZK); };
+    $('btnZoomOut').onclick = function () { setZoom(zoom / ZK); };
+    $('btnZoomFit').onclick = function () { setZoom(1); };
+    st.addEventListener('wheel', function (e) {
+      if (!e.ctrlKey && !e.metaKey) return;        // 不带修饰键时留给普通滚动
+      e.preventDefault();
+      setZoom(e.deltaY < 0 ? zoom * ZK : zoom / ZK);
+    }, { passive: false });
+    var drag = null;
+    st.addEventListener('pointerdown', function (e) {
+      if (zoom <= 1 || e.button !== 0) return;
+      drag = { x: e.clientX, y: e.clientY, l: st.scrollLeft, t: st.scrollTop };
+      st.classList.add('panning');
+      if (st.setPointerCapture) st.setPointerCapture(e.pointerId);
+    });
+    st.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      st.scrollLeft = drag.l - (e.clientX - drag.x);
+      st.scrollTop = drag.t - (e.clientY - drag.y);
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) {
+      st.addEventListener(ev, function () { drag = null; st.classList.remove('panning'); });
+    });
+    // 舞台尺寸会因窗口缩放、投影/放映切换、引导展开、滚动条出现而改变，
+    // 逐一补调用容易漏，直接观察容器本身
+    if (window.ResizeObserver) { new ResizeObserver(function () { fitCanvas(); }).observe($('stage')); }
+    else { window.addEventListener('resize', fitCanvas); }
+  }
 
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
@@ -184,6 +234,7 @@
       for (var i = 0; i < ps.length; i++) ps[i].classList.toggle('active', ps[i] === pill);
     }
     cur = m; stop();
+    setZoom(1);                      // 换动画回到适配，不沿用上一个的缩放
     var box = $('inputs'); box.innerHTML = '';
     (m.inputs || []).forEach(function (sp) {
       var wrap = el('label', 'inp');
@@ -229,7 +280,7 @@
     try { res = cur.run(values()); }
     catch (err) {
       $('msg').innerHTML = '<b>输入有误：</b>' + esc(err.message);
-      $('stage').innerHTML = ''; $('code').innerHTML = ''; $('panel').innerHTML = '';
+      $('canvas').innerHTML = ''; $('code').innerHTML = ''; $('panel').innerHTML = '';
       frames = []; idx = 0; updateProgress(); return;
     }
     frames = res.frames; code = res.code; idx = 0;
@@ -238,8 +289,9 @@
 
   function draw() {
     var f = frames[idx];
-    if (!f) { $('stage').innerHTML = ''; $('code').innerHTML = ''; $('panel').innerHTML = ''; $('msg').innerHTML = ''; updateProgress(); return; }
-    $('stage').innerHTML = cur.render(f.snap);
+    if (!f) { $('canvas').innerHTML = ''; $('code').innerHTML = ''; $('panel').innerHTML = ''; $('msg').innerHTML = ''; updateProgress(); return; }
+    $('canvas').innerHTML = cur.render(f.snap);
+    fitCanvas();
     var lines = code.map(function (t, i) {
       var on = f.line && f.line.indexOf(i) >= 0;
       return '<span class="cl' + (on ? ' on' : '') + '">' + esc(t) + '</span>';
@@ -305,6 +357,7 @@
     $('btnProj').onclick = toggleProject;
     $('btnPresent').onclick = togglePresent;
     $('btnCatalog').onclick = openCatalog;
+    bindStageZoomPan();
     document.addEventListener('fullscreenchange', syncPresent);
     try { if (localStorage.getItem('dsc_proj') === '1') { document.body.classList.add('proj'); $('btnProj').classList.add('on'); } } catch (e) {}
   }

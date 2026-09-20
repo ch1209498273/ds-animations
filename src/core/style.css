@@ -26,8 +26,14 @@ main .card{display:flex;flex-direction:column}
 .modtitle{display:flex;align-items:baseline;gap:10px;padding:8px 14px 4px;flex:none}
 .modtitle b{font-size:15.5px}
 .modtitle .modnote{margin-left:auto}
-#stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:4px}
-#stage svg{width:100%;height:100%;display:block}
+/* 舞台：#stage 是滚动容器，#canvas 由 JS 按 viewBox 比例与缩放档位定尺寸。
+   子元素用 margin:auto 居中——若用 justify-content:center，放大后左侧/上侧内容会滚不到 */
+#stage{flex:1;min-height:0;overflow:auto;display:flex;padding:4px;cursor:grab}
+#stage.panning{cursor:grabbing;user-select:none}
+#canvas{margin:auto;flex:none}
+#canvas svg{width:100%;height:100%;display:block}
+.zoomgrp{display:inline-flex;align-items:center;gap:5px;flex:none;padding-left:8px;border-left:1px solid var(--line)}
+.zoomgrp #zoomLv{min-width:44px;text-align:center;font-variant-numeric:tabular-nums}
 .controls{display:flex;gap:8px;align-items:center;padding:8px 14px;border-top:1px solid var(--line);
   flex-wrap:wrap;background:#fbfcfe;flex:none}
 .controls button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:6px 11px;font-size:13.5px;cursor:pointer;color:var(--ink);white-space:nowrap}
@@ -106,12 +112,17 @@ body.proj .codebox pre{font-size:14.5px}
 body.proj table.panel{font-size:15px}
 body.proj .msg{font-size:16px}
 body.proj main{grid-template-columns:minmax(0,1fr) minmax(300px,330px)}
-/* 放映模式：全屏、只留画面与播控，章节切换走 ☰ 目录 */
+/* 放映模式：全屏 + 只留"看画面必需的控件"。
+   画布多为高度受限，所以省纵向空间；同时压窄右栏，让宽度受限的模块也受益 */
 body.present header.top, body.present nav.chapters,
-body.present .modbar, body.present footer.foot{display:none}
-body.present main{padding:6px 10px;gap:8px}
-body.present .modtitle{padding:4px 12px 0}
-body.present .controls{padding:4px 10px}
+body.present .modbar, body.present footer.foot,
+body.present .modtitle, body.present .controls .inputs, body.present .controls label.inp,
+body.present #btnReset, body.present #btnPrev, body.present #btnNext, body.present #btnPlay,
+body.present #btnShot, body.present #btnLink, body.present #btnGuide{display:none}
+body.present main{grid-template-columns:minmax(0,1fr) minmax(260px,320px);gap:6px;padding:4px 6px}
+body.present .card .controls{padding:2px 8px}
+body.present .zoomgrp{border-left:none;padding-left:0}
+body.present .sidehead{padding:2px 0 0}
 @media (max-width:1024px){
   body{overflow:auto;height:auto}
   main{grid-template-columns:1fr;overflow:visible}
