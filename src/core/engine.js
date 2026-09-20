@@ -356,6 +356,11 @@
     $('btnLink').onclick = copyLink;
     $('btnProj').onclick = toggleProject;
     $('btnPresent').onclick = togglePresent;
+    $('btnMore').onclick = function () {
+      var on = document.body.classList.toggle('present-more');
+      fitCanvas();                       // 展开/收起会改变控制条行数，重算画布
+      toast(on ? '已展开完整操作台' : '已收起，只留翻页与缩放');
+    };
     $('btnCatalog').onclick = openCatalog;
     bindStageZoomPan();
     document.addEventListener('fullscreenchange', syncPresent);
@@ -439,6 +444,7 @@
   function syncPresent() {
     var on = !!document.fullscreenElement;
     document.body.classList.toggle('present', on);
+    if (!on) document.body.classList.remove('present-more');
     $('btnPresent').classList.toggle('on', on);
   }
   /* ---------- 总目录：按章分组全景，一键直达 / 复制深链接 ---------- */
@@ -513,13 +519,18 @@
     if (qb) qb.parentNode.removeChild(qb);
   }
   function keys(e) {
-    if (/INPUT|SELECT|TEXTAREA|BUTTON/.test(e.target.tagName)) return;
+    var t = e.target.tagName;
+    if (/INPUT|SELECT|TEXTAREA/.test(t)) return;
     if (e.key === 'Escape') { closeOverlays(); return; }
     if (e.key === 'ArrowRight') { stop(); step(); }
     else if (e.key === 'ArrowLeft') { stop(); back(); }
-    else if (e.key === ' ') { e.preventDefault(); play(); }
+    else if (e.key === ' ') {
+      if (t === 'BUTTON') return;        // 焦点在按钮上时交给按钮自身，避免一次按键触发两回
+      e.preventDefault(); play();
+    }
     else if (e.key === 'Home') { stop(); idx = 0; draw(); }
     else if (e.key === 'End') { stop(); if (frames.length) { idx = frames.length - 1; draw(); } }
+    else if (e.key === 'c' || e.key === 'C') { openCatalog(); }
   }
 
   if (typeof document !== 'undefined') {

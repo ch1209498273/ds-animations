@@ -15,11 +15,11 @@
 <body>
 <header class="top">
   <h1>《数据结构》互动课件</h1>
-  <span class="sub">教材：《数据结构（C语言版）第3版》（严蔚敏 · 李冬梅 · 吴伟民） ｜ 操作：← → 单步，空格 自动播放/暂停，可改输入后自动重新演示</span>
+  <span class="sub">教材：《数据结构（C语言版）第3版》（严蔚敏 · 李冬梅 · 吴伟民） ｜ 操作：← → 单步 ｜ 空格 播放/暂停 ｜ C 打开目录 ｜ 放映中按 ⋯ 展开完整操作台，Esc 退出</span>
   <span class="hbtns">
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：放大画面文字、收起导航条，适合课堂投屏">🖥 投影</button>
-    <button id="btnPresent" title="放映模式：全屏投放，只留画面与播控（Esc 退出）">⛶ 放映</button>
+    <button id="btnPresent" title="放映模式：全屏投放，保留翻页/播放/缩放/进度条；⋯ 展开完整操作台，Esc 退出">⛶ 放映</button>
   </span>
   <span class="ver">__BUILD__</span>
 </header>
@@ -31,15 +31,16 @@
     <div id="guide" class="guidebox" hidden></div>
     <div id="stage"><div id="canvas"></div></div>
     <div class="controls">
-      <div id="inputs" class="inputs"></div>
-      <button id="btnReset">⟲ 重置</button>
+      <div id="inputs" class="inputs hideable"></div>
+      <button id="btnReset" class="hideable">⟲ 重置</button>
       <button id="btnPrev">◀ 上一步</button>
       <button id="btnNext">下一步 ▶</button>
       <button id="btnPlay">▶ 自动播放</button>
-      <button id="btnShot" title="把当前画面导出为 PNG 图片（可插入课件/试卷）">📷 截图</button>
-      <button id="btnLink" title="复制当前页面链接（可直达本模块本帧）">🔗 链接</button>
-      <button id="btnGuide" title="显示/隐藏使用引导">? 引导</button>
-      <label class="inp">速度
+      <button id="btnShot" class="hideable" title="把当前画面导出为 PNG 图片（可插入课件/试卷）">📷 截图</button>
+      <button id="btnLink" class="hideable" title="复制当前页面链接（可直达本模块本帧）">🔗 链接</button>
+      <button id="btnGuide" class="hideable" title="显示/隐藏使用引导">? 引导</button>
+      <button id="btnMore" title="展开/收起完整操作台（输入项、重置、截图、链接、引导）">⋯ 更多</button>
+      <label class="inp hideable">速度
         <select id="speed">
           <option value="0.5">0.5×</option>
           <option value="1" selected>1×</option>

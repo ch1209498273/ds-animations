@@ -112,17 +112,22 @@ body.proj .codebox pre{font-size:14.5px}
 body.proj table.panel{font-size:15px}
 body.proj .msg{font-size:16px}
 body.proj main{grid-template-columns:minmax(0,1fr) minmax(300px,330px)}
-/* 放映模式：全屏 + 只留"看画面必需的控件"。
-   画布多为高度受限，所以省纵向空间；同时压窄右栏，让宽度受限的模块也受益 */
+/* 放映模式：全屏 + 精简操作台。
+   精简只砍"备课后动作"（重置/截图/链接/引导/输入项/速度），
+   上一步/下一步/自动播放/缩放/进度条/帧号必须留着——放映中就是要能翻页。
+   ⋯ 按钮临时展开被砍掉的那些，Esc 退出放映。 */
 body.present header.top, body.present nav.chapters,
 body.present .modbar, body.present footer.foot,
-body.present .modtitle, body.present .controls .inputs, body.present .controls label.inp,
-body.present #btnReset, body.present #btnPrev, body.present #btnNext, body.present #btnPlay,
-body.present #btnShot, body.present #btnLink, body.present #btnGuide{display:none}
+body.present .modtitle{display:none}
 body.present main{grid-template-columns:minmax(0,1fr) minmax(260px,320px);gap:6px;padding:4px 6px}
-body.present .card .controls{padding:2px 8px}
+body.present .card .controls{padding:4px 8px}
 body.present .zoomgrp{border-left:none;padding-left:0}
 body.present .sidehead{padding:2px 0 0}
+#btnMore{display:none}
+body.present #btnMore{display:block}
+body.present .hideable{display:none}
+body.present.present-more .hideable{display:revert}
+body.present.present-more #btnMore{background:#eef4ff;border-color:#2563eb;color:#2563eb}
 @media (max-width:1024px){
   body{overflow:auto;height:auto}
   main{grid-template-columns:1fr;overflow:visible}
