@@ -28,12 +28,14 @@ main .card{display:flex;flex-direction:column}
 .modtitle .modnote{margin-left:auto}
 #stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:4px}
 #stage svg{width:100%;height:100%;display:block}
-.controls{display:flex;gap:8px;align-items:center;padding:8px 14px;border-top:1px solid var(--line);flex-wrap:wrap;background:#fbfcfe;flex:none}
+.controls{display:flex;gap:8px;align-items:center;padding:8px 14px;border-top:1px solid var(--line);
+  flex-wrap:wrap;background:#fbfcfe;flex:none}
 .controls button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:6px 11px;font-size:13.5px;cursor:pointer;color:var(--ink);white-space:nowrap}
 .controls button:hover:not(:disabled){border-color:var(--blue);color:var(--blue)}
 .controls button:disabled{opacity:.4;cursor:default}
-.inputs{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
-.inp{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted)}
+/* 输入项固定占一行，按钮/速度/进度条固定占一行：布局可预测，标签不会被压扁 */
+.inputs{display:flex;gap:9px;align-items:center;flex-wrap:wrap;order:-1;flex-basis:100%}
+.inp{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted);flex:none;white-space:nowrap}
 .inp input[type=text]{width:170px}
 .inp input[type=number]{width:64px}
 .inp input,.inp select{border:1px solid var(--line);border-radius:6px;padding:5px 7px;font-size:13.5px}
@@ -87,17 +89,29 @@ footer.foot b{color:#0f2c5c}
 body.single nav.chapters, body.single .modbar{display:none}
 .hbtns .backlink{border:none;background:none;color:#9fc3f0;text-decoration:none;font-size:12.5px;padding:3px 6px}
 .hbtns .backlink:hover{color:#fff}
-/* 投影模式：全局放大 */
+/* 投影模式：放大"内容"文字，同时把导航 chrome 压到最小 —— 舞台是 flex:1，
+   chrome 每多占 1px 画面就小 1px，所以投影要省高度而不是放大导航条 */
 body.proj{font-size:17px}
-body.proj header.top h1{font-size:24px}
-body.proj header.top .sub{font-size:14px}
-body.proj nav.chapters button{font-size:16px;padding:6px 18px}
-body.proj .modbar .pill{font-size:15.5px;padding:7px 18px}
+body.proj header.top{padding:4px 14px 3px}
+body.proj header.top h1{font-size:20px}
+body.proj header.top .sub, body.proj header.top .ver{display:none}
+body.proj nav.chapters, body.proj footer.foot{display:none}
+body.proj .modbar{padding:3px 14px}
+body.proj .modbar .pill{font-size:14px;padding:3px 12px}
+body.proj .modtitle{padding:4px 14px 0}
 body.proj .modtitle b{font-size:19px}
-body.proj .controls button{font-size:15.5px;padding:8px 14px}
+body.proj .controls{padding:4px 10px}
+body.proj .controls button{font-size:15px;padding:4px 10px}
 body.proj .codebox pre{font-size:14.5px}
 body.proj table.panel{font-size:15px}
 body.proj .msg{font-size:16px}
+body.proj main{grid-template-columns:minmax(0,1fr) minmax(300px,330px)}
+/* 放映模式：全屏、只留画面与播控，章节切换走 ☰ 目录 */
+body.present header.top, body.present nav.chapters,
+body.present .modbar, body.present footer.foot{display:none}
+body.present main{padding:6px 10px;gap:8px}
+body.present .modtitle{padding:4px 12px 0}
+body.present .controls{padding:4px 10px}
 @media (max-width:1024px){
   body{overflow:auto;height:auto}
   main{grid-template-columns:1fr;overflow:visible}
