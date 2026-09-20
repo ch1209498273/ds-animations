@@ -298,24 +298,22 @@
       renderGuide(true);
     };
     $('guide').addEventListener('click', function (e) {
-      if (e.target.id === 'btnGo') { rememberDismissed(cur.id); $('guide').hidden = true; }
+      if (e.target.id === 'btnGo') { $('guide').hidden = true; }
     });
     $('btnShot').onclick = exportFrame;
     $('btnLink').onclick = copyLink;
     $('btnProj').onclick = toggleProject;
+    $('btnPresent').onclick = togglePresent;
     $('btnCatalog').onclick = openCatalog;
+    document.addEventListener('fullscreenchange', syncPresent);
     try { if (localStorage.getItem('dsc_proj') === '1') { document.body.classList.add('proj'); $('btnProj').classList.add('on'); } } catch (e) {}
   }
-  var dismissed = {};
-  try { dismissed = JSON.parse(localStorage.getItem('dsc_guide') || '{}') || {}; } catch (e) { dismissed = {}; }
-  function rememberDismissed(id) {
-    dismissed[id] = true;
-    try { localStorage.setItem('dsc_guide', JSON.stringify(dismissed)); } catch (e) { /* 私密模式等场景忽略 */ }
-  }
+  var hinted = {};
   function renderGuide(force) {
     var g = $('guide');
     if (!cur) { g.hidden = true; return; }
-    if (cur.guide && cur.guide.length && (force || !dismissed[cur.id])) {
+    var has = cur.guide && cur.guide.length;
+    if (has && force) {
       var boldify = function (s) { return esc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>'); };
       g.innerHTML = '<div class="gt">💡 使用引导 · ' + esc(cur.disp || cur.name) + '</div><ol>' +
         cur.guide.map(function (s) { return '<li>' + boldify(s) + '</li>'; }).join('') +
@@ -323,6 +321,8 @@
       g.hidden = false;
     } else {
       g.hidden = true;
+      // 引导展开时会挤掉舞台高度，所以默认收起，只提示一次
+      if (has && !hinted[cur.id]) { hinted[cur.id] = 1; toast('本动画有使用引导 · 点 ? 查看'); }
     }
   }
   function toast(text) {
@@ -370,6 +370,23 @@
     var on = document.body.classList.toggle('proj');
     try { localStorage.setItem('dsc_proj', on ? '1' : ''); } catch (e) {}
     $('btnProj').classList.toggle('on', on);
+  }
+  /* ---------- 放映模式：全屏投放，隐藏全部 chrome，只留画面与播控 ---------- */
+  function togglePresent() {
+    var de = document.documentElement;
+    if (document.fullscreenElement) {
+      if (document.exitFullscreen) document.exitFullscreen();
+    } else if (de.requestFullscreen) {
+      var p = de.requestFullscreen();
+      if (p && p.catch) p.catch(function () { toast('浏览器拒绝了全屏请求'); });
+    } else {
+      toast('当前浏览器不支持全屏放映');
+    }
+  }
+  function syncPresent() {
+    var on = !!document.fullscreenElement;
+    document.body.classList.toggle('present', on);
+    $('btnPresent').classList.toggle('on', on);
   }
   /* ---------- 总目录：按章分组全景，一键直达 / 复制深链接 ---------- */
   function moduleURL(m) {
