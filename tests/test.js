@@ -525,7 +525,10 @@ console.log('— M4 补强：树转换 / 堆建立 —');
   const tcf = tc.frames[tc.frames.length - 1].panel;
   t('树转二叉树: 二叉树先序 = 树先根遍历 ABEFCDGH', tcf['二叉树先序'] === 'A B E F C G D H', tcf['二叉树先序']);
   t('树转二叉树: 二叉树中序 = 树后根遍历 EFBGCHDA', tcf['二叉树中序'] === 'E F B G C H D A', tcf['二叉树中序']);
-  t('树转二叉树: 四步演示帧齐全（原树→加线→抹线→旋转）', tc.frames.length === 5);
+  t('树转二叉树: 六帧演示（原树→加线→抹线→旋转中→完成→验证）', tc.frames.length === 6);
+  const tcSvgs = tc.frames.map(f => M.treeConvert.render(f.snap));
+  t('树转二叉树: 每帧画面互异（真动画）', new Set(tcSvgs).size === 6, new Set(tcSvgs).size);
+  t('树转二叉树: 末帧为完整二叉树（4 左孩子 + 3 右孩子连线）', (tcSvgs[5].match(/stroke="#16a34a"/g) || []).length === 4 && (tcSvgs[5].match(/stroke="#2563eb"/g) || []).length === 3);
 }
 
 console.log('— v2.1 模块边界补强（错误场景与极端输入）—');
@@ -611,7 +614,7 @@ console.log('— v2.1 深度校验：排列不变量 / 随机数据 / 教材第�
   const di2 = M.dualList.run({ op: 'ins' });
   t('双向插入: start/step1..4/warn 各阶段帧齐全', ['start', 'step1', 'step2', 'step3', 'step4', 'warn'].every(s => di2.frames.some(f => f.snap.stage === s)), di2.frames.map(f => f.snap.stage).join(','));
   /* 树转换分步 */
-  t('树转二叉树: 完整动画 5 帧（原树→加线→抹线→旋转→验证）', M.treeConvert.run({}).frames.length === 5);
+  t('树转二叉树: 完整动画 6 帧（含旋转中间帧与完成帧）', M.treeConvert.run({}).frames.length === 6);
   /* 建堆随机数据堆性质（heapBuild 已并入堆排序章，用 heapSort 的建堆帧验证） */
   const hbR = M.heapSort.run({ preset: 'textbook', w: '' });
   const hf = hbR.frames.find(f => f.snap.mark === 'heap').snap.arr;
@@ -663,7 +666,7 @@ console.log('— 渲染烟测（每帧 render 不抛异常） —');
     polyAdd: [{ a: '7,0 3,1 9,8 5,17', b: '8,1 22,7 -9,8' }],
     baseConvert: [{ n: 1348, base: '8' }, { n: 255, base: '16' }],
     maze: [{ start: '1,1' }, { start: '8,1' }],
-    treeConvert: [{ step: '0' }, { step: '3' }],
+    treeConvert: [{}],
     threads: [{ data: 'GDA##FE###MH##Z##', phase: 'build' }, { data: 'GDA##FE###MH##Z##', phase: 'walk' }, { data: 'GDA##FE###MH##Z##', phase: 'all' }],
     critical: [{}],
     topo: [{}, { cycle: true }],
