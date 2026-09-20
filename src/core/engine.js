@@ -319,11 +319,11 @@
   }
   function step() { if (idx < frames.length - 1) { idx++; draw(); } else stop(); }
   function back() { if (idx > 0) { idx--; draw(); } }
-  /* 每帧停留时间随解说长度走：全固定 900ms 时，中位 35 字的解说只给 0.9 秒，
-     而默读完需要约 7 秒——节奏必须跟着"读得完"走，而不是跟着帧数走 */
+  /* 每帧停留随解说长度轻微浮动：自动演示的用途是"看清在动"，逐帧讲解走「下一步」，
+     所以只在原 900ms 基础上放慢一点并按字数加权，不做"读完整段解说"的时长 */
   function frameHold(f) {
     var n = String((f && f.msg) || '').replace(/<[^>]+>/g, '').length;
-    return Math.max(1300, Math.min(4200, 700 + n * 95)) / speed;
+    return Math.max(1100, Math.min(2200, 850 + n * 12)) / speed;
   }
   function hold() {
     if (!playing) return;
