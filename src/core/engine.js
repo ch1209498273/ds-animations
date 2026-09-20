@@ -101,7 +101,57 @@
   }
 
   /* ---------- 状态 ---------- */
-  var cur = null, frames = [], code = [], idx = 0, timer = null, speed = 1;
+  var cur = null, frames = [], code = [], idx = 0, timer = null, speed = 1, playing = false;
+  var zoom = 1, ZMIN = 1, ZMAX = 6, ZK = 1.25;
+
+  /* ---------- 舞台缩放：画布按 viewBox 比例适配，再乘缩放档位，超出部分由 #stage 滚动 ---------- */
+  function fitCanvas() {
+    var st = $('stage'), cv = $('canvas'), svg = cv.querySelector('svg');
+    if (!svg) return;
+    var vb = svg.viewBox.baseVal;
+    if (!vb || !vb.width || !vb.height) return;
+    // 用 border box 而非 clientWidth/Height：后者会随滚动条有无变化，
+    // 让"适配"算出依赖当前滚动状态、缩放来回抖动
+    var r = st.getBoundingClientRect();
+    var k = Math.max(0.05, Math.min((r.width - 10) / vb.width, (r.height - 10) / vb.height));
+    cv.style.width = Math.round(vb.width * k * zoom) + 'px';
+    cv.style.height = Math.round(vb.height * k * zoom) + 'px';
+  }
+  function setZoom(z) {
+    zoom = Math.max(ZMIN, Math.min(ZMAX, z));
+    fitCanvas();
+    $('zoomLv').textContent = Math.round(zoom * 100) + '%';
+  }
+  function bindStageZoomPan() {
+    var st = $('stage');
+    $('btnZoomIn').onclick = function () { setZoom(zoom * ZK); };
+    $('btnZoomOut').onclick = function () { setZoom(zoom / ZK); };
+    $('btnZoomFit').onclick = function () { setZoom(1); };
+    st.addEventListener('wheel', function (e) {
+      if (!e.ctrlKey && !e.metaKey) return;        // 不带修饰键时留给普通滚动
+      e.preventDefault();
+      setZoom(e.deltaY < 0 ? zoom * ZK : zoom / ZK);
+    }, { passive: false });
+    var drag = null;
+    st.addEventListener('pointerdown', function (e) {
+      if (zoom <= 1 || e.button !== 0) return;
+      drag = { x: e.clientX, y: e.clientY, l: st.scrollLeft, t: st.scrollTop };
+      st.classList.add('panning');
+      if (st.setPointerCapture) st.setPointerCapture(e.pointerId);
+    });
+    st.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      st.scrollLeft = drag.l - (e.clientX - drag.x);
+      st.scrollTop = drag.t - (e.clientY - drag.y);
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) {
+      st.addEventListener(ev, function () { drag = null; st.classList.remove('panning'); });
+    });
+    // 舞台尺寸会因窗口缩放、投影/放映切换、引导展开、滚动条出现而改变，
+    // 逐一补调用容易漏，直接观察容器本身
+    if (window.ResizeObserver) { new ResizeObserver(function () { fitCanvas(); }).observe($('stage')); }
+    else { window.addEventListener('resize', fitCanvas); }
+  }
 
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
@@ -184,6 +234,7 @@
       for (var i = 0; i < ps.length; i++) ps[i].classList.toggle('active', ps[i] === pill);
     }
     cur = m; stop();
+    setZoom(1);                      // 换动画回到适配，不沿用上一个的缩放
     var box = $('inputs'); box.innerHTML = '';
     (m.inputs || []).forEach(function (sp) {
       var wrap = el('label', 'inp');
@@ -229,7 +280,7 @@
     try { res = cur.run(values()); }
     catch (err) {
       $('msg').innerHTML = '<b>输入有误：</b>' + esc(err.message);
-      $('stage').innerHTML = ''; $('code').innerHTML = ''; $('panel').innerHTML = '';
+      $('canvas').innerHTML = ''; $('code').innerHTML = ''; $('panel').innerHTML = '';
       frames = []; idx = 0; updateProgress(); return;
     }
     frames = res.frames; code = res.code; idx = 0;
@@ -238,8 +289,9 @@
 
   function draw() {
     var f = frames[idx];
-    if (!f) { $('stage').innerHTML = ''; $('code').innerHTML = ''; $('panel').innerHTML = ''; $('msg').innerHTML = ''; updateProgress(); return; }
-    $('stage').innerHTML = cur.render(f.snap);
+    if (!f) { $('canvas').innerHTML = ''; $('code').innerHTML = ''; $('panel').innerHTML = ''; $('msg').innerHTML = ''; updateProgress(); return; }
+    $('canvas').innerHTML = cur.render(f.snap);
+    fitCanvas();
     var lines = code.map(function (t, i) {
       var on = f.line && f.line.indexOf(i) >= 0;
       return '<span class="cl' + (on ? ' on' : '') + '">' + esc(t) + '</span>';
@@ -257,22 +309,42 @@
 
   function updateProgress() {
     $('pos').textContent = frames.length ? (idx + 1) + ' / ' + frames.length : '0 / 0';
+    $('pace').textContent = frames.length ? '⏱ ' + (frameHold(frames[idx]) / 1000).toFixed(1) + 's' : '';
     $('btnPrev').disabled = idx <= 0;
     $('btnNext').disabled = idx >= frames.length - 1;
-    $('btnPlay').textContent = timer ? '⏸ 暂停' : '▶ 自动播放';
+    $('btnPlay').textContent = playing ? '⏸ 暂停' : '▶ 自动播放';
     var seek = $('seek');
     seek.max = Math.max(frames.length - 1, 0);
     seek.value = idx;
   }
   function step() { if (idx < frames.length - 1) { idx++; draw(); } else stop(); }
   function back() { if (idx > 0) { idx--; draw(); } }
-  function play() {
-    if (timer) { stop(); return; }
-    if (idx >= frames.length - 1) idx = 0;
-    timer = setInterval(step, 900 / speed);
-    updateProgress();
+  /* 每帧停留随解说长度轻微浮动：自动演示的用途是"看清在动"，逐帧讲解走「下一步」，
+     所以只在原 900ms 基础上放慢一点并按字数加权，不做"读完整段解说"的时长 */
+  function frameHold(f) {
+    var n = String((f && f.msg) || '').replace(/<[^>]+>/g, '').length;
+    return Math.max(1100, Math.min(2200, 850 + n * 12)) / speed;
   }
-  function stop() { if (timer) { clearInterval(timer); timer = null; } if (frames.length) updateProgress(); }
+  function hold() {
+    if (!playing) return;
+    timer = setTimeout(function () {
+      if (!playing) return;
+      step();                       // 走到末帧会自行 stop()
+      hold();
+    }, frameHold(frames[idx]));
+  }
+  function play() {
+    if (playing) { stop(); return; }
+    if (idx >= frames.length - 1) { idx = 0; draw(); }
+    playing = true;
+    updateProgress();
+    hold();
+  }
+  function stop() {
+    playing = false;
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (frames.length) updateProgress();
+  }
   function reset() { stop(); idx = 0; draw(); }
 
   function bindControls() {
@@ -280,7 +352,12 @@
     $('btnPrev').onclick = back;
     $('btnNext').onclick = function () { stop(); step(); };
     $('btnPlay').onclick = play;
-    $('speed').onchange = function (e) { speed = +e.target.value; if (timer) { stop(); play(); } };
+    $('speed').onchange = function (e) {
+      speed = +e.target.value || 1;
+      updateProgress();                 // 刷新 ⏱ 读数
+      // 换倍速只重排下一帧的等待，不回到第一帧
+      if (playing) { if (timer) clearTimeout(timer); hold(); }
+    };
     function onSeek(e) {
       var v = parseInt(e.target.value, 10);   // 必须先读值：stop()→updateProgress 会回写滑杆
       if (isNaN(v)) return;
@@ -304,7 +381,13 @@
     $('btnLink').onclick = copyLink;
     $('btnProj').onclick = toggleProject;
     $('btnPresent').onclick = togglePresent;
+    $('btnMore').onclick = function () {
+      var on = document.body.classList.toggle('present-more');
+      fitCanvas();                       // 展开/收起会改变控制条行数，重算画布
+      toast(on ? '已展开完整操作台' : '已收起，只留翻页与缩放');
+    };
     $('btnCatalog').onclick = openCatalog;
+    bindStageZoomPan();
     document.addEventListener('fullscreenchange', syncPresent);
     try { if (localStorage.getItem('dsc_proj') === '1') { document.body.classList.add('proj'); $('btnProj').classList.add('on'); } } catch (e) {}
   }
@@ -386,6 +469,7 @@
   function syncPresent() {
     var on = !!document.fullscreenElement;
     document.body.classList.toggle('present', on);
+    if (!on) document.body.classList.remove('present-more');
     $('btnPresent').classList.toggle('on', on);
   }
   /* ---------- 总目录：按章分组全景，一键直达 / 复制深链接 ---------- */
@@ -460,13 +544,18 @@
     if (qb) qb.parentNode.removeChild(qb);
   }
   function keys(e) {
-    if (/INPUT|SELECT|TEXTAREA|BUTTON/.test(e.target.tagName)) return;
+    var t = e.target.tagName;
+    if (/INPUT|SELECT|TEXTAREA/.test(t)) return;
     if (e.key === 'Escape') { closeOverlays(); return; }
     if (e.key === 'ArrowRight') { stop(); step(); }
     else if (e.key === 'ArrowLeft') { stop(); back(); }
-    else if (e.key === ' ') { e.preventDefault(); play(); }
+    else if (e.key === ' ') {
+      if (t === 'BUTTON') return;        // 焦点在按钮上时交给按钮自身，避免一次按键触发两回
+      e.preventDefault(); play();
+    }
     else if (e.key === 'Home') { stop(); idx = 0; draw(); }
     else if (e.key === 'End') { stop(); if (frames.length) { idx = frames.length - 1; draw(); } }
+    else if (e.key === 'c' || e.key === 'C') { openCatalog(); }
   }
 
   if (typeof document !== 'undefined') {
