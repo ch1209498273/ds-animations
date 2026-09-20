@@ -117,12 +117,20 @@ body.proj main{grid-template-columns:minmax(0,1fr) minmax(300px,330px)}
    上一步/下一步/自动播放/缩放/进度条/帧号必须留着——放映中就是要能翻页。
    ⋯ 按钮临时展开被砍掉的那些，Esc 退出放映。 */
 body.present header.top, body.present nav.chapters,
-body.present .modbar, body.present footer.foot,
-body.present .modtitle{display:none}
-body.present main{grid-template-columns:minmax(0,1fr) minmax(260px,320px);gap:6px;padding:4px 6px}
+body.present .modbar, body.present footer.foot{display:none}
+body.present main{grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:6px;padding:4px 6px}
 body.present .card .controls{padding:4px 8px}
 body.present .zoomgrp{border-left:none;padding-left:0}
-body.present .sidehead{padding:2px 0 0}
+body.present .sidehead{padding:2px 0 0;font-size:14px}
+/* 放映要能在教室最后一排看清：标题条保留（否则学生不知道在讲哪个动画），
+   解说/状态面板/伪代码整体放大，多数画布是高度受限，让出这点宽度不亏 */
+body.present .modtitle{padding:6px 14px 2px}
+body.present .modtitle b{font-size:22px}
+body.present .modtitle .modnote{font-size:15px}
+body.present .msg{font-size:19px;line-height:1.7;max-height:32%}
+body.present table.panel{font-size:17px}
+body.present .codebox pre{font-size:15.5px}
+body.present .pos{font-size:15px}
 #btnMore{display:none}
 body.present #btnMore{display:block}
 body.present .hideable{display:none}

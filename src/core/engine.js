@@ -101,7 +101,7 @@
   }
 
   /* ---------- 状态 ---------- */
-  var cur = null, frames = [], code = [], idx = 0, timer = null, speed = 1;
+  var cur = null, frames = [], code = [], idx = 0, timer = null, speed = 1, playing = false;
   var zoom = 1, ZMIN = 1, ZMAX = 6, ZK = 1.25;
 
   /* ---------- 舞台缩放：画布按 viewBox 比例适配，再乘缩放档位，超出部分由 #stage 滚动 ---------- */
@@ -309,22 +309,42 @@
 
   function updateProgress() {
     $('pos').textContent = frames.length ? (idx + 1) + ' / ' + frames.length : '0 / 0';
+    $('pace').textContent = frames.length ? '⏱ ' + (frameHold(frames[idx]) / 1000).toFixed(1) + 's' : '';
     $('btnPrev').disabled = idx <= 0;
     $('btnNext').disabled = idx >= frames.length - 1;
-    $('btnPlay').textContent = timer ? '⏸ 暂停' : '▶ 自动播放';
+    $('btnPlay').textContent = playing ? '⏸ 暂停' : '▶ 自动播放';
     var seek = $('seek');
     seek.max = Math.max(frames.length - 1, 0);
     seek.value = idx;
   }
   function step() { if (idx < frames.length - 1) { idx++; draw(); } else stop(); }
   function back() { if (idx > 0) { idx--; draw(); } }
-  function play() {
-    if (timer) { stop(); return; }
-    if (idx >= frames.length - 1) idx = 0;
-    timer = setInterval(step, 900 / speed);
-    updateProgress();
+  /* 每帧停留时间随解说长度走：全固定 900ms 时，中位 35 字的解说只给 0.9 秒，
+     而默读完需要约 7 秒——节奏必须跟着"读得完"走，而不是跟着帧数走 */
+  function frameHold(f) {
+    var n = String((f && f.msg) || '').replace(/<[^>]+>/g, '').length;
+    return Math.max(1300, Math.min(4200, 700 + n * 95)) / speed;
   }
-  function stop() { if (timer) { clearInterval(timer); timer = null; } if (frames.length) updateProgress(); }
+  function hold() {
+    if (!playing) return;
+    timer = setTimeout(function () {
+      if (!playing) return;
+      step();                       // 走到末帧会自行 stop()
+      hold();
+    }, frameHold(frames[idx]));
+  }
+  function play() {
+    if (playing) { stop(); return; }
+    if (idx >= frames.length - 1) { idx = 0; draw(); }
+    playing = true;
+    updateProgress();
+    hold();
+  }
+  function stop() {
+    playing = false;
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (frames.length) updateProgress();
+  }
   function reset() { stop(); idx = 0; draw(); }
 
   function bindControls() {
@@ -332,7 +352,12 @@
     $('btnPrev').onclick = back;
     $('btnNext').onclick = function () { stop(); step(); };
     $('btnPlay').onclick = play;
-    $('speed').onchange = function (e) { speed = +e.target.value; if (timer) { stop(); play(); } };
+    $('speed').onchange = function (e) {
+      speed = +e.target.value || 1;
+      updateProgress();                 // 刷新 ⏱ 读数
+      // 换倍速只重排下一帧的等待，不回到第一帧
+      if (playing) { if (timer) clearTimeout(timer); hold(); }
+    };
     function onSeek(e) {
       var v = parseInt(e.target.value, 10);   // 必须先读值：stop()→updateProgress 会回写滑杆
       if (isNaN(v)) return;

@@ -41,7 +41,8 @@
       <button id="btnGuide" class="hideable" title="显示/隐藏使用引导">? 引导</button>
       <button id="btnMore" title="展开/收起完整操作台（输入项、重置、截图、链接、引导）">⋯ 更多</button>
       <label class="inp hideable">速度
-        <select id="speed">
+        <select id="speed" title="1×＝按解说字数自适应节奏（约 1.3~4.2 秒/帧）；觉得还快就选 0.5×">
+          <option value="0.25">0.25×</option>
           <option value="0.5">0.5×</option>
           <option value="1" selected>1×</option>
           <option value="2">2×</option>
@@ -56,6 +57,7 @@
       </span>
       <input type="range" id="seek" min="0" max="0" value="0" title="拖动跳转到任意一步" aria-label="播放进度">
       <span id="pos" class="pos" aria-live="polite"></span>
+      <span id="pace" class="pos" title="本帧建议停留时长，随解说字数自适应" aria-live="off"></span>
     </div>
   </section>
   <aside class="side">
