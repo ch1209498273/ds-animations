@@ -62,10 +62,17 @@ sort_common_min = terser(sort_common_src)
 css_min = min_css(css)
 
 tpl = (src / 'index.template.html').read_text(encoding='utf-8')
-stamp = 'v2.1 · 构建 ' + time.strftime('%Y-%m-%d %H:%M')
+VER = 'v2.2'
+NMOD = len(module_files)          # 对外文案里的动画数一律由实际模块数推出，不再手写
+stamp = VER + ' · 构建 ' + time.strftime('%Y-%m-%d %H:%M')
+MAIN_DESC = ('%d 个可交互数据结构算法动画：线性表、栈队列、串数组、树、图、查找、排序全部章节，'
+             '教材例题对拍验证，单文件零依赖，点开即用。') % NMOD
+MAIN_OGT = '《数据结构》互动课件 —— %d 个算法动画' % NMOD
 html = (tpl.replace('/*__CSS__*/', css_min)
            .replace('//__CORE__', core_min + '\n' + qrcode_js + '\n' + sort_common_min)
            .replace('//__MODULES__', mods_min)
+           .replace('__DESC__', MAIN_DESC)
+           .replace('__OGTITLE__', MAIN_OGT)
            .replace('__BUILD__', stamp))
 
 out_dir = root / 'dist'
@@ -98,9 +105,8 @@ for i, p in enumerate(module_files):
     page = (tpl.replace('/*__CSS__*/', css_min)
                .replace('__BUILD__', stamp)
                .replace('<title>《数据结构》互动课件</title>', '<title>' + disp + ' · 数据结构动画</title>')
-               .replace('content="43 个可交互数据结构算法动画：线性表、栈队列、串数组、树、图、查找、排序全部章节，教材例题对拍验证，单文件零依赖，点开即用。"',
-                        'content="' + m_note + '（数据结构互动课件·单动画页）"')
-               .replace('content="《数据结构》互动课件 —— 43 个算法动画"', 'content="' + disp + '"'))
+               .replace('__DESC__', m_note + '（数据结构互动课件·单动画页）')
+               .replace('__OGTITLE__', disp))
 
     scripts = ('<script>window.DSC_SINGLE={no:' + str(m_no) + '};</script>\n'
                '<script>\n' + core_min + '\n' + qrcode_js + '\n'

@@ -10,6 +10,13 @@ eval(SRC('core/engine.js'));
 
 const DSC = global.DSC;
 const M = {}; DSC.mods.forEach(m => M[m.id] = m);
+/* 取模块的默认输入——用来断言"打开就看到的这次演示"本身是对的，
+   而不是只断言手工喂进去的一组值 */
+function defVals(id) {
+  const v = {};
+  (M[id].inputs || []).forEach(s => { v[s.key] = s.type === 'checkbox' ? !!s.value : s.value; });
+  return v;
+}
 let pass = 0, fail = 0;
 function t(name, cond, extra) {
   if (cond) { pass++; console.log('  ✓ ' + name); }
@@ -501,6 +508,11 @@ console.log('— M4 补强：双向链表 / 多项式相加 / 数制转换 / 迷
   const paf = pa.frames[pa.frames.length - 1].snap.R;
   t('多项式相加: 教材例题和为 7+11x+22x⁷+5x¹⁷', JSON.stringify(paf) === JSON.stringify([{ c: 7, e: 0 }, { c: 11, e: 1 }, { c: 22, e: 7 }, { c: 5, e: 17 }]), JSON.stringify(paf));
   t('多项式相加: 9x⁸ 与 −9x⁸ 抵消（结果无 e=8 项）', paf.every(t => t.e !== 8));
+  const pad = M.polyAdd.run(defVals('polyAdd'));
+  const padf = pad.frames[pad.frames.length - 1].snap.R;
+  t('多项式相加: 默认输入（打开即看到的演示）结果 = 7+11x+22x⁷+5x¹⁷',
+    JSON.stringify(padf) === JSON.stringify([{ c: 7, e: 0 }, { c: 11, e: 1 }, { c: 22, e: 7 }, { c: 5, e: 17 }]), JSON.stringify(padf));
+  t('多项式相加: 默认结果不含系数为 0 的项', padf.every(x => x.c !== 0), JSON.stringify(padf));
   const paz = M.polyAdd.run({ a: '5,2', b: '-5,2' });
   t('多项式相加: 完全抵消得 0（空结果）', paz.frames[paz.frames.length - 1].snap.R.length === 0);
   const pae = (() => { try { M.polyAdd.run({ a: '7,0 3', b: '1,0' }); return false; } catch (e) { return true; } })();

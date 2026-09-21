@@ -1,7 +1,7 @@
 <div align="center">
   <img src="assets/banner.png" alt="《数据结构》互动课件" width="100%">
 
-  ![版本](https://img.shields.io/badge/版本-v2.1-2b6cb0) ![动画](https://img.shields.io/badge/算法动画-42个-2f855a) ![覆盖](https://img.shields.io/badge/覆盖-全部8章·对齐408考纲-c05621) ![测试](https://img.shields.io/badge/正确性断言-284项通过-553c9a) ![依赖](https://img.shields.io/badge/依赖-零·单文件-4a5568)
+  ![版本](https://img.shields.io/badge/版本-v2.2-2b6cb0) ![动画](https://img.shields.io/badge/算法动画-42个-2f855a) ![覆盖](https://img.shields.io/badge/覆盖-全部8章·对齐408考纲-c05621) ![测试](https://img.shields.io/badge/正确性断言-288项通过-553c9a) ![依赖](https://img.shields.io/badge/依赖-零·单文件-4a5568)
 
   **[▶ 在线打开（点开就用）](https://ch1209498273.github.io/ds-animations/) ｜ [⬇ 下载单文件 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v2.1.zip)**
 
@@ -18,9 +18,9 @@
 
 - 🎯 **为课堂而生**：单屏展示不滚动、教材伪代码随执行高亮、首帧操作引导、🖥 投影模式
 - 🔬 **为理解而生**：不只演示"正确的做法"，还演示**错误的做法**（顺序表从前向后移会怎样？链表先断后连会怎样？）——对照着看才真正懂
-- ✍️ **为练习而生**：🎯 练习模式隐藏解说，先预测下一步再揭示；全部例题与教材逐趟对拍
-- ⌨️ **操作顺手**：单步 / 回退 / 自动播放 / 0.5–4× 变速 / 进度条任意拖动 / 键盘 ← → 空格 / 一键截图（自动带版权水印）/ ☰ 总目录直达
-- 🔗 **单动画分享页**：每个动画一个独立网页（约 50KB）+ 二维码，分享出去只打开那一个动画——[示例](https://ch1209498273.github.io/ds-animations/a/heapSort.html)
+- ✍️ **为放映而生**：⛶ 全屏放映只留画面与播控（`C` 键放映中直接切动画）；自动播放按解说长度定帧（约 1.1~2.2 秒/帧），不再一闪而过
+- ⌨️ **操作顺手**：单步 / 回退 / 自动播放 / 0.25–4× 变速 / 进度条任意拖动 / 键盘 ← → 空格 Home End / 画面缩放平移（`Ctrl`+滚轮、`⋯ 更多` 展开完整操作台）/ 一键截图（自动带版权水印）/ ☰ 总目录直达
+- 🔗 **单动画分享页**：每个动画一个独立网页（约 60KB）+ 二维码，分享出去只打开那一个动画——[示例](https://ch1209498273.github.io/ds-animations/a/heapSort.html)
 - 🛡 **错误演示场景**：双向链表指针操作顺序颠倒、单链表先断后连……演给你看"为什么不能这么写"
 - 📢 **无障碍细节**：解说区 aria-live 播报、动画图 role=img、进度条可标注
 
@@ -41,20 +41,22 @@
 | <img src="assets/shots/kmp-run.png" alt="KMP"><br>**模式匹配 BF/KMP**：next 逐格计算，主串指针不回退对照 · [直达](https://ch1209498273.github.io/ds-animations/#m=kmp&f=28) | <img src="assets/shots/dijkstra.png" alt="Dijkstra"><br>**Dijkstra 最短路径**：图、状态表、伪代码三方联动 · [直达](https://ch1209498273.github.io/ds-animations/#m=dijkstra&f=15) |
 | <img src="assets/shots/huffman.png" alt="哈夫曼"><br>**哈夫曼树**：树 + HT 数组同步，WPL=350 可验 · [直达](https://ch1209498273.github.io/ds-animations/#m=huffman&f=29) | <img src="assets/shots/hashChain.png" alt="链地址"><br>**哈希表·链地址**：同余挂链，与线性探测 ASL 对照 · [直达](https://ch1209498273.github.io/ds-animations/#m=hashChain&f=10) |
 
-## 33 个动画目录
+## 42 个动画目录
 
-用 [在线总目录](https://ch1209498273.github.io/ds-animations/)（页面右上角 ☰）可按章浏览并复制任意一步的深链接。
+用 [在线总目录](https://ch1209498273.github.io/ds-animations/)（页面右上角 ☰，或放映中按 `C`）可按章浏览并复制任意一步的深链接。
+
+> 下面刻意**不标 ①②③ 序号**——站内序号按注册顺序自动生成，加一个动画就会让后面全部错位，写进文档就是维护陷阱。要序号看 ☰ 目录。
 
 **第1章 绪论**：时间复杂度可视化（六阶增长曲线）
 **第2章 线性表**：顺序表插入/删除 · 单链表插入/删除 · 顺序表基本操作合集 · 链表基本操作合集 · 合并有序表 · 双向/循环链表 · 一元多项式相加
 **第3章 栈和队列**：顺序栈 · 假溢出与循环队列（四方案） · 递归调用栈·汉诺塔 · 括号匹配 · 表达式求值（双栈法） · 数制转换 · 迷宫求解
 **第4章 串和数组**：模式匹配 BF/KMP（next 数组） · 矩阵压缩存储（对称映射 + 快速转置）
 **第5章 树和二叉树**：四种遍历 · 中序线索二叉树 · 哈夫曼树与编码/译码 · 树/森林与二叉树转换
-**第6章 图**：㉓ DFS/BFS ㉔ Prim/Kruskal ㉕ Dijkstra ㉖ Floyd ㉗ 拓扑排序 ㉘ 关键路径
-**第7章 查找**：㉙ 顺序/折半查找（判定树） ㉚ 分块查找 ㉛ 二叉排序树 ㉜ AVL 四种旋转 ㉝ 哈希·线性探测 ㉞ 哈希·链地址
-**第8章 排序**：㉟ 直接插入（含折半） ㊱ 希尔 ㊲ 冒泡 ㊳ 快速 ㊴ 直接选择 ㊵ 堆排序 ㊶ 归并 ㊷ 基数 ㊸ 八大排序总览
+**第6章 图**：DFS/BFS · Prim/Kruskal 最小生成树 · Dijkstra · Floyd · 拓扑排序（含回路检测） · 关键路径
+**第7章 查找**：顺序/折半查找（判定树 + ASL） · 分块查找 · 二叉排序树 · AVL 四种旋转 · 哈希·线性探测 · 哈希·链地址
+**第8章 排序**：直接插入（含折半） · 希尔 · 冒泡 · 快速 · 直接选择 · 堆排序 · 归并 · 基数 · 八大排序总览对比
 
-> 大多数模块支持**自定义数据**（改权值、改表达式、换存储结构、随机/有序/逆序/几乎有序预设），课堂上可以现场出题现场演。
+> 第 2、3、7、8 章的多数模块支持**自定义数据**（改权值、改表达式、换存储结构、随机/有序/逆序/几乎有序预设），课堂上可以现场出题现场演；第 6 章目前只能切预设图，自定义图已排期。
 
 ## 快速开始
 
@@ -67,7 +69,7 @@
 ```bash
 git clone https://github.com/ch1209498273/ds-animations.git
 # 双击 index.html 即可使用；改源码后运行 python build.py 重新构建
-node tests/test.js   # 284 项正确性断言
+node tests/test.js   # 288 项正确性断言
 ```
 
 ## 架构与实现
@@ -83,7 +85,7 @@ node tests/test.js   # 284 项正确性断言
 
 ## 正确性保障
 
-`tests/test.js` 内置 **284 项断言**（GitHub Actions 每次推送自动执行），与教材/PPT 例题逐一对拍，例如：
+`tests/test.js` 内置 **288 项断言**（GitHub Actions 每次推送自动执行），与教材/PPT 例题逐一对拍，例如：
 
 - 排序：教材例 `{49,38,65,97,76,13,27,49*}` 每一趟结果（插入/希尔/冒泡/快排/选择/堆/归并逐趟对拍），基数排序三趟收集结果与教材一致
 - 查找：折半判定树路径 `6→3→4`；哈希线性探测终表与教材一致、ASL=1.80；链地址 ASL=1.50
@@ -109,7 +111,7 @@ iframe 引用在线地址即可，目录页可一键复制任意动画的深链�
 
 - 发现演示错误、文字错误 → [提 Issue](../../issues/new?template=bug_report.md)
 - 想要新动画（B 树、KMP 优化 nextval、串的其他算法等）→ [动画许愿](../../issues/new?template=feature_request.md)
-- PR 欢迎：改完跑 `node tests/test.js` 保证 184 项全绿
+- PR 欢迎：改完跑 `node tests/test.js` 保证 288 项全绿
 
 ## 声明
 
