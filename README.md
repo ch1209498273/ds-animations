@@ -3,7 +3,7 @@
 
   ![版本](https://img.shields.io/badge/版本-v2.2-2b6cb0) ![动画](https://img.shields.io/badge/算法动画-42个-2f855a) ![覆盖](https://img.shields.io/badge/覆盖-全部8章·对齐408考纲-c05621) ![测试](https://img.shields.io/badge/正确性断言-288项通过-553c9a) ![依赖](https://img.shields.io/badge/依赖-零·单文件-4a5568)
 
-  **[▶ 在线打开（点开就用）](https://ch1209498273.github.io/ds-animations/) ｜ [⬇ 下载单文件 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v2.1.zip)**
+  **[▶ 在线打开（点开就用）](https://ch1209498273.github.io/ds-animations/) ｜ [⬇ 下载单文件 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v2.2.zip)**
 
   © 2026 **芦老师聊AI** · 版权归芦老师聊AI所有，未经授权不得商用
 
@@ -62,7 +62,7 @@
 
 **方式一 · 在线用**：打开 [ch1209498273.github.io/ds-animations](https://ch1209498273.github.io/ds-animations/)，点开即用。
 
-**方式二 · 本地用（推荐课堂场景）**：[下载 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v2.1.zip)，解压双击 `数据结构动画课件.html`——不联网、不装任何环境，教室机也能跑。
+**方式二 · 本地用（推荐课堂场景）**：[下载 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v2.2.zip)，解压双击 `数据结构动画课件.html`——不联网、不装任何环境，教室机也能跑。
 
 **方式三 · 开发者**：
 
@@ -96,7 +96,7 @@ node tests/test.js   # 288 项正确性断言
 ## 常见问题
 
 **Q：github.io 打不开 / 很慢？**
-国内访问 GitHub Pages 不稳定。下载 zip（[仓库内直链](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v2.1.zip)），解压双击打开，体验完全一致。
+国内访问 GitHub Pages 不稳定。下载 zip（[仓库内直链](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v2.2.zip)），解压双击打开，体验完全一致。
 
 **Q：手机上能用吗？**
 可以。自适应单列布局，触屏单步播放没有问题。
