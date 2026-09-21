@@ -184,7 +184,7 @@
       // 丢失结点第二行
       var lx = 60;
       (s.lost || []).forEach(function (id) { pos[id] = { x: lx, y: y0 + 150, row: 1 }; lx += nw + 46 + gap; });
-      if ((s.lost || []).length) g += h.txt(60 + (lx - 60 - gap) / 2 - (nw / 2), y0 + 118, '已从链上脱落（无法再访问）', { size: 14, fill: C.red, w: 600 });
+      if ((s.lost || []).length) g += h.txt(Math.max(96, 60 + (lx - 60 - gap) / 2 - (nw / 2)), y0 + 118, '已从链上脱落（无法再访问）', { size: 14, fill: C.red, w: 600 });
       if (s.removed && !pos[s.removed]) { pos[s.removed] = { x: lx, y: y0 + 150, row: 1 }; }
 
       function nodeX(id) { return pos[id].x; }

@@ -90,13 +90,32 @@
       var W = 980, H = 560, r = 24;
       var g = '';
       g += h.txt(340, 34, s.k < 0 ? 'Floyd：初始化 D 矩阵（直达弧权）' : 'Floyd：第 ' + (s.k + 1) + ' 轮——允许经 v' + s.k + ' 中转', { size: 19, w: 600 });
-      // 有向弧
+      // 有向弧：同一对顶点若存在反向弧（本例 0→3 与 3→0），必须弯开画，
+      // 否则两条边完全重合、权标挤在同一个点上
       ARCS.forEach(function (a) {
         var A = POS[a[0]], B = POS[a[1]];
         var dx = B[0] - A[0], dy = B[1] - A[1], L = Math.sqrt(dx * dx + dy * dy) || 1;
-        var x1 = A[0] + dx / L * r, y1 = A[1] + dy / L * r, x2 = B[0] - dx / L * r, y2 = B[1] - dy / L * r;
-        g += h.arrow(x1, y1, x2, y2, { stroke: C.grey, sw: 1.8 });
-        var lx = (A[0] + B[0]) / 2 - dy / L * 15, ly = (A[1] + B[1]) / 2 + dx / L * 15;
+        var ux = dx / L, uy = dy / L;
+        var ca = Math.min(a[0], a[1]), cb = Math.max(a[0], a[1]);
+        var pair = ARCS.some(function (x) { return x[0] === cb && x[1] === ca; });
+        var x1 = A[0] + ux * r, y1 = A[1] + uy * r, x2 = B[0] - ux * r, y2 = B[1] - uy * r;
+        var lx, ly;
+        if (pair) {
+          // 以「小编号→大编号」为基准定左右两侧，保证反向弧一定弯向另一边
+          var CA = POS[ca], CB = POS[cb];
+          var cdx = CB[0] - CA[0], cdy = CB[1] - CA[1], cl = Math.sqrt(cdx * cdx + cdy * cdy) || 1;
+          var side = a[0] === ca ? -1 : 1;
+          var cx = (A[0] + B[0]) / 2 + (-cdy / cl) * 30 * side;
+          var cy = (A[1] + B[1]) / 2 + (cdx / cl) * 30 * side;
+          g += h.curve(x1, y1, cx, cy, x2, y2, { stroke: C.grey, sw: 1.8 });
+          lx = 0.25 * x1 + 0.5 * cx + 0.25 * x2;
+          ly = 0.25 * y1 + 0.5 * cy + 0.25 * y2;
+        } else {
+          g += h.arrow(x1, y1, x2, y2, { stroke: C.grey, sw: 1.8 });
+          // 直线弧的权标放在靠源点 35% 处：正中间常被别的边穿过
+          lx = x1 + (x2 - x1) * 0.35 - uy * 15;
+          ly = y1 + (y2 - y1) * 0.35 + ux * 15;
+        }
         g += h.circle(lx, ly, 12, { fill: '#fff', stroke: C.grey, sw: 1.2 });
         g += h.txt(lx, ly + 4.5, a[2], { size: 12, w: 700 });
       });
@@ -110,11 +129,11 @@
       }
       // D 矩阵（右侧）
       var tx = 700, cell = 56, my = 120;
-      g += h.txt(tx + 2 * cell, my - 26, 'D 矩阵（行 i → 列 j）', { size: 14, w: 600 });
-      g += h.txt(tx + cell / 2 + 14, my + 4, ' ', { size: 10 });
+      g += h.txt(tx + 2 * cell, my - 34, 'D 矩阵（行 i → 列 j）', { size: 14, w: 600 });
+      // 列头必须画在网格顶边之上：格子带不透明填充且在之后绘制，画在网格内会被第一行盖住
       for (var j2 = 0; j2 < N; j2++) {
         var kCol = s.k === j2;
-        g += h.txt(tx + cell + j2 * cell + cell / 2, my + 2, '到 v' + j2, { size: 11.5, fill: kCol ? C.amber : C.muted, w: kCol ? 700 : 400 });
+        g += h.txt(tx + cell + j2 * cell + cell / 2, my - 8, '到 v' + j2, { size: 11.5, fill: kCol ? C.amber : C.muted, w: kCol ? 700 : 400 });
       }
       for (var i3 = 0; i3 < N; i3++) {
         var kRow = s.k === i3;

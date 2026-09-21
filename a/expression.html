@@ -21,7 +21,7 @@
     <button id="btnProj" title="投影模式：放大画面文字、收起导航条，适合课堂投屏">🖥 投影</button>
     <button id="btnPresent" title="放映模式：全屏投放，保留翻页/播放/缩放/进度条；⋯ 展开完整操作台，Esc 退出">⛶ 放映</button>
   </span>
-  <span class="ver">v2.2 · 构建 2026-09-21 12:39</span>
+  <span class="ver">v2.2 · 构建 2026-09-21 13:53</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -272,7 +272,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
             rel === ' ' ? '×' : rel, { size: 13, w: isCur ? 700 : 400, fill: isCur ? C.amber : (rel === '>' ? C.red : rel === '<' ? C.blue : C.ink) });
         }
       }
-      g += h.txt(px + cw2 + 140, 352, '> 弹栈计算 ｜ < 入栈 ｜ = 脱括号', { size: 11.5, fill: C.muted, anchor: 'start' });
+      // 图例必须在表格之下：表占 py..py+8*ch2，原先写死 352 落在最后一行里
+      g += h.txt(px + 4 * cw2, py + 8 * ch2 + 22, '> 弹栈计算 ｜ < 入栈 ｜ = 脱括号', { size: 11.5, fill: C.muted });
       // 结果
       if (s.done && s.result != null) {
         g += h.rect(W / 2 - 160, 430, 320, 54, { fill: C.greenBg, stroke: C.green, rx: 10, sw: 2 });

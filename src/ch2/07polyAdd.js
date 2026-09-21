@@ -91,7 +91,7 @@
       return { code: CODE, frames: frames };
     },
     render: function (s) {
-      var W = 980, H = 520;
+      var W = 980, H = 600;
       var g = '';
       function supx(e) { return String(e).split('').map(function (d) { return '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d] || d; }).join(''); }
       /* 画一条链：头指针盒 → 结点（coef|exp）→ … → NULL；hi=当前指针结点，consumed=之前已处理的灰化，delHi=被删红结点 */
@@ -139,17 +139,17 @@
         }
         return out;
       }
-      g += h.txt(W / 2, 34, '一元多项式相加：指数升序链表归并（指针逐结点移动）', { size: 17, w: 600 });
-      g += chain(70, 'A(x)', 'pa', s.A, s.hiA, { consumedBefore: s.hiA, ptr: 'pa', delHi: s.del ? s.hiA : null, delNow: !!s.del });
-      g += chain(150, 'B(x)', 'pb', s.B, s.hiB, { consumedBefore: s.hiB, ptr: 'pb', delHi: s.del ? s.hiB : null, delNow: !!s.del });
-      g += h.txt(W / 2, 236, '↓ 指数小的结点先接入结果链；指数相同系数相加（和为 0 则两结点一起删） ↓', { size: 13, fill: C.muted });
-      g += chain(262, '和', 'phead', s.R, s.li, { li: s.li });
+      g += h.txt(W / 2, 26, '一元多项式相加：指数升序链表归并（指针逐结点移动）', { size: 17, w: 600 });
+      g += chain(88, 'A(x)', 'pa', s.A, s.hiA, { consumedBefore: s.hiA, ptr: 'pa', delHi: s.del ? s.hiA : null, delNow: !!s.del });
+      g += chain(210, 'B(x)', 'pb', s.B, s.hiB, { consumedBefore: s.hiB, ptr: 'pb', delHi: s.del ? s.hiB : null, delNow: !!s.del });
+      g += h.txt(W / 2, 296, '↓ 指数小的结点先接入结果链；指数相同系数相加（和为 0 则两结点一起删） ↓', { size: 13, fill: C.muted });
+      g += chain(320, '和', 'phead', s.R, s.li, { li: s.li });
       if (s.mark === 'final') {
-        g += h.rect(W / 2 - 260, 356, 520, 54, { fill: C.greenBg, stroke: C.green, rx: 9 });
-        g += h.txt(W / 2, 389, '✓ 相加完成（同类项已合并，抵消项已删除）', { size: 15, w: 700, fill: C.green });
+        g += h.rect(W / 2 - 260, 386, 520, 54, { fill: C.greenBg, stroke: C.green, rx: 9 });
+        g += h.txt(W / 2, 419, '✓ 相加完成（同类项已合并，抵消项已删除）', { size: 15, w: 700, fill: C.green });
       }
-      g += h.txt(W / 2, 452, 'pa / pb 指针逐结点后移：指数小的直接接入；指数相同算系数，和为 0 两结点同时删除', { size: 12.5, fill: C.muted });
-      g += h.txt(W / 2, 482, '这就是"用有序链表表示多项式"的意义：合并、删项只改指针，不搬数据', { size: 12.5, fill: C.muted });
+      g += h.txt(W / 2, 470, 'pa / pb 指针逐结点后移：指数小的直接接入；指数相同算系数，和为 0 两结点同时删除', { size: 12.5, fill: C.muted });
+      g += h.txt(W / 2, 496, '这就是"用有序链表表示多项式"的意义：合并、删项只改指针，不搬数据', { size: 12.5, fill: C.muted });
       return h.svg(W, H, g);
     }
   });

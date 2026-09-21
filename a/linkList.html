@@ -21,7 +21,7 @@
     <button id="btnProj" title="投影模式：放大画面文字、收起导航条，适合课堂投屏">🖥 投影</button>
     <button id="btnPresent" title="放映模式：全屏投放，保留翻页/播放/缩放/进度条；⋯ 展开完整操作台，Esc 退出">⛶ 放映</button>
   </span>
-  <span class="ver">v2.2 · 构建 2026-09-21 12:39</span>
+  <span class="ver">v2.2 · 构建 2026-09-21 13:53</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -266,7 +266,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       // 丢失结点第二行
       var lx = 60;
       (s.lost || []).forEach(function (id) { pos[id] = { x: lx, y: y0 + 150, row: 1 }; lx += nw + 46 + gap; });
-      if ((s.lost || []).length) g += h.txt(60 + (lx - 60 - gap) / 2 - (nw / 2), y0 + 118, '已从链上脱落（无法再访问）', { size: 14, fill: C.red, w: 600 });
+      if ((s.lost || []).length) g += h.txt(Math.max(96, 60 + (lx - 60 - gap) / 2 - (nw / 2)), y0 + 118, '已从链上脱落（无法再访问）', { size: 14, fill: C.red, w: 600 });
       if (s.removed && !pos[s.removed]) { pos[s.removed] = { x: lx, y: y0 + 150, row: 1 }; }
 
       function nodeX(id) { return pos[id].x; }

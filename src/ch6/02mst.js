@@ -178,7 +178,7 @@
           g += h.rect(760, y0 + (j - 1) * 40, 210, 34, { fill: inUj ? C.greenBg : '#fff', stroke: inUj ? C.green : C.grey, rx: 6 });
           g += h.txt(865, y0 + (j - 1) * 40 + 22, txt, { size: 12.5, family: 'Consolas,monospace', fill: inUj ? C.green : C.ink, w: inUj ? 600 : 400 });
         }
-        g += h.txt(865, y0 + N * 40 + 20, '绿色 = 已并入 U；lowcost=0 表示在 U 中', { size: 11.5, fill: C.muted, anchor: 'start' });
+        g += h.txt(972, y0 + N * 40 + 20, '绿色 = 已并入 U；lowcost=0 表示在 U 中', { size: 11.5, fill: C.muted, anchor: 'end' });
       } else {
         g += h.txt(760, 96, '排序边表（按权升序，逐条考察）', { size: 13, w: 600, anchor: 'start' });
         var ey = 110, erh = 24;

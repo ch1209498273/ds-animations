@@ -69,7 +69,7 @@
       function X(nn) { return n <= 1 ? ox : ox + pw * (nn - 1) / (n - 1); }
       var ye = [];
       for (var gy = 0; gy <= 4; gy++) {
-        var e = Math.round(gy * yMaxLog / 4);
+        var e = Math.floor(gy * yMaxLog / 4);   // 不能用 round：yMaxLog 是小数，round 会舍出超过轴上限的刻度，标签被摆到画布上方
         if (ye.indexOf(e) < 0) ye.push(e);
       }
       ye.forEach(function (e) {

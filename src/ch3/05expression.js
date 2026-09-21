@@ -190,7 +190,8 @@
             rel === ' ' ? '×' : rel, { size: 13, w: isCur ? 700 : 400, fill: isCur ? C.amber : (rel === '>' ? C.red : rel === '<' ? C.blue : C.ink) });
         }
       }
-      g += h.txt(px + cw2 + 140, 352, '> 弹栈计算 ｜ < 入栈 ｜ = 脱括号', { size: 11.5, fill: C.muted, anchor: 'start' });
+      // 图例必须在表格之下：表占 py..py+8*ch2，原先写死 352 落在最后一行里
+      g += h.txt(px + 4 * cw2, py + 8 * ch2 + 22, '> 弹栈计算 ｜ < 入栈 ｜ = 脱括号', { size: 11.5, fill: C.muted });
       // 结果
       if (s.done && s.result != null) {
         g += h.rect(W / 2 - 160, 430, 320, 54, { fill: C.greenBg, stroke: C.green, rx: 10, sw: 2 });

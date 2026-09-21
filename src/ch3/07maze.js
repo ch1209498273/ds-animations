@@ -111,7 +111,7 @@
       return { code: CODE, frames: frames };
     },
     render: function (s) {
-      var W = 980, H = 520, cell = 44, ox = 70, oy = 66;
+      var W = 980, H = 520, cell = 40, ox = 70, oy = 66;
       var g = '';
       g += h.txt(W / 2 + 60, 36, '迷宫求解（蓝=路径足迹，灰=探索后放弃，红虚=回溯）', { size: 16, w: 600 });
       for (var r = 0; r < 10; r++) for (var c = 0; c < 10; c++) {
@@ -132,13 +132,18 @@
       /* 栈视图 */
       var sx = 540;
       g += h.txt(sx + 80, 60, '足迹栈（底 → 顶）', { size: 13, fill: C.muted, w: 600 });
+      // 行距按栈深自适应：固定 30 时超过约 14 条就画到画布外，长路径的栈顶几格会看不见
+      var nS = s.stack.length;
+      var pitch = nS > 1 ? Math.min(30, (412 - 26) / (nS - 1)) : 30;
+      var bh = Math.max(15, Math.min(26, pitch - 3));
       s.stack.forEach(function (p2, i2) {
-        var y2 = 76 + i2 * 30;
-        g += h.rect(sx, y2, 160, 26, { fill: '#fff', stroke: C.line, sw: 1, rx: 4 });
-        g += h.txt(sx + 80, y2 + 18, '(' + p2[0] + ',' + p2[1] + ')', { size: 12, family: 'Consolas,monospace' });
+        var y2 = 76 + i2 * pitch;
+        g += h.rect(sx, y2, 160, bh, { fill: '#fff', stroke: C.line, sw: 1, rx: 4 });
+        g += h.txt(sx + 80, y2 + bh * 0.72, '(' + p2[0] + ',' + p2[1] + ')',
+          { size: Math.min(12, bh - 3), family: 'Consolas,monospace' });
       });
       if (!s.stack.length) g += h.txt(sx + 80, 92, '（空）', { size: 12.5, fill: C.muted });
-      g += h.txt(W / 2 + 40, 505, '入口绿「入」出口黄「出」｜ 回溯就是"出栈+把该格标记为放弃"', { size: 12.5, fill: C.muted });
+      g += h.txt(270, 500, '入口绿「入」出口黄「出」｜ 回溯就是"出栈+把该格标记为放弃"', { size: 12.5, fill: C.muted });
       return h.svg(W, H, g);
     }
   });

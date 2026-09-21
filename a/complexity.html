@@ -21,7 +21,7 @@
     <button id="btnProj" title="投影模式：放大画面文字、收起导航条，适合课堂投屏">🖥 投影</button>
     <button id="btnPresent" title="放映模式：全屏投放，保留翻页/播放/缩放/进度条；⋯ 展开完整操作台，Esc 退出">⛶ 放映</button>
   </span>
-  <span class="ver">v2.2 · 构建 2026-09-21 12:39</span>
+  <span class="ver">v2.2 · 构建 2026-09-21 13:53</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -151,7 +151,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       function X(nn) { return n <= 1 ? ox : ox + pw * (nn - 1) / (n - 1); }
       var ye = [];
       for (var gy = 0; gy <= 4; gy++) {
-        var e = Math.round(gy * yMaxLog / 4);
+        var e = Math.floor(gy * yMaxLog / 4);   // 不能用 round：yMaxLog 是小数，round 会舍出超过轴上限的刻度，标签被摆到画布上方
         if (ye.indexOf(e) < 0) ye.push(e);
       }
       ye.forEach(function (e) {

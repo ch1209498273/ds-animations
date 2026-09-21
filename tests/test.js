@@ -729,5 +729,63 @@ console.log('— 渲染烟测（每帧 render 不抛异常） —');
   t('全部模块全部帧渲染成功', ok, bad);
 }
 
+console.log('— 画布几何：文字不得互相重叠、不得越出画布 —');
+
+{
+  /* 中文按 1 em、其余按 0.55 em 估算文字宽度；基线 y 上方 0.78 em 为字顶、下方 0.26 em 为字底。
+     这类"标注被后绘格子盖住 / 标签挤成一团 / 列表画到画布外"的缺陷，靠看图才发现得到，
+     所以固化成断言。曾一次性抓出 floyd 列头被盖、polyAdd 标题压指针、expression 图例压表格、
+     maze 足迹栈超 14 条后画到画布外。 */
+  function textW(s, fz) {
+    let w = 0;
+    for (const c of s) w += /[一-鿿-￯]/.test(c) ? fz : fz * 0.55;
+    return w;
+  }
+  function unesc(s) {
+    return s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+  }
+  let overlap = [], clipped = [];
+  DSC.mods.forEach(m => {
+    const v = {};
+    (m.inputs || []).forEach(s => { v[s.key] = s.type === 'checkbox' ? !!s.value : s.value; });
+    let r;
+    try { r = m.run(v); } catch (e) { return; }
+    const seen = new Set();
+    r.frames.forEach((f, fi) => {
+      let svg;
+      try { svg = m.render(f.snap); } catch (e) { return; }
+      const vb = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(svg);
+      if (!vb) return;
+      const VW = +vb[1], VH = +vb[2], T = [];
+      (svg.match(/<text x="[^"]*" y="[^"]*" font-size="[^"]*"[^>]*text-anchor="[^"]*"[^>]*>[^<]*/g) || [])
+        .forEach(s => {
+          const a = /x="([^"]*)" y="([^"]*)" font-size="([^"]*)"[^>]*text-anchor="([^"]*)"[^>]*>([^<]*)/.exec(s);
+          const x = +a[1], y = +a[2], fz = +a[3], an = a[4], txt = unesc((a[5] || '').trim());
+          if (!txt || !isFinite(x) || !isFinite(y)) return;
+          const w = textW(txt, fz);
+          const x0 = an === 'start' ? x : an === 'end' ? x - w : x - w / 2;
+          T.push({ x0: x0, x1: x0 + w, y0: y - fz * 0.78, y1: y + fz * 0.26, s: txt });
+        });
+      T.forEach(p => {
+        if (p.x0 < -1 || p.y0 < -1 || p.x1 > VW + 1 || p.y1 > VH + 1) {
+          const k = 'X' + p.s.slice(0, 10) + '@' + Math.round(p.x0) + ',' + Math.round(p.y0);
+          if (!seen.has(k)) { seen.add(k); clipped.push(m.id + ' 第' + (fi + 1) + '帧「' + p.s.slice(0, 12) + '」'); }
+        }
+      });
+      for (let i = 0; i < T.length; i++) for (let j = i + 1; j < T.length; j++) {
+        const a = T[i], b = T[j];
+        const ox = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
+        const oy = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
+        if (ox > 2 && oy > 2) {
+          const k = 'T' + a.s.slice(0, 10) + '|' + b.s.slice(0, 10);
+          if (!seen.has(k)) { seen.add(k); overlap.push(m.id + ' 第' + (fi + 1) + '帧「' + a.s.slice(0, 10) + '」×「' + b.s.slice(0, 10) + '」'); }
+        }
+      }
+    });
+  });
+  t('画布几何: 无文字越出画布', clipped.length === 0, clipped.slice(0, 4));
+  t('画布几何: 无文字互相重叠', overlap.length === 0, overlap.slice(0, 4));
+}
+
 console.log('\n结果: 通过 ' + pass + '，失败 ' + fail);
 process.exit(fail ? 1 : 0);
