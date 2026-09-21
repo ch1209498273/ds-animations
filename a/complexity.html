@@ -21,7 +21,7 @@
     <button id="btnProj" title="投影模式：放大画面文字、收起导航条，适合课堂投屏">🖥 投影</button>
     <button id="btnPresent" title="放映模式：全屏投放，保留翻页/播放/缩放/进度条；⋯ 展开完整操作台，Esc 退出">⛶ 放映</button>
   </span>
-  <span class="ver">v2.2 · 构建 2026-09-21 16:52</span>
+  <span class="ver">v2.2 · 构建 2026-09-21 17:24</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -159,6 +159,13 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         g += h.line(ox, y, ox + pw, y, { stroke: '#eef2f7', sw: 1 });
         g += h.txt(ox - 8, y + 4, e === 0 ? '1' : '10' + sup(e), { size: 10.5, fill: C.muted, anchor: 'end' });
       });
+      /* 轴顶标实际最大值：刻度取 floor 后顶格刻度低于轴顶，不补的话曲线最高点没有数可读。
+         比较的是像素间距而非数值差——yMaxLog 略大于整数时顶格刻度只差零点几像素，
+         补上去会和"10³"叠成一行 */
+      if (ph * (1 - ye[ye.length - 1] / yMaxLog) >= 12) {
+        g += h.line(ox, oy, ox + pw, oy, { stroke: '#eef2f7', sw: 1 });
+        g += h.txt(ox - 8, oy + 4, String(Math.max.apply(null, vals.map(function (x) { return x.v; }))), { size: 10.5, fill: C.muted, anchor: 'end' });
+      }
       /* 横轴：整数步长刻度（1 起到 n，不重复） */
       var xstep = Math.max(1, Math.ceil((n - 1) / 4));
       var xticks = [1];
