@@ -21,7 +21,7 @@
     <button id="btnProj" title="投影模式：放大画面文字、收起导航条，适合课堂投屏">🖥 投影</button>
     <button id="btnPresent" title="放映模式：全屏投放，保留翻页/播放/缩放/进度条；⋯ 展开完整操作台，Esc 退出">⛶ 放映</button>
   </span>
-  <span class="ver">v2.2 · 构建 2026-09-21 11:42</span>
+  <span class="ver">v2.2 · 构建 2026-09-21 12:39</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -238,15 +238,15 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       }
       // 右侧：邻接矩阵 或 邻接表（先垫白底板，防止左图越界元素压住文字）
       g += h.rect(740, 42, 232, 556, { fill: '#ffffff', stroke: 'none' });
-      var mx = 762, my = 96, cell = 28;
+      var mx = 762, my = 106, cell = 28;
       if (s.storage === 'list') {
         var rowGap = 38;
         g += h.txt(mx + 100, my - 22, '邻接表（头插法，邻居顺序与边输入顺序相反）', { size: 12.5, w: 600 });
         for (var li = 1; li <= N; li++) {
           var ly = my + (li - 1) * rowGap;
           var rowCur = s.checkCell && s.checkCell.r === li;
-          g += h.txt(mx - 8, ly + 22, 'v' + li, { size: 13.5, w: 700, anchor: 'end' });
-          g += h.txt(mx + 2, ly + 22, '→', { size: 13, fill: C.muted });
+          g += h.txt(mx - 8, ly + 26, 'v' + li, { size: 13.5, w: 700, anchor: 'end' });
+          g += h.txt(mx + 2, ly + 26, '→', { size: 13, fill: C.muted });
           var nb = s.adj[li] || [];
           nb.forEach(function (w, k4) {
             var bx = mx + 18 + k4 * 62;
@@ -260,11 +260,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         }
         g += h.txt(mx + 100, my + N * rowGap + 8, '黄色 = 当前正在检查的邻接点｜绿 = 已访问', { size: 11.5, fill: C.muted });
       } else {
-        g += h.txt(mx + 3 * cell, my - 22, '邻接矩阵', { size: 14, w: 600 });
-        g += h.txt(mx - 14, my + 6, ' ', { size: 10 });
-        for (var j = 1; j <= N; j++) g += h.txt(mx + (j - 0.5) * cell, my + 6, String(j), { size: 11, fill: C.muted });
+        g += h.txt(mx + 3 * cell, my - 34, '邻接矩阵', { size: 14, w: 600 });
+        // 列号必须画在网格上方：格子带不透明填充且绘制在后，画在网格内会被第一行盖住
+        for (var j = 1; j <= N; j++) g += h.txt(mx + (j - 0.5) * cell, my - 9, String(j), { size: 11, fill: C.muted });
+        g += h.txt(mx - 30, my - 9, '行＼列', { size: 10, fill: C.muted });
         for (var a = 1; a <= N; a++) {
-          g += h.txt(mx - 12, my + (a - 0.5) * cell + 14, String(a), { size: 11, fill: C.muted });
+          g += h.txt(mx - 12, my + (a - 0.5) * cell + 5, String(a), { size: 11, fill: C.muted });
           for (var b = 1; b <= N; b++) {
             var v = s.mat[a - 1][b - 1];
             var f = v ? C.blueBg : '#fff';
@@ -278,7 +279,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       }
       // 栈 / 队列
       if (s.method === 'dfs') {
-        var sy = s.storage === 'list' ? 420 : 330;
+        var sy = s.storage === 'list' ? 420 : 348;
         g += h.txt(820, sy - 16, '递归栈', { size: 13, fill: C.muted, w: 600 });
         for (var k2 = 0; k2 < s.stack.length; k2++) {
           var yy = sy + (s.stack.length - 1 - k2) * 36;
@@ -288,7 +289,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         }
         if (!s.stack.length) g += h.txt(862, sy + 20, '（空）', { size: 13, fill: C.muted });
       } else {
-        var qy = s.storage === 'list' ? 430 : 340;
+        var qy = s.storage === 'list' ? 430 : 356;
         g += h.txt(820, qy - 16, '队列', { size: 13, fill: C.muted, w: 600 });
         s.queue.forEach(function (u, k3) {
           g += h.rect(762 + k3 * 70, qy, 62, 34, { fill: k3 === 0 ? C.blueBg : '#fff', stroke: k3 === 0 ? C.blue : C.grey, rx: 6 });

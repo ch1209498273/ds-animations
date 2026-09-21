@@ -180,6 +180,36 @@ console.log('— 第6章 DFS/BFS —');
   const bl = M.dfsBfs.run({ method: 'bfs', start: '2', storage: 'list' });
   t('邻接表(头插) BFS(2): 2,5,1,4,3,6', JSON.stringify(last(bl).seq) === JSON.stringify([2, 5, 1, 4, 3, 6]), last(bl).seq);
   t('邻接表顺序与矩阵相反（头插法）', JSON.stringify(last(dl).adj['2']) === JSON.stringify([5, 1]) && last(dl).adj['1'][0] === 3, last(dl).adj);
+  // 画布几何：邻接矩阵的行列标注位置（回归用——列号曾被第一行的不透明格子盖住）
+  const MF = M.dfsBfs.run({ method: 'dfs', start: '2' }).frames[6];
+  const mtxSvg = M.dfsBfs.render(MF.snap);
+  const texts = [];
+  (mtxSvg.match(/<text x="([^"]+)" y="([^"]+)" font-size="([^"]+)"[^>]*>([^<]*)<\/text>/g) || [])
+    .forEach(s => { const m = s.match(/x="([^"]+)" y="([^"]+)"/); const c = s.match(/>([^<]*)<\/text>/);
+      texts.push({ x: +m[1], y: +m[2], s: c[1] }); });
+  // 从实际画出的格子反推网格位置，不写死常量——否则测试只是把新代码抄一遍，抓不到旧 bug
+  const cells = [];
+  (mtxSvg.match(/<rect x="([^"]+)" y="([^"]+)" width="([^"]+)" height="([^"]+)"/g) || [])
+    .forEach(s => { const m = s.match(/x="([^"]+)" y="([^"]+)" width="([^"]+)"/);
+      cells.push({ x: +m[1], y: +m[2], w: +m[3] }); });
+  const grid = cells.filter(c => c.w > 20 && c.w < 40 && c.x >= 750);
+  const gridTop = grid.length ? Math.min.apply(null, grid.map(c => c.y)) : -1;
+  const colHdr = texts.filter(o => /^[1-6]$/.test(o.s) && o.x > 750 && o.y < gridTop + 1 && gridTop > 0);
+  t('邻接矩阵：列号在网格顶边之上（旧 bug 是画在格子里被不透明填充盖住）',
+    gridTop > 0 && colHdr.length >= 6, { gridTop: gridTop, hdr: colHdr.length });
+  // 行由格子的 y 决定（x 决定的是列），按 y 归组得到每行的行顶
+  const rowTops = Array.from(new Set(grid.map(c => c.y))).sort((p, q) => p - q);
+  const rowHdrOk = [1, 2, 3, 4, 5, 6].every(a => {
+    const top = rowTops[a - 1];
+    return top !== undefined && texts.some(o => o.s === String(a) && o.x < 762
+      && o.y > top && o.y < top + 28);
+  });
+  t('邻接矩阵：行号落在自己那一行的格子带内', rowHdrOk,
+    { rowTops: rowTops, labels: texts.filter(o => /^[1-6]$/.test(o.s) && o.x < 762).map(o => o.y) });
+  const scan = texts.find(o => o.s.indexOf('行扫描') === 0);
+  const stk = texts.find(o => o.s === '递归栈');
+  t('邻接矩阵：行扫描说明与"递归栈"标题不重叠', !!scan && !!stk && (stk.y - scan.y) > 10,
+    scan && stk ? [scan.y, stk.y] : 'missing');
 }
 
 console.log('— 第6章 最小生成树 —');
