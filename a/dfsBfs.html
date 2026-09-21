@@ -21,7 +21,7 @@
     <button id="btnProj" title="投影模式：放大画面文字、收起导航条，适合课堂投屏">🖥 投影</button>
     <button id="btnPresent" title="放映模式：全屏投放，保留翻页/播放/缩放/进度条；⋯ 展开完整操作台，Esc 退出">⛶ 放映</button>
   </span>
-  <span class="ver">v2.3 · 构建 2026-09-21 19:56</span>
+  <span class="ver">v2.3 · 构建 2026-09-21 20:09</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -168,13 +168,17 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           stack.push('DFS(v' + u + ')');
           visit(u, from === undefined ? null : from);
           ADJ[u].forEach(function (w) {
+            cur = u;                  // 当前结点必须跟着"正在扫谁的行"走：递归返回到祖先时，
+                                      // 若仍停在最后访问的点上，画面会显示"人在 v6、却在扫 v2 的行"
             checkCell = { r: u, c: w };
             if (!visited[w]) {
               F([2, 3], '检查 v' + u + ' 的邻接点 v' + w + '：未访问 → 递归调用 DFS(v' + w + ')。',
                 { 递归栈: stack.join(' → '), 已访问: seq.join(' → ') }, snap({}));
               dfs(w, u);
             } else {
-              F([3, 4], '检查 v' + u + ' 的邻接点 v' + w + '：已访问，跳过（避免绕回路）。', { 递归栈: stack.join(' → ') }, snap({}));
+              F([3, 4], (seq.length === N ? '【回溯收尾】' : '') + '检查 v' + u + ' 的邻接点 v' + w + '：已访问，跳过（避免绕回路）。' +
+                (seq.length === N ? '全部结点已访问完，这些检查是递归返回前的收尾，不产生新结点。' : ''),
+                { 递归栈: stack.join(' → ') }, snap({}));
             }
           });
           checkCell = null;

@@ -1,7 +1,7 @@
 <div align="center">
   <img src="assets/banner.png" alt="《数据结构》互动课件" width="100%">
 
-  ![版本](https://img.shields.io/badge/版本-v2.3-2b6cb0) ![动画](https://img.shields.io/badge/算法动画-42个-2f855a) ![覆盖](https://img.shields.io/badge/覆盖-全部8章·对齐408考纲-c05621) ![测试](https://img.shields.io/badge/正确性断言-299项通过-553c9a) ![依赖](https://img.shields.io/badge/依赖-零·单文件-4a5568)
+  ![版本](https://img.shields.io/badge/版本-v2.3-2b6cb0) ![动画](https://img.shields.io/badge/算法动画-42个-2f855a) ![覆盖](https://img.shields.io/badge/覆盖-全部8章·对齐408考纲-c05621) ![测试](https://img.shields.io/badge/正确性断言-301项通过-553c9a) ![依赖](https://img.shields.io/badge/依赖-零·单文件-4a5568)
 
   **[▶ 在线打开（点开就用）](https://ch1209498273.github.io/ds-animations/) ｜ [⬇ 下载单文件 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v2.3.zip)**
 
