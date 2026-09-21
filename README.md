@@ -1,9 +1,9 @@
 <div align="center">
   <img src="assets/banner.png" alt="《数据结构》互动课件" width="100%">
 
-  ![版本](https://img.shields.io/badge/版本-v2.3-2b6cb0) ![动画](https://img.shields.io/badge/算法动画-42个-2f855a) ![覆盖](https://img.shields.io/badge/覆盖-全部8章·对齐408考纲-c05621) ![测试](https://img.shields.io/badge/正确性断言-301项通过-553c9a) ![依赖](https://img.shields.io/badge/依赖-零·单文件-4a5568)
+  ![版本](https://img.shields.io/badge/版本-v2.4-2b6cb0) ![动画](https://img.shields.io/badge/算法动画-42个-2f855a) ![覆盖](https://img.shields.io/badge/覆盖-全部8章·对齐408考纲-c05621) ![测试](https://img.shields.io/badge/正确性断言-301项通过-553c9a) ![依赖](https://img.shields.io/badge/依赖-零·单文件-4a5568)
 
-  **[▶ 在线打开（点开就用）](https://ch1209498273.github.io/ds-animations/) ｜ [⬇ 下载单文件 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v2.3.zip)**
+  **[▶ 在线打开（点开就用）](https://ch1209498273.github.io/ds-animations/) ｜ [⬇ 下载单文件 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v2.4.zip)**
 
   © 2026 **芦老师聊AI** · 版权归芦老师聊AI所有，未经授权不得商用
 
@@ -19,7 +19,7 @@
 - 🎯 **为课堂而生**：单屏展示不滚动、教材伪代码随执行高亮、首帧操作引导、🖥 投影模式
 - 🔬 **为理解而生**：不只演示"正确的做法"，还演示**错误的做法**（顺序表从前向后移会怎样？链表先断后连会怎样？）——对照着看才真正懂
 - ✍️ **为放映而生**：⛶ 全屏放映只留画面与播控（`C` 键放映中直接切动画）；自动播放按解说长度定帧（约 1.1~2.2 秒/帧），不再一闪而过；「第 N 趟/轮」边界自动多停一拍，`PageDown`/`PageUp` 按节拍跳转
-- 📱 **也为手机而生**：≤700px 独立布局（页头压到 85px、舞台占半屏以上、可点元素全部达 44px 触摸标准），画面上单指横滑翻页、双指捏合缩放、双击放大看标注——课后复习不用等教室的多媒体
+- 📱 **也为手机而生**：≤700px 独立布局（页头压到 85px、舞台占半屏以上、可点元素全部达 44px 触摸标准），画面上单指横滑翻页、双指捏合缩放、双击放大看标注；**⛶ 手机放映**（v2.4）只留画面 + 两个大按钮，横屏下画布按宽度铺满、字号 8~9px，竖屏自动转横屏——学生手机上看得清
 - ⌨️ **操作顺手**：单步 / 回退 / 自动播放 / 0.25–4× 变速 / 进度条任意拖动 / 键盘 ← → 空格 Home End / 画面缩放平移（`Ctrl`+滚轮、`⋯ 更多` 展开完整操作台）/ 一键截图（自动带版权水印）/ ☰ 总目录直达
 - 🔗 **单动画分享页**：每个动画一个独立网页（约 60KB）+ 二维码，分享出去只打开那一个动画——[示例](https://ch1209498273.github.io/ds-animations/a/heapSort.html)
 - 🛡 **错误演示场景**：双向链表指针操作顺序颠倒、单链表先断后连……演给你看"为什么不能这么写"
@@ -63,7 +63,7 @@
 
 **方式一 · 在线用**：打开 [ch1209498273.github.io/ds-animations](https://ch1209498273.github.io/ds-animations/)，点开即用。
 
-**方式二 · 本地用（推荐课堂场景）**：[下载 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v2.3.zip)，解压双击 `数据结构动画课件.html`——不联网、不装任何环境，教室机也能跑。
+**方式二 · 本地用（推荐课堂场景）**：[下载 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v2.4.zip)，解压双击 `数据结构动画课件.html`——不联网、不装任何环境，教室机也能跑。
 
 **方式三 · 开发者**：
 
@@ -97,10 +97,12 @@ node tests/test.js   # 288 项正确性断言
 ## 常见问题
 
 **Q：github.io 打不开 / 很慢？**
-国内访问 GitHub Pages 不稳定。下载 zip（[仓库内直链](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v2.3.zip)），解压双击打开，体验完全一致。
+国内访问 GitHub Pages 不稳定。下载 zip（[仓库内直链](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v2.4.zip)），解压双击打开，体验完全一致。
 
 **Q：手机上能用吗？**
-能用（v2.3 起）。≤700px 走独立布局：页头压到 85px、舞台占半屏以上、可点元素全部达到 44px 触摸标准；画面上单指横滑翻页、双指捏合缩放、双击放大看标注。注意画布文字在手机上不放大是看不清的——看不清就双击或捏合放大，这是画布坐标系决定的，不是没做适配。
+**Q：手机上能用吗？**
+能用，v2.4 起推荐用 **⛶ 手机放映**：只留画面 + 底部两个大按钮，横屏下画布按宽度铺满（实测最小字号 8~9px），竖屏进入会自动转成横屏；翻到首末步会提示并轻震，右上角 ✕ 退出。普通浏览模式下也能横滑翻页、捏合缩放、双击放大。
+注意画布是 980×500 的横宽比，**竖屏下宽度只有 390px，字必然只有 4~5px**——这不是没做适配，是几何决定的，请用横屏或双击放大。
 
 **Q：不是这个教材/学校能用吗？**
 可以。界面只对齐《数据结构（C语言版）》通用章节体系（严蔚敏经典八章），不绑定任何学校；两套教材章节编号兼容。
