@@ -184,6 +184,22 @@
         g += h.txt(sp.x + cw / 2, sp.y + 30, String(s.sFloat), { size: 16, w: 700, fill: C.blue });
         g += h.txt(sp.x + cw / 2, sp.y + 66, '新结点 s', { size: 11, fill: C.blue, w: 700 });
       }
+      /* 同一条链上"两条 prior 的中点会撞在一起"（跨过中间结点时尤其明显），
+         所以标签按占位记录逐个让位：next 往上抬、prior 往下压 */
+      var placed = [];
+      function tw(str, size) {
+        var w = 0;
+        for (var q = 0; q < str.length; q++) w += str.charCodeAt(q) > 255 ? size : size * 0.55;
+        return w;
+      }
+      function put(x, y, str, o) {
+        var w = tw(str, o.size), yy = y, n = 0;
+        while (n++ < 6 && placed.some(function (p) {
+          return Math.abs(p.x - x) < (p.w + w) / 2 + 3 && Math.abs(p.y - yy) < o.size + 4;
+        })) yy += o.up ? -14 : 14;
+        placed.push({ x: x, y: yy, w: w });
+        g += h.txt(x, yy, str, o);
+      }
       s.links.forEach(function (lk) {
         var A = pos(lk.f), B = pos(lk.t);
         if (!A || !B) return;
@@ -216,11 +232,20 @@
           g += h.curve(x1, y - 6, (x1 + x2) / 2, y - 92, x2, y - 6, { stroke: stroke, sw: sw, head: 8, dash: lk.st === 'cut' ? '5,4' : null });
           return;
         }
+        if (lk.k === 'prior' && x2 > x1) {
+          /* 回环 prior（头结点的 prior 指向尾结点）：跨过整排结点，画下方大弧线，
+             否则它的标签会正好落在中间那条 prior 的标签上 */
+          g += h.curve(x1, y + 54, (x1 + x2) / 2, y + 138, x2, y + 54, { stroke: stroke, sw: sw, head: 8, dash: lk.st === 'cut' ? '5,4' : null });
+          put((x1 + x2) / 2, y + 156, lk.st === 'new' ? 'prior 新建（环）' : 'prior（环）',
+            { size: 10.5, fill: lk.st === 'new' ? C.blue : C.muted, w: 700 });
+          return;
+        }
         if (lk.k === 'next') g += h.arrow(Math.min(x1, x2) + 6, yl, Math.max(x1, x2) - 6, yl, { stroke: stroke, sw: sw, head: 8, dash: lk.st === 'cut' ? '5,4' : null });
         else g += h.arrow(Math.max(x1, x2) - 6, yl, Math.min(x1, x2) + 6, yl, { stroke: stroke, sw: sw, head: 8, dash: lk.st === 'cut' ? '5,4' : null });
-        if (lk.st === 'new') g += h.txt((x1 + x2) / 2, top ? yl - 8 : yl + 16, lk.k === 'next' ? 'next 新建' : 'prior 新建', { size: 10.5, fill: C.blue, w: 700 });
-        else if (lk.st === 'cut') g += h.txt((x1 + x2) / 2, top ? yl - 8 : yl + 16, '✗ 断开', { size: 10.5, fill: C.red, w: 700 });
-        else g += h.txt((x1 + x2) / 2, top ? yl - 8 : yl + 14, lk.k, { size: 9.5, fill: C.muted });
+        var lx = (x1 + x2) / 2;
+        if (lk.st === 'new') put(lx, top ? yl - 8 : yl + 16, lk.k === 'next' ? 'next 新建' : 'prior 新建', { size: 10.5, fill: C.blue, w: 700, up: top });
+        else if (lk.st === 'cut') put(lx, top ? yl - 8 : yl + 16, '✗ 断开', { size: 10.5, fill: C.red, w: 700, up: top });
+        else put(lx, top ? yl - 8 : yl + 14, lk.k, { size: 9.5, fill: C.muted, up: top });
       });
       if (s.op === 'cyc') {
         var lastP = pos(nodes[nodes.length - 1]), firstP = pos(nodes[0]);

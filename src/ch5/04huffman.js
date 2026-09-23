@@ -86,7 +86,14 @@
         o.ht = HT.map(function (t) { return t ? { w: t.w, ch: t.ch, parent: t.parent, lch: t.lch, rch: t.rch } : null; });
         o.n = n; o.m = m; o.codes = Object.assign({}, codes); o.wpl = wpl; o.treeReady = treeReady;
         o.codeTable = HT.slice(1, n + 1).filter(function (t) { return t.ch && codes[t.ch]; }).map(function (t) { return { ch: t.ch, code: codes[t.ch] }; });
-        o.coords = coords; o.hl = o.hl || {}; o.decode = decode ? { at: decode.at, step: decode.step, out: decode.out.slice() } : null;
+        /* 树越深越要压行距：否则最深的叶子标签会压到底部的编码表和收集器上 */
+        var cs = {}, maxD = 1;
+        Object.keys(coords).forEach(function (k) { if (coords[k].depth > maxD) maxD = coords[k].depth; });
+        var vstep = Math.min(78, Math.floor(310 / maxD));
+        Object.keys(coords).forEach(function (k) {
+          cs[k] = Object.assign({}, coords[k], { y: 130 + coords[k].depth * vstep });
+        });
+        o.coords = cs; o.hl = o.hl || {}; o.decode = decode ? { at: decode.at, step: decode.step, out: decode.out.slice() } : null;
         o.decodeBits = decodeBits ? decodeBits.slice() : null; o.decodeOut = decodeOut.slice();
         o.maxIdx = curMaxIdx;
         return o;
@@ -279,12 +286,13 @@
       }
       }
       // 右侧 HT 表
-      var tx = 830, tw = 300, rh = 26;
+      /* 行数多时要压行高，保证表格下方的图例不会被挤到底部编码表那一栏上 */
+      var tx = 830, tw = 300, rh = Math.min(26, Math.floor(392 / Math.max(s.m + 1, 1)));
       g += h.txt(tx + tw / 2, 52, 'HT 数组（1 起）', { size: 14, w: 600 });
       var cols = [['i', 30], ['ch', 40], ['w', 50], ['parent', 62], ['lch', 52], ['rch', 52]];
       var cx2 = tx;
       g += h.rect(tx, 62, tw, rh, { fill: '#0f2c5c', stroke: 'none' });
-      cols.forEach(function (cc) { g += h.txt(cx2 + cc[1] / 2, 80, cc[0], { size: 11.5, fill: '#fff' }); cx2 += cc[1]; });
+      cols.forEach(function (cc) { g += h.txt(cx2 + cc[1] / 2, 62 + rh - 8, cc[0], { size: 11.5, fill: '#fff' }); cx2 += cc[1]; });
       for (var r = 1; r <= s.m; r++) {
         var row = s.ht[r], y = 62 + r * rh;
         var rf = '#fff';
@@ -294,7 +302,7 @@
         g += h.rect(tx, y, tw, rh, { fill: rf, stroke: '#e2e8f0', sw: 0.75, rx: 0 });
         var vals = [r, row.ch || '—', row.w, row.parent, row.lch, row.rch];
         var cx3 = tx;
-        cols.forEach(function (cc, k) { g += h.txt(cx3 + cc[1] / 2, y + 18, vals[k], { size: 12, family: 'Consolas,monospace' }); cx3 += cc[1]; });
+        cols.forEach(function (cc, k) { g += h.txt(cx3 + cc[1] / 2, y + rh - 8, vals[k], { size: Math.min(12, rh - 5), family: 'Consolas,monospace' }); cx3 += cc[1]; });
       }
       if (!s.decodeBits) g += h.txt(tx + tw / 2, 62 + (s.m + 1) * rh + 26, 's1=左(0) s2=右(1) ｜ 黄=本次选中 ｜ 绿=新结点', { size: 11.5, fill: C.muted });
       // 编码收集器：按收集顺序（叶→根）显示已收到的位；结束后给出逆置结果

@@ -106,7 +106,8 @@ function t(name, cond, extra) {
 }
 
 const VIEWS = [['目录页', ''], ['堆排序', '#m=heapSort'], ['顺序表', '#m=seqList'],
-  ['最小生成树', '#m=mst'], ['链栈与链队列', '#m=linkStackQueue']];
+  ['最小生成树', '#m=mst'], ['链栈与链队列', '#m=linkStackQueue'],
+  ['广义表', '#m=glist'], ['链表三道题', '#m=linkProblems']];
 VIEWS.forEach(function (v) {
   const o = measure(v[1]);
   if (!o) { t('手机视口 ' + v[0] + ': 量测成功', false, '探针无输出'); return; }
@@ -124,7 +125,7 @@ VIEWS.forEach(function (v) {
    那意味着高画布（980×620）等比只能缩到 0.5 上下，字号物理上到不了 8px，
    所以这里守的是"完整可见"，字号只留一个下限防止再度缩到看不清 */
 [['堆排序', '#m=heapSort&mp=1'], ['循环队列', '#m=circQueue&mp=1'], ['Dijkstra', '#m=dijkstra&mp=1'],
-  ['B+ 树', '#m=btree&mp=1']].forEach(function (v) {
+  ['B+ 树', '#m=btree&mp=1'], ['链表三道题', '#m=linkProblems&mp=1']].forEach(function (v) {
   const o = measure(v[1], 844, 390);
   if (!o) { t('手机放映 ' + v[0] + ': 量测成功', false, '探针无输出'); return; }
   t('手机放映 ' + v[0] + ': 画布完整落在窗口内（不需拖动）', o.canvasFits === true, { fits: o.canvasFits, stage: o.stage });

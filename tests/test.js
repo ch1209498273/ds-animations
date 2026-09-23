@@ -189,6 +189,51 @@ console.log('— 第3章 汉诺塔 —');
   t('最终全在 C 柱', last(r3).pegs.C.length === 3 && last(r3).pegs.A.length === 0 && last(r3).pegs.B.length === 0);
 }
 
+console.log('— 第4章 广义表 —');
+{
+  const b = {};
+  (M.glist.inputs || []).forEach(x => { b[x.key] = x.type === 'checkbox' ? !!x.value : x.value; });
+  const run = (sc, lst) => M.glist.run(Object.assign({}, b, { scene: sc, lst: lst }));
+  const last = r => r.frames[r.frames.length - 1];
+  const res = (sc, lst) => last(run(sc, lst)).panel['结果'];
+
+  /* 教材例题 LS = (a,(b,c),(),d) */
+  const LS = '(a,(b,c),(),d)';
+  t('广义表: GetHead(LS) = a（原子）', res('head', LS) === 'a', res('head', LS));
+  t('广义表: GetTail(LS) = ((b,c),(),d)（是一张表，保留括号）',
+    res('tail', LS) === '((b,c),(),d)', res('tail', LS));
+  t('广义表: Length(LS) = 4（子表与空表各算一个元素）', res('len', LS) === '4', res('len', LS));
+  t('广义表: Depth(LS) = 2', res('depth', LS) === '2', res('depth', LS));
+  /* 嵌套到最深处 */
+  t('广义表: Depth((a,(b,(c,(d))))) = 4', res('depth', '(a,(b,(c,(d))))') === '4', res('depth', '(a,(b,(c,(d))))'));
+  t('广义表: Length((((a)))) = 1（长度不递归，4 层括号也只算 1 个元素）', res('len', '((((a))))') === '1', res('len', '((((a))))'));
+  t('广义表: Depth((((a)))) = 4', res('depth', '((((a))))') === '4', res('depth', '((((a))))'));
+  /* 空表陷阱 */
+  t('广义表: Length(((),())) = 2', res('len', '((),())') === '2', res('len', '((),())'));
+  t('广义表: Depth(((),())) = 2（空表本身算一层）', res('depth', '((),())') === '2', res('depth', '((),())'));
+  t('广义表: 纯原子表深度为 1', res('depth', '(a,b,c)') === '1', res('depth', '(a,b,c)'));
+  /* 表头可以是子表 */
+  t('广义表: 首元素是子表时 GetHead 返回整张子表',
+    res('head', '((b,c),d)') === '(b,c)', res('head', '((b,c),d)'));
+  /* 表尾只剩一个元素时 */
+  t('广义表: 两个元素的表，表尾是单元素表', res('tail', '(a,b)') === '(b)', res('tail', '(a,b)'));
+  t('广义表: 单元素表的表尾是 NULL（不是空表）', res('tail', '(a)') === 'NULL', res('tail', '(a)'));
+  /* 帧序：深度场景必须真的递归进子表，而不是只报一个数 */
+  const dp = run('depth', LS);
+  t('广义表: 深度演示真的递归进了子表',
+    dp.frames.some(f => /进入子表/.test(f.msg)) && dp.frames.some(f => /空表 `\(\)` 里面没有元素/.test(f.msg)),
+    dp.frames.map(f => f.msg.slice(0, 18)).join(' | '));
+  t('广义表: 深度场景每帧消息完整（不出现 undefined/NaN）',
+    dp.frames.every(f => !/undefined|NaN/.test(f.msg + JSON.stringify(f.panel))));
+  /* 解析边界 */
+  let e1 = '', e2 = '', e3 = '';
+  try { run('len', 'a,b'); } catch (e) { e1 = e.message; }
+  try { run('len', '(a,(b)'); } catch (e) { e2 = e.message; }
+  try { run('len', '(a,,b)'); } catch (e) { e3 = e.message; }
+  t('广义表: 缺外层括号/缺右括号/空元素都明确报错',
+    /以 \( 开头/.test(e1) && /右括号/.test(e2) && /逗号/.test(e3), [e1, e2, e3]);
+}
+
 console.log('— 第5章 二叉树遍历 —');
 {
   const mk = mode => M.traversal.run({ mode, data: 'GDA##FE###MH##Z##' });
@@ -291,6 +336,127 @@ console.log('— 第5章 并查集 —');
   try { M.ufset.run(Object.assign({}, base, { pairs: '01' })); } catch (e) { bad2 = e.message; }
   t('并查集: 下标越界要报错', /0~7/.test(bad1), bad1);
   t('并查集: 缺横线的请求格式要报错', /a-b/.test(bad2), bad2);
+}
+
+console.log('— 第5章 二叉树顺序存储与性质 —');
+{
+  const b = {};
+  (M.treeSeqStore.inputs || []).forEach(x => { b[x.key] = x.type === 'checkbox' ? !!x.value : x.value; });
+  const run = o => M.treeSeqStore.run(Object.assign({}, b, o));
+  const fin = r => r.frames[r.frames.length - 1].snap;
+  const idxOf = r => fin(r).nodes.map(x => x.i);
+
+  const rg = run({ mode: 'right', scene: 'map' });
+  t('顺序存储: 右斜链 4 个结点的下标是 1/3/7/15', idxOf(rg).join(',') === '1,3,7,15', idxOf(rg).join(','));
+  t('顺序存储: 右斜链要开到 15 格、浪费 73%', fin(rg).cells === 15 &&
+    rg.frames.some(f => /73%/.test(f.msg) || f.panel['浪费'] === '73%'), fin(rg).cells);
+  const fu = run({ mode: 'full', scene: 'map' });
+  t('顺序存储: 满二叉树 7 结点占 7 格、零浪费', fin(fu).cells === 7 && idxOf(fu).join(',') === '1,2,3,4,5,6,7', idxOf(fu).join(','));
+  const sp = run({ mode: 'sparse', scene: 'map' });
+  t('顺序存储: 不完全树出现空格（3 号位没有结点）', idxOf(sp).join(',') === '1,2,4,5', idxOf(sp).join(','));
+
+  /* 编号公式：每个结点的父 = ⌊i/2⌋，孩子 = 2i / 2i+1，且父必须在树里 */
+  [['full', '1,2,3,4,5,6,7'], ['right', '1,3,7,15'], ['sparse', '1,2,4,5']].forEach(([mo, want]) => {
+    const ids = idxOf(run({ mode: mo, scene: 'map' })).map(Number);
+    const bad = ids.filter(i => i > 1 && ids.indexOf(Math.floor(i / 2)) < 0);
+    t('顺序存储: ' + mo + ' 树每个结点的 ⌊i/2⌋ 都在数组里（编号自洽）', bad.length === 0, bad);
+  });
+
+  /* 性质③ n0 = n2 + 1 必须对三种树都成立（不是只演满树） */
+  ['full', 'right', 'sparse'].forEach(mo => {
+    const r = run({ mode: mo, scene: 'props' });
+    const f = r.frames.find(fr => /n₀ = n₂ \+ 1|性质③/.test(fr.msg));
+    const m0 = f.msg.match(/叶子 n₀ = (\d+)、度为 2 的 n₂ = (\d+)/);
+    t('二叉树性质: ' + mo + ' 满足 n₀ = n₂ + 1', m0 && +m0[1] === +m0[2] + 1, m0 && m0.slice(1, 3).join('/'));
+    t('二叉树性质: ' + mo + ' 的帧文案自带校验勾', /✓/.test(f.msg), f.msg.slice(-30));
+  });
+  const pf = run({ mode: 'full', scene: 'props' });
+  t('二叉树性质: 满树深度 3、2^3−1=7 取满', /2\^h − 1 = 7/.test(pf.frames[1].msg), pf.frames[1].msg.slice(0, 60));
+  t('二叉树性质: 完全树深度公式 ⌊log₂7⌋+1 = 3', /⌊log₂n⌋ \+ 1 = ⌊2\.807⌋ \+ 1 = 3/.test(pf.frames[3].msg), pf.frames[3].msg.slice(0, 70));
+  const pr = run({ mode: 'right', scene: 'props' });
+  t('二叉树性质: 右斜链第 i 层只有 1 个结点（对比上限 2^(i−1)）', /第1层 1 个（上限 1）/.test(pr.frames[0].msg), pr.frames[0].msg.slice(0, 80));
+}
+
+console.log('— 第5章 树的三种存储结构 —');
+{
+  const b = {};
+  (M.treeStore.inputs || []).forEach(x => { b[x.key] = x.type === 'checkbox' ? !!x.value : x.value; });
+  const run = o => M.treeStore.run(Object.assign({}, b, o));
+  const msgOf = r => r.frames.map(f => f.msg).join('\n');
+  const panOf = r => r.frames.map(f => f.panel);
+
+  /* 三种表示的代价必须真的不同，而不是三段文案各说各话 */
+  const pa = run({ way: 'parent', target: 'A' }), ch = run({ way: 'child', target: 'A' }), sb = run({ way: 'sib', target: 'A' });
+  t('树存储: 双亲表示法找 A 的孩子要扫满 8 格', /扫到第 8 格/.test(msgOf(pa)) && /全表扫完 8 格/.test(msgOf(pa)));
+  t('树存储: 双亲表示法找爹只碰 1 格', panOf(pa).some(x => x['访问格数'] === '1 格'), panOf(pa).map(x => x['访问格数']));
+  t('树存储: 孩子表示法找爹要遍历 8 条链表', /查到 list\[7\]/.test(msgOf(ch)) && /遍历了 8 条链表/.test(msgOf(ch)));
+  t('树存储: 孩子表示法找 A 的孩子不碰其它结点', /不碰其它结点/.test(msgOf(ch)));
+  t('树存储: 孩子兄弟表示法顺兄弟链拿孩子', /nextsibling/.test(msgOf(sb)) && /大孩子 B/.test(msgOf(sb)));
+  t('树存储: 孩子兄弟表示法找爹只能自顶向下搜', /根本没存爹|本身就是根/.test(msgOf(sb)));
+  ['parent', 'child', 'sib'].forEach(w => {
+    const r = run({ way: w, target: 'B' });
+    t('树存储: ' + w + ' 有明确的结论帧', r.frames[r.frames.length - 1].snap.done === true && /★/.test(r.frames[r.frames.length - 1].msg));
+  });
+  /* 结构数据自洽：KID 与 PAR 必须互逆，否则高亮会指错 */
+  let eb = '';
+  try { M.treeStore.run(Object.assign({}, b, { target: 'Z' })); } catch (e) { eb = e.message; }
+  t('树存储: 非法结点明确报错', /A~H/.test(eb), eb);
+}
+
+console.log('— 第5章 堆与优先队列 —');
+{
+  const b = {};
+  (M.heapPQ.inputs || []).forEach(x => { b[x.key] = x.type === 'checkbox' ? !!x.value : x.value; });
+  const run = o => M.heapPQ.run(Object.assign({}, b, o));
+  const fin = r => r.frames[r.frames.length - 1].snap;
+  function isMaxHeap(a) {
+    for (let i = 1; i < a.length; i++) {
+      if (2 * i < a.length && a[i] < a[2 * i]) return 'r[' + i + '] < r[' + 2 * i + ']';
+      if (2 * i + 1 < a.length && a[i] < a[2 * i + 1]) return 'r[' + i + '] < r[' + (2 * i + 1) + ']';
+    }
+    return '';
+  }
+  function isMinHeap(a) {
+    for (let i = 1; i < a.length; i++) {
+      if (2 * i < a.length && a[i] > a[2 * i]) return 'r[' + i + '] > r[' + 2 * i + ']';
+      if (2 * i + 1 < a.length && a[i] > a[2 * i + 1]) return 'r[' + i + '] > r[' + (2 * i + 1) + ']';
+    }
+    return '';
+  }
+  const D = '49,38,65,97,76,13,27,49';
+  const bd = run({ scene: 'build', data: D });
+  const heap = fin(bd).arr.slice(1);
+  t('堆: 教材序列建堆结果是 97 76 65 49 49 13 27 38', heap.join(',') === '97,76,65,49,49,13,27,38', heap.join(','));
+  t('堆: 建堆结果逐格满足大顶堆', isMaxHeap(fin(bd).arr) === '', isMaxHeap(fin(bd).arr));
+  t('堆: 建堆结果仍是原集合（多重集守恒）',
+    heap.slice().sort((x, y) => x - y).join(',') === D.split(',').map(Number).sort((x, y) => x - y).join(','), heap.join(','));
+  t('堆: 堆顶是最大值', fin(bd).arr[1] === 97, fin(bd).arr[1]);
+  t('堆: 建堆从 ⌊n/2⌋ 开始筛', /⌊n\/2⌋ = 4/.test(bd.frames[1].msg), bd.frames[1].msg.slice(0, 60));
+
+  const pp = run({ scene: 'pq', data: D, op: 'pop' });
+  const popped = fin(pp).out;
+  t('堆: 连续出队得到降序（堆排序原理）',
+    popped.join(',') === '97,76,65,49,49,38,27,13', popped.join(','));
+  t('堆: 出队次数等于元素个数', popped.length === 8, popped.length);
+  const pm = run({ scene: 'pq', data: D, op: 'mix' });
+  t('堆: 交替出入队后堆序仍成立', isMaxHeap(fin(pm).arr.slice(0, fin(pm).n + 1)) === '',
+    fin(pm).arr.slice(1, fin(pm).n + 1).join(','));
+  t('堆: 入队 100 会浮到堆顶', /100/.test(fin(pm).out.join(' ')), fin(pm).out.join(' '));
+  const pu = run({ scene: 'pq', data: D, op: 'push' });
+  t('堆: 连续入队后仍是合法大顶堆', isMaxHeap(pu.frames[pu.frames.length-1].snap.arr.slice(0, pu.frames[pu.frames.length-1].snap.n + 1)) === '');
+  t('堆: 入队版结论不再谎称"出队 0 次"', /不是有序的/.test(pu.frames[pu.frames.length - 1].msg), pu.frames[pu.frames.length - 1].msg.slice(0, 50));
+
+  const tk = run({ scene: 'topk', data: D, k: 3 });
+  const topk = fin(tk).arr.slice(1).sort((x, y) => y - x);
+  t('堆: Top-3 = 97 76 65', topk.join(',') === '97,76,65', topk.join(','));
+  t('堆: Top-K 用的是小顶堆（守门员在堆顶）', isMinHeap(fin(tk).arr) === '', isMinHeap(fin(tk).arr));
+  t('堆: Top-K 榜容量恒为 K', fin(tk).arr.length - 1 === 3, fin(tk).arr.length - 1);
+  const tk2 = run({ scene: 'topk', data: '5,1,9,7,3', k: 2 });
+  t('堆: Top-2 of 5,1,9,7,3 = 9,7', fin(tk2).arr.slice(1).sort((x, y) => y - x).join(',') === '9,7', fin(tk2).arr.slice(1).join(','));
+  t('堆: 比守门员小的数被丢弃且不进堆', /直接丢弃/.test(tk2.frames.map(f => f.msg).join('\n')));
+  let eb = '';
+  try { M.heapPQ.run(Object.assign({}, b, { data: '1,2' })); } catch (e) { eb = e.message; }
+  t('堆: 少于 4 个关键字要报错', /4~12/.test(eb), eb);
 }
 
 console.log('— 第6章 DFS/BFS —');
@@ -460,6 +626,211 @@ console.log('— 第6章 拓扑排序 —');
   const rc = M.topo.run({ cycle: true });
   t('加入回路: C1 入度不再为 0，仅输出 C0、C2', JSON.stringify(last(rc).out) === JSON.stringify([0, 2]), last(rc).out);
   t('加入回路: 判定存在回路、排序失败', !!rc.frames.find(f => (f.msg || '').indexOf('存在回路') >= 0));
+}
+
+console.log('— 第6章 图的基本概念 —');
+{
+  const b = {};
+  (M.graphBasic.inputs || []).forEach(x => { b[x.key] = x.type === 'checkbox' ? !!x.value : x.value; });
+  const run = o => M.graphBasic.run(Object.assign({}, b, o));
+  const msgs = r => r.frames.map(f => f.msg).join('\n');
+  const D = '0-1 0-2 1-2 1-3 2-3 4-5 5-6 4-6';
+
+  const dg = run({ scene: 'deg', edges: D, dir: false, nv: 7 });
+  t('图: 握手定理 Σ度 = 2|E| = 16',
+    dg.frames.some(f => f.panel['度之和'] === '16 = 2×8'),
+    dg.frames.map(f => f.panel['度之和']).filter(Boolean).join(','));
+  t('图: 逐点度正确（0→2、1→3、6→2）',
+    dg.frames.some(f => f.panel['顶点'] === '0' && f.panel['度'] === '2') &&
+    dg.frames.some(f => f.panel['顶点'] === '1' && f.panel['度'] === '3') &&
+    dg.frames.some(f => f.panel['顶点'] === '6' && f.panel['度'] === '2'));
+  t('图: 奇数度顶点个数被断言为偶数', /必是偶数个/.test(msgs(dg)));
+
+  const dd = run({ scene: 'deg', edges: D, dir: true, nv: 7 });
+  t('图: 有向版 Σ入度 = Σ出度 = |E| = 8', /Σ入度 = 8、Σ出度 = 8/.test(msgs(dd)),
+    dd.frames.filter(f => /Σ入度/.test(f.msg)).map(f => f.msg.slice(0, 40)).join('|'));
+  t('图: 有向版不再自称"无向完全图"', !/无向完全图/.test(msgs(dd)), (msgs(dd).match(/完全图[^。]*/) || [''])[0]);
+  t('图: 有向完全图按 n(n−1) 算 = 42', /n\(n−1\) = 42/.test(msgs(dd)));
+
+  const cn = run({ scene: 'conn', edges: D, dir: false, nv: 7 });
+  t('图: 无向切成 2 个连通分量 {0 1 2 3} + {4 5 6}',
+    /2 个连通分量/.test(msgs(cn)) && /\{0 1 2 3\} \+ \{4 5 6\}/.test(msgs(cn)),
+    (msgs(cn).match(/切成[^。]*/) || [''])[0]);
+  const cw = run({ scene: 'conn', edges: D, dir: true, nv: 7 });
+  t('图: 同样边当弧→弱连通 2 块、强连通 7 块', /忽略方向是 2 块，讲方向是 7 块/.test(msgs(cw)),
+    (msgs(cw).match(/对比：[^。]*。/) || [''])[0]);
+  const cy = run({ scene: 'conn', edges: '0-1 1-2 2-0 3-4', dir: true, nv: 5 });
+  t('图: 含 3-环的有向图强连通分量 = {0 1 2}+{3}+{4}',
+    /\{0 1 2\} \+ \{3\} \+ \{4\}/.test(msgs(cy)),
+    (msgs(cy).match(/强连通分量\*\*：[^。]*/) || [''])[0]);
+  const iso = run({ scene: 'conn', edges: '0-1 2-3', dir: false, nv: 6 });
+  t('图: 孤立点各自自成一分量（4 块）', /4 个连通分量/.test(msgs(iso)), (msgs(iso).match(/切成[^。]*/) || [''])[0]);
+
+  let e1 = '', e2 = '', e3 = '';
+  try { M.graphBasic.run(Object.assign({}, b, { edges: '0-9', nv: 5 })); } catch (e) { e1 = e.message; }
+  try { M.graphBasic.run(Object.assign({}, b, { edges: '01' })); } catch (e) { e2 = e.message; }
+  try { M.graphBasic.run(Object.assign({}, b, { edges: '0-0 1-2' })); } catch (e) { e3 = e.message; }
+  t('图: 越界/格式/自环都明确报错', /0~4/.test(e1) && /a-b/.test(e2) && /自环/.test(e3), [e1, e2, e3]);
+}
+
+console.log('— 第3章 中缀转后缀与后缀求值 —');
+{
+  const b = {};
+  (M.toPostfix.inputs || []).forEach(x => { b[x.key] = x.type === 'checkbox' ? !!x.value : x.value; });
+  const run = o => M.toPostfix.run(Object.assign({}, b, o));
+  const last = r => r.frames[r.frames.length - 1];
+  const conv = e => last(run({ scene: 'conv', expr: e })).panel['后缀'];
+  const val = e => last(run({ scene: 'both', expr: e })).panel['结果'];
+
+  /* 教材例题与经典陷阱：转换结果必须逐字符等于标准答案 */
+  t('转后缀: A-(B*C+D)/E → A B C * D + E / −', conv('A-(B*C+D)/E') === 'A B C * D + E / −', conv('A-(B*C+D)/E'));
+  t('转后缀: 12/(4-2)+3*5-8/4 正确',
+    conv('12/(4-2)+3*5-8/4') === '12 4 2 − / 3 5 * + 8 4 / −', conv('12/(4-2)+3*5-8/4'));
+  t('转后缀: a+b*c → a b c * +（优先级生效）', conv('a+b*c') === 'a b c * +', conv('a+b*c'));
+  t('转后缀: (a+b)*c → a b + c *（括号生效）', conv('(a+b)*c') === 'a b + c *', conv('(a+b)*c'));
+  /* ^ 右结合：同为 ^ 时不弹栈 */
+  t('转后缀: 2^3^2 是右结合 → 2 3 2 ^ ^', conv('2^3^2') === '2 3 2 ^ ^', conv('2^3^2'));
+  t('求值: 2^3^2 = 512（不是 64）', val('2^3^2') === '512', val('2^3^2'));
+  /* 左结合：减除必须从左往右 */
+  t('求值: 20-8-5 = 7（先弹的是右操作数）', val('20-8-5') === '7', val('20-8-5'));
+  t('求值: 12/4*3 = 9（同级左结合）', val('12/4*3') === '9', val('12/4*3'));
+  t('求值: 12/(4-2)+3*5-8/4 = 19', val('12/(4-2)+3*5-8/4') === '19', val('12/(4-2)+3*5-8/4'));
+
+  /* 结构守恒：操作数与运算符的个数在转换前后不变，且后缀式不含括号 */
+  ['A-(B*C+D)/E', '12/(4-2)+3*5-8/4', '2^3^2', '1+2*3'].forEach(e => {
+    const r = run({ scene: 'conv', expr: e });
+    const toks = r.frames[1].snap.tk;
+    const nd = toks.filter(t => !'+−*/^()'.includes(t)).length;
+    const no = toks.filter(t => '+−*/^'.includes(t)).length;
+    const out = conv(e).split(' ');
+    t('转后缀: ' + e + ' 操作数/运算符个数守恒且无括号',
+      out.length === nd + no && out.filter(t => '+−*/^'.includes(t)).length === no &&
+      !out.some(t => t === '(' || t === ')'), out.join(' '));
+  });
+  t('转后缀: 每一帧的栈与输出都自洽（输出只增不减）',
+    run({ scene: 'conv', expr: '12/(4-2)+3*5-8/4' }).frames.every((f, i, A) => i === 0 || (f.snap.out || []).length >= (A[i - 1].snap.out || []).length));
+  t('后缀求值: 变量式明确说不给值就算不出',
+    /无法算出数值|变量/.test(run({ scene: 'both', expr: 'A-(B*C+D)/E' }).frames.map(f => f.msg).join('\n')));
+
+  let e1 = '', e2 = '', e3 = '';
+  try { M.toPostfix.run(Object.assign({}, b, { expr: '(1+2' })); } catch (e) { e1 = e.message; }
+  try { M.toPostfix.run(Object.assign({}, b, { expr: '1+2)' })); } catch (e) { e2 = e.message; }
+  try { M.toPostfix.run(Object.assign({}, b, { expr: '1#2' })); } catch (e) { e3 = e.message; }
+  t('转后缀: 括号不匹配与非法字符都明确报错',
+    /右括号/.test(e1) && /右括号/.test(e2) && /不支持的字符/.test(e3), [e1, e2, e3]);
+}
+
+console.log('— 第6章 邻接多重表与十字链表 —');
+{
+  const b = {};
+  (M.graphStore.inputs || []).forEach(x => { b[x.key] = x.type === 'checkbox' ? !!x.value : x.value; });
+  const run = o => M.graphStore.run(Object.assign({}, b, o));
+  const fin = r => r.frames[r.frames.length - 1].snap;
+  const msgs = r => r.frames.map(f => f.msg).join('\n');
+
+  /* 邻接多重表：一条边只有一个结点，但必须恰好出现在两个端点的链里 */
+  const E1 = '0-1 0-2 1-2 1-3 2-3 4-5';
+  const mr = run({ way: 'mul', edges: E1, pick: 2 }), ms = fin(mr).st;
+  const refs = [];
+  ms.chains.forEach(function (c) { refs.push.apply(refs, c[1].concat(c[2])); });
+  t('邻接多重表: 边结点数 = 边数（不翻倍）', ms.ebox.length === 6, ms.ebox.length);
+  t('邻接多重表: 每条边恰好被两条链引用（共享性）',
+    refs.length === 12 && [0, 1, 2, 3, 4, 5].every(k => refs.filter(x => x === k).length === 2),
+    refs.slice().sort().join(','));
+  t('邻接多重表: 顶点 2 的链覆盖它关联的 3 条边', ms.chains[2][1].concat(ms.chains[2][2]).sort().join(',') === '1,2,4',
+    ms.chains[2][1].concat(ms.chains[2][2]).join(','));
+  t('邻接多重表: 结论按 2|E| 对比邻接表', /邻接表要建 \*\*12\*\* 个边结点.*只建 6 个/.test(msgs(mr)),
+    (msgs(mr).match(/对比邻接表[^。]*。/) || [''])[0]);
+  const mc = run({ way: 'mul', edges: '0-1 0-2 0-3', pick: 0 });
+  t('邻接多重表: 星形图中心点的度 = 3',
+    mc.frames.some(f => f.panel['顶点'] === '0' && f.panel['度'] === '3'),
+    mc.frames.map(f => f.panel['度']).filter(Boolean).join(','));
+
+  /* 十字链表：一条弧一个结点，同时挂在出边链与入边链上 */
+  const E2 = '0>1 0>2 1>2 2>0 2>3 1>3';
+  const or_ = run({ way: 'ortho', edges: E2, pick: 2 }), os = fin(or_).st;
+  const outDeg = [0, 1, 2, 3].map(v => E2.split(/\s+/).filter(t => t.startsWith(v + '>')).length);
+  const inDeg = [0, 1, 2, 3].map(v => E2.split(/\s+/).filter(t => t.endsWith('>' + v)).length);
+  t('十字链表: 每个顶点的出边链长 = 实际出度',
+    os.outChain.every((c, v) => c.length === outDeg[v]), os.outChain.map(c => c.length).join(',') + ' vs ' + outDeg.join(','));
+  t('十字链表: 每个顶点的入边链长 = 实际入度',
+    os.inChain.every((c, v) => c.length === inDeg[v]), os.inChain.map(c => c.length).join(',') + ' vs ' + inDeg.join(','));
+  t('十字链表: Σ出度 = Σ入度 = 弧数',
+    outDeg.reduce((a, x) => a + x, 0) === 6 && inDeg.reduce((a, x) => a + x, 0) === 6);
+  t('十字链表: 弧结点数 = 弧数（不翻倍）', os.ebox.length === 6, os.ebox.length);
+  const oref = [];
+  os.outChain.forEach(c => oref.push.apply(oref, c));
+  os.inChain.forEach(c => oref.push.apply(oref, c));
+  t('十字链表: 每条弧恰好出现在一条出边链和一条入边链里',
+    oref.length === 12 && [0, 1, 2, 3, 4, 5].every(k => oref.filter(x => x === k).length === 2),
+    oref.slice().sort().join(','));
+  t('十字链表: 观察帧同时报出度与入度',
+    or_.frames.some(f => f.panel['顶点'] === '2' && f.panel['出度'] === '2' && f.panel['入度'] === '2'),
+    or_.frames.filter(f => f.panel['顶点']).map(f => f.panel['出度'] + '/' + f.panel['入度']).join(','));
+  const ocyc = run({ way: 'ortho', edges: '0>1 1>2 2>0 3>0', pick: 0 });
+  t('十字链表: 环上顶点 0 出度 1、入度 2（有两条弧指进来）',
+    ocyc.frames.some(f => f.panel['顶点'] === '0' && f.panel['出度'] === '1' && f.panel['入度'] === '2'),
+    ocyc.frames.map(f => f.panel['出度'] + '/' + f.panel['入度']).filter(x => x !== 'undefined/undefined').join(','));
+
+  let e1 = '', e2 = '', e3 = '';
+  try { M.graphStore.run(Object.assign({}, b, { edges: '0>9 1>2 2>0' })); } catch (e) { e1 = e.message; }
+  try { M.graphStore.run(Object.assign({}, b, { edges: '01 1-2 2-0' })); } catch (e) { e2 = e.message; }
+  try { M.graphStore.run(Object.assign({}, b, { edges: '0-1 1-2' })); } catch (e) { e3 = e.message; }
+  t('图存储: 越界/格式/边太少都明确报错', /0~5/.test(e1) && /a-b|a>b/.test(e2) && /至少给 3 条/.test(e3), [e1, e2, e3]);
+}
+
+console.log('— 第8章 计数排序与桶排序 —');
+{
+  const b = {};
+  (M.countBucket.inputs || []).forEach(x => { b[x.key] = x.type === 'checkbox' ? !!x.value : x.value; });
+  const run = o => M.countBucket.run(Object.assign({}, b, o));
+  const last = r => r.frames[r.frames.length - 1];
+  const result = r => (last(r).panel['结果'] || '').split(/[ ,]+/).filter(Boolean).map(Number);
+  const SRC = {
+    small: [4, 2, 1, 3, 3, 0, 2, 1], textbook: [49, 38, 65, 97, 76, 13, 27, 49], skew: [5, 5, 5, 6, 6, 7, 50]
+  };
+  const sortedOK = a2 => a2.every((x, i) => i === 0 || a2[i - 1] <= x);
+  const sameMulti = (a2, src) => a2.slice().sort((x, y) => x - y).join() === src.slice().sort((x, y) => x - y).join();
+
+  ['small', 'textbook', 'skew'].forEach(pr => {
+    const r = run({ scene: 'count', preset: pr });
+    t('计数排序: ' + pr + ' 结果有序且元素守恒', sortedOK(result(r)) && sameMulti(result(r), SRC[pr]), result(r).join(','));
+    t('计数排序: ' + pr + ' 全程零次比较', last(r).panel['比较次数'] === '0 次', last(r).panel['比较次数']);
+  });
+  t('计数排序: 教材例题结果 13 27 38 49 49 65 76 97',
+    result(run({ scene: 'count', preset: 'textbook' })).join(',') === '13,27,38,49,49,65,76,97',
+    result(run({ scene: 'count', preset: 'textbook' })).join(','));
+  /* 前缀和自检：最后一项必须等于 n */
+  const cs = run({ scene: 'count', preset: 'small' });
+  const preFrame = cs.frames.find(f => /前缀和结果/.test(f.msg));
+  const cntArr = preFrame.snap.count;
+  t('计数排序: 前缀和末项 = n', cntArr[cntArr.length - 1] === 8, cntArr.join(','));
+  t('计数排序: 频次统计各值个数正确',
+    cs.frames.filter(f => /① 统计/.test(f.panel['步'] || '')).length === 8,
+    cs.frames.filter(f => /① 统计/.test(f.panel['步'] || '')).length);
+  t('计数排序: 回填按逆序进行（稳定性的来源被演出来）',
+    cs.frames.some(f => /逆序遍历/.test(f.msg) || /从后往前/.test(f.msg)));
+  t('计数排序: 值域宽度进面板（O(n+k) 的 k 看得见）',
+    last(cs).panel['复杂度'] === 'O(n+k) = O(13)', last(cs).panel['复杂度']);
+
+  ['small', 'textbook', 'skew'].forEach(pr => {
+    [2, 4, 8].forEach(mm => {
+      const r = run({ scene: 'bucket', preset: pr, nbuckets: mm });
+      t('桶排序: ' + pr + ' m=' + mm + ' 结果有序且守恒', sortedOK(result(r)) && sameMulti(result(r), SRC[pr]), result(r).join(','));
+    });
+  });
+  const bs = run({ scene: 'bucket', preset: 'skew', nbuckets: 4 });
+  const bks = bs.frames.filter(f => f.snap.buckets).pop().snap.buckets;
+  t('桶排序: 各桶元素数之和 = n', bks.reduce((a, x) => a + x.length, 0) === 7, bks.map(x => x.length).join('/'));
+  t('桶排序: 偏斜数据被明说（最大桶远大于均值）', /偏挤|退化|优势就没了/.test(bs.frames.map(f => f.msg).join('\n')));
+  const bu = run({ scene: 'bucket', preset: 'small', nbuckets: 8 });
+  t('桶排序: 桶内排序后每桶自身有序',
+    bu.frames.pop().snap.buckets.every(x => x.every((v, i) => i === 0 || x[i - 1] <= v)));
+
+  let e1 = '', e2 = '';
+  try { M.countBucket.run(Object.assign({}, b, { scene: 'count', preset: 'custom', w: '1,2,500' })); } catch (e) { e1 = e.message; }
+  try { M.countBucket.run(Object.assign({}, b, { scene: 'count', preset: 'custom', w: '5,-2,3' })); } catch (e) { e2 = e.message; }
+  t('计数/桶排序: 值域过大与负数都明确报错', /≤ 99/.test(e1) && /非负/.test(e2), [e1, e2]);
 }
 
 console.log('— 第7章 顺序/折半/分块查找 —');
@@ -822,7 +1193,7 @@ console.log('— v2.1 深度校验：排列不变量 / 随机数据 / 教材第�
   t('链表取值 i=1: 1 步即得', lo1 && lo1.snap.res === '第 1 个 = 25');
   /* 结构完整性：43 模块注册规范 */
   const all = DSC.mods;
-  t('结构: 模块总数 46（新增 B 树与 B+ 树）', all.length === 46, all.length);
+    t('结构: 模块总数 56（新增链表经典题）', all.length === 56, all.length);
   t('结构: 模块 id 无重复', new Set(all.map(m => m.id)).size === all.length);
   t('结构: 全部模块有非空使用引导', all.every(m => m.guide && m.guide.length >= 3));
   t('结构: 全部模块有非空教材标注（无本校 cp 编号）', all.every(m => (m.note || '').length >= 6 && m.note.indexOf('cp') < 0));
@@ -934,6 +1305,128 @@ console.log('— 第7章 B 树 / B+ 树 —');
   try { M.btree.run(Object.assign({}, b, { seq: '1,2' })); } catch (e) { e2 = e.message; }
   try { M.btree.run(Object.assign({}, b, { seq: '1,2,a,4,5' })); } catch (e) { e3 = e.message; }
   t('B树: 阶数/个数/非整数都明确报错', /3~5/.test(e1) && /4~12/.test(e2) && /整数/.test(e3), [e1, e2, e3]);
+
+  /* ---------- B 树删除：借位 / 合并 ---------- */
+  /* 中间帧允许暂时破窗（刚删完还没救、前驱刚复制上来还重复），
+     所以不变式查在每个"★ …完毕"帧上——那才是应该回到合法状态的时点 */
+  const settledBad = r => r.frames.filter(f => /^★/.test(f.msg))
+    .map(f => ({ n: f.msg.slice(0, 14), bad: checkB(f.snap.tree, +f.snap.m) }))
+    .filter(x => x.bad.length).slice(0, 3);
+  const d3 = runB({ scene: 'del', order: 3, seq: SEQ, dels: '50,30,20,40,10,60' });
+  t('B树删除: 每个"删除完毕"帧都满足 B 树全部不变式', settledBad(d3).length === 0, settledBad(d3));
+  t('B树删除: 删掉的 6 个关键字真消失、其余一个不少',
+    keysOf(fin(d3).tree).slice().sort((x, y) => x - y).join(',') === '70,80,90',
+    keysOf(fin(d3).tree).slice().sort((x, y) => x - y).join(','));
+  t('B树删除: 借位与合并都真的演示过（不是只靠直接删）',
+    d3.frames.some(f => /借位/.test(f.msg)) && d3.frames.some(f => /合并/.test(f.msg)),
+    [d3.frames.filter(f => /借位/.test(f.msg)).length, d3.frames.filter(f => /合并/.test(f.msg)).length]);
+  t('B树删除: 删分支结点的关键字时改用直接前驱顶替，再转化到叶子',
+    d3.frames.some(f => /直接前驱/.test(f.msg)), d3.frames.filter(f => /前驱/.test(f.msg)).length);
+  t('B树删除: 删除过程中树高只减不增',
+    d3.frames.every((f, i) => i === 0 || f.snap.h <= d3.frames[i - 1].snap.h),
+    d3.frames.map(f => f.snap.h).join(','));
+  const dAll = runB({ scene: 'del', order: 3, seq: SEQ, dels: '10,20,30,40,50,60,70,80,90' });
+  t('B树删除: 全部删空后塌成一层空根',
+    fin(dAll).h === 1 && keysOf(fin(dAll).tree).length === 0, [fin(dAll).h, keysOf(fin(dAll).tree)]);
+  const dMiss = runB({ scene: 'del', order: 3, seq: SEQ, dels: '999' });
+  t('B树删除: 不在树里的关键字报 ERROR 且树完全不动',
+    dMiss.frames.some(f => /不在树里/.test(f.msg)) && keysOf(fin(dMiss).tree).length === 9,
+    [dMiss.frames.some(f => /不在树里/.test(f.msg)), keysOf(fin(dMiss).tree).length]);
+  [[4, SEQ, '20,10,30,40,50,60'], [5, '5,10,15,20,25,30,35,40,45,50,55,60', '30,60,10,50,90,20,5,55'],
+   [3, '1,2,3,4,5,6,7,8,9,10,11,12', '7,8,6,5,9,4,10,3']].forEach(c => {
+    const r = runB({ scene: 'del', order: c[0], seq: c[1], dels: c[2] });
+    const gone = c[2].split(',').map(Number);
+    const want = c[1].split(',').map(Number).filter(k => gone.indexOf(k) < 0).sort((x, y) => x - y);
+    t('B树删除 m=' + c[0] + ': 不变式 + 集合都正确',
+      settledBad(r).length === 0 && keysOf(fin(r).tree).slice().sort((x, y) => x - y).join(',') === want.join(','),
+      [settledBad(r), keysOf(fin(r).tree).slice().sort((x, y) => x - y).join(','), want.join(',')]);
+  });
+  const dRoot = runB({ scene: 'del', order: 3, seq: SEQ, dels: '40' });
+  t('B树删除: 删根上的分界也走前驱替代，不直接摘',
+    dRoot.frames.some(f => /40 在分支结点/.test(f.msg) && /直接前驱/.test(f.msg)),
+    dRoot.frames.slice(1, 3).map(f => f.msg.slice(0, 24)).join(' | '));
+  let e4 = '', e5 = '';
+  try { runB({ scene: 'del', order: 3, seq: SEQ, dels: 'a' }); } catch (e) { e4 = e.message; }
+  try { runB({ scene: 'del', order: 3, seq: SEQ, dels: '' }); } catch (e) { e5 = e.message; }
+  t('B树删除: 删除序列非整数/为空都明确报错', /整数/.test(e4) && /至少/.test(e5), [e4, e5]);
+}
+
+
+console.log('— 第7章 红黑树 —');
+{
+  const b = {};
+  (M.rbt.inputs || []).forEach(x => { b[x.key] = x.type === 'checkbox' ? !!x.value : x.value; });
+  const run = o => M.rbt.run(Object.assign({}, b, o));
+  const isR = t => !!t && t.c === 'R';
+  function violations(t) {
+    const bad = [];
+    if (t && t.c !== 'B') bad.push('根非黑');
+    (function nr(x) {
+      if (!x) return;
+      if (x.c === 'R' && (isR(x.l) || isR(x.r))) bad.push('红红相邻@' + x.v);
+      if (isR(x.r)) bad.push('右倾红链@' + x.v);
+      nr(x.l); nr(x.r);
+    })(t);
+    const acc = [];
+    (function bd(x, d) { if (!x) { acc.push(d); return; } const e = d + (x.c === 'B' ? 1 : 0); bd(x.l, e); bd(x.r, e); })(t, 0);
+    if (new Set(acc).size > 1) bad.push('黑高不等[' + acc.join(',') + ']');
+    return bad;
+  }
+  function bstBad(t, lo, hi) {
+    if (!t) return [];
+    if (t.v <= lo || t.v >= hi) return ['BST序破坏@' + t.v];
+    return bstBad(t.l, lo, t.v).concat(bstBad(t.r, t.v, hi));
+  }
+  const inorder = t => (t ? inorder(t.l).concat([t.v]).concat(inorder(t.r)) : []);
+  const count = t => (t ? 1 + count(t.l) + count(t.r) : 0);
+  const height = t => (t ? 1 + Math.max(height(t.l), height(t.r)) : 0);
+
+  const SEQ = [
+    '10,85,40,5,70,80,60,30,20,90', '1,2,3,4,5,6,7,8', '8,7,6,5,4,3,2,1',
+    '16,3,7,11,13,9,5,2,4,6,10,14', '12,1,9,2,11,4,7'
+  ];
+  SEQ.forEach((sq, si) => {
+    const r = run({ seq: sq, find: Number(sq.split(',')[2]) });
+    const want = sq.split(',').map(Number);
+    const badFrames = [];
+    r.frames.forEach((f, i) => {
+      const v = violations(f.snap.root).concat(bstBad(f.snap.root, -Infinity, Infinity));
+      if (v.length) badFrames.push('f' + (i + 1) + ':' + v[0]);
+    });
+    t('红黑树: 序列' + (si + 1) + ' 每一帧都满足五条性质 + 左倾不变式', badFrames.length === 0, badFrames.slice(0, 2));
+    const fin = r.frames[r.frames.length - 1].snap.root;
+    t('红黑树: 序列' + (si + 1) + ' 结点无重无漏', count(fin) === want.length && new Set(inorder(fin)).size === want.length,
+      count(fin) + '/' + want.length);
+    t('红黑树: 序列' + (si + 1) + ' 中序遍历即升序',
+      inorder(fin).join(',') === want.slice().sort((x, y) => x - y).join(','), inorder(fin).join(','));
+    t('红黑树: 序列' + (si + 1) + ' 树高 ≤ 2·log₂(n+1)',
+      height(fin) <= 2 * Math.log2(want.length + 1) + 1e-9, height(fin) + ' vs ' + (2 * Math.log2(want.length + 1)).toFixed(2));
+  });
+  /* 顺序插入最考验平衡：1..8 若退化成链，树高就是 8 */
+  const inc = run({ seq: '1,2,3,4,5,6,7,8', find: 1 });
+  const ih = height(inc.frames[inc.frames.length - 1].snap.root);
+  t('红黑树: 顺序插入不退化（1..8 树高远小于 8）', ih <= 5, ih);
+  const dec = run({ seq: '8,7,6,5,4,3,2,1', find: 8 });
+  t('红黑树: 逆序插入同样平衡', height(dec.frames[dec.frames.length - 1].snap.root) <= 5);
+  /* 查找 */
+  const hit = run({ seq: '10,85,40,5,70,80,60,30,20,90', find: 60 });
+  t('红黑树: 查找命中的值确实在树里',
+    inorder(hit.frames[hit.frames.length - 1].snap.root).indexOf(60) >= 0 && /命中/.test(hit.frames[hit.frames.length - 1].msg));
+  const miss = run({ seq: '1,2,3,4,5', find: 99 });
+  t('红黑树: 不存在的值报未找到', /未找到/.test(miss.frames[miss.frames.length - 1].msg));
+  t('红黑树: 查找路径自顶向下连续',
+    hit.frames[hit.frames.length - 1].snap.path.length >= 2);
+  /* 调整动作必须真的发生过，否则等于没演 */
+  const adj = run({ seq: '10,85,40,5,70,80,60,30,20,90', find: 60 });
+  const adjFrames = adj.frames.filter(f => /触发了 \d+ 次调整/.test(f.msg));
+  t('红黑树: 插入过程确有旋转/变色', adjFrames.length >= 5, adjFrames.length);
+  t('红黑树: 调整动作名与三种操作一致',
+    adjFrames.every(f => /左旋|右旋|变色/.test(f.msg)));
+
+  let e1 = '', e2 = '';
+  try { M.rbt.run(Object.assign({}, b, { seq: '1,2,x' })); } catch (e) { e1 = e.message; }
+  try { M.rbt.run(Object.assign({}, b, { seq: '1,2' })); } catch (e) { e2 = e.message; }
+  t('红黑树: 非整数与长度越界明确报错', /整数/.test(e1) && /3~12/.test(e2), [e1, e2]);
 }
 
 console.log('— 第8章 外部排序 —');
@@ -1001,6 +1494,18 @@ console.log('— 第8章 外部排序 —');
 const CASES = {
     seqList: [{ op: 'insert', i: 3, e: 33, data: '25,12,47,89,36,14' }, { op: 'del', i: 2, e: 0, data: '25,12,47,89,36,14' }, { op: 'insert', i: 0, e: 1, data: '1,2' }, { op: 'insert', i: 3, e: 33, errDir: true, data: '25,12,47,89,36,14' }],
     linkList: [{ op: 'insert', i: 3, e: 33, bad: false, data: '25,12,47,89,36,14' }, { op: 'insert', i: 3, e: 33, bad: true, data: '25,12,47,89,36,14' }, { op: 'del', i: 4, e: 0, bad: false, data: '25,12,47,89,36,14' }],
+    linkProblems: [
+      { scene: 'reverse', data: '25,12,47,89,36' },
+      { scene: 'reverse', data: '1,2' },
+      { scene: 'reverse', data: '1,2,3,4,5,6,7,8' },
+      { scene: 'josephus', n: 7, k: 3 },
+      { scene: 'josephus', n: 10, k: 6 },
+      { scene: 'josephus', n: 3, k: 2 },
+      { scene: 'intersect', segs: '7,2|5|8,3,6' },
+      { scene: 'intersect', segs: '1,2,3,4|5,6|7,8,9' },
+      { scene: 'intersect', segs: '1,2|1,2|' },
+      { scene: 'intersect', segs: '|1|3,4' }
+    ],
     seqStack: [{ scene: 'push', seq: 'A,B,C,D,E,F' }, { scene: 'pop', seq: 'A,B,C,D,E,F' }, { scene: 'life', seq: 'A,B,C,D,E,F' }],
     circQueue: [{ demo: 'linear' }, { demo: 'fewer' }, { demo: 'tag' }, { demo: 'size' }],
     linkStackQueue: [
@@ -1023,6 +1528,19 @@ const CASES = {
     seqOps: [{ op: 'find', key: 47, data: '25,12,47' }, { op: 'max', data: '25,12,47,89' }],
     linkOps: [{ op: 'find', key: 47, data: '25,12,47' }, { op: 'len', data: '25,12,47' }],
     mergeList: [{ la: '1,3,5', lb: '2,4' }],
+    glist: [
+      { scene: 'build', lst: '(a,(b,c),(),d)' },
+      { scene: 'head', lst: '(a,(b,c),(),d)' },
+      { scene: 'tail', lst: '(a,(b,c),(),d)' },
+      { scene: 'len', lst: '(a,(b,c),(),d)' },
+      { scene: 'depth', lst: '(a,(b,c),(),d)' },
+      { scene: 'depth', lst: '(a,(b,(c,(d))))' },
+      { scene: 'len', lst: '((),())' },
+      { scene: 'depth', lst: '(a,b,c)' },
+      { scene: 'head', lst: '((b,c),d)' },
+      { scene: 'tail', lst: '(a)' },
+      { scene: 'build', lst: '((((a))))' }
+    ],
     dualList: [{ op: 'ins' }, { op: 'del' }, { op: 'cyc' }],
     polyAdd: [{ a: '7,0 3,1 9,8 5,17', b: '8,1 22,7 -9,8' }],
     baseConvert: [{ n: 1348, base: '8' }, { n: 255, base: '16' }],
@@ -1032,11 +1550,27 @@ const CASES = {
     critical: [{}],
     topo: [{}, { cycle: true }],
     floyd: [{}],
+    rbt: [
+      { seq: '10,85,40,5,70,80,60,30,20,90', find: 60 },
+      { seq: '1,2,3,4,5,6,7,8', find: 1 },
+      { seq: '8,7,6,5,4,3,2,1', find: 99 },
+      { seq: '16,3,7,11,13,9,5,2,4,6,10,14', find: 11 },
+      { seq: '12,1,9,2,11,4,7', find: 5 }
+    ],
     ufset: [
       { mode: 'plain', pairs: '1-0 2-1 3-2 4-3 5-4 6-5 7-6', probe: 0 },
       { mode: 'size', pairs: '1-0 2-1 3-2 4-3 5-4 6-5 7-6', probe: 0 },
       { mode: 'compress', pairs: '1-0 2-1 3-2 4-3 5-4 6-5 7-6', probe: 0 },
       { mode: 'compress', pairs: '0-1 0-1 2-3 5-5', probe: 2 }
+    ],
+    countBucket: [
+      { scene: 'count', preset: 'small', w: '', nbuckets: 4 },
+      { scene: 'count', preset: 'textbook', w: '', nbuckets: 4 },
+      { scene: 'count', preset: 'skew', w: '', nbuckets: 4 },
+      { scene: 'bucket', preset: 'small', w: '', nbuckets: 4 },
+      { scene: 'bucket', preset: 'textbook', w: '', nbuckets: 2 },
+      { scene: 'bucket', preset: 'skew', w: '', nbuckets: 8 },
+      { scene: 'count', preset: 'custom', w: '0,0,0,1', nbuckets: 4 }
     ],
     btree: [
       { scene: 'ins', order: 3, seq: '10,20,30,40,50,60,70,80,90', target: 40 },
@@ -1045,7 +1579,54 @@ const CASES = {
       { scene: 'search', order: 3, seq: '10,20,30,40,50,60,70,80,90', target: 40 },
       { scene: 'search', order: 3, seq: '10,20,30,40,50,60,70,80,90', target: 45 },
       { scene: 'plus', order: 3, seq: '10,20,30,40,50,60,70,80,90', target: 40 },
-      { scene: 'plus', order: 4, seq: '3,9,17,25,31,42,56,70', target: 31 }
+      { scene: 'plus', order: 4, seq: '3,9,17,25,31,42,56,70', target: 31 },
+      { scene: 'del', dels: '50,30,20,40,10,60' },
+      { scene: 'del', order: 4, dels: '20,10,30,40' },
+      { scene: 'del', order: 5, dels: '30,60,10,50,90,20' },
+      { scene: 'del', order: 4, seq: '1,2,3,4,5,6,7,8,9,10,11,12', dels: '5,6,7,8,1,12' }
+    ],
+    toPostfix: [
+      { scene: 'conv', expr: '12/(4-2)+3*5-8/4' },
+      { scene: 'both', expr: '12/(4-2)+3*5-8/4' },
+      { scene: 'conv', expr: 'A-(B*C+D)/E' },
+      { scene: 'conv', expr: '2^3^2' },
+      { scene: 'both', expr: '2^3^2' },
+      { scene: 'both', expr: '20-8-5' },
+      { scene: 'both', expr: '12/4*3' },
+      { scene: 'eval', expr: '1+2*3' }
+    ],
+    graphStore: [
+      { way: 'ortho', edges: '0>1 0>2 1>2 2>0 2>3 1>3', pick: 2 },
+      { way: 'ortho', edges: '0>1 1>2 2>0 3>0', pick: 0 },
+      { way: 'mul', edges: '0-1 0-2 1-2 1-3 2-3 4-5', pick: 2 },
+      { way: 'mul', edges: '0-1 1-2 2-3 3-0', pick: 1 },
+      { way: 'mul', edges: '0-1 0-2 0-3', pick: 0 }
+    ],
+    graphBasic: [
+      { scene: 'deg', edges: '0-1 0-2 1-2 1-3 2-3 4-5 5-6 4-6', dir: false, nv: 7 },
+      { scene: 'deg', edges: '0-1 0-2 1-2 1-3 2-3 4-5 5-6 4-6', dir: true, nv: 7 },
+      { scene: 'conn', edges: '0-1 0-2 1-2 1-3 2-3 4-5 5-6 4-6', dir: false, nv: 7 },
+      { scene: 'conn', edges: '0-1 0-2 1-2 1-3 2-3 4-5 5-6 4-6', dir: true, nv: 7 },
+      { scene: 'conn', edges: '0-1 1-2 2-0 3-4', dir: true, nv: 5 },
+      { scene: 'deg', edges: '0-1 2-3', dir: false, nv: 6 },
+      { scene: 'conn', edges: '0-1 2-3', dir: false, nv: 6 }
+    ],
+    heapPQ: [
+      { scene: 'build', data: '49,38,65,97,76,13,27,49', k: 3, op: 'mix' },
+      { scene: 'pq', data: '49,38,65,97,76,13,27,49', k: 3, op: 'mix' },
+      { scene: 'pq', data: '49,38,65,97,76,13,27,49', k: 3, op: 'pop' },
+      { scene: 'pq', data: '49,38,65,97,76,13,27,49', k: 3, op: 'push' },
+      { scene: 'topk', data: '49,38,65,97,76,13,27,49', k: 3, op: 'mix' },
+      { scene: 'topk', data: '5,1,9,7,3', k: 2, op: 'mix' }
+    ],
+    treeStore: [
+      { way: 'parent', target: 'A' }, { way: 'parent', target: 'E' },
+      { way: 'child', target: 'A' }, { way: 'child', target: 'H' },
+      { way: 'sib', target: 'A' }, { way: 'sib', target: 'B' }, { way: 'sib', target: 'H' }
+    ],
+    treeSeqStore: [
+      { mode: 'right', scene: 'map' }, { mode: 'full', scene: 'map' }, { mode: 'sparse', scene: 'map' },
+      { mode: 'right', scene: 'props' }, { mode: 'full', scene: 'props' }, { mode: 'sparse', scene: 'props' }
     ],
     extSort: [
       { scene: 'gen', genMode: 'order', data: '49,38,65,97,76,13,27,49,55,4,62,18,93,31,7,88,45,22,70,15,36,59,81,2', mem: 6, k: 3 },
@@ -1064,8 +1645,9 @@ console.log('— 渲染烟测（每帧 render 不抛异常） —');
   let ok = true, bad = '';
   for (const id in CASES) {
     CASES[id].forEach(inp => {
+      /* CASES 里只写"和默认值不同的那几项"，所以要先垫默认值再跑 */
       let res;
-      try { res = M[id].run(inp); } catch (e) { ok = false; bad += id + ':run ' + e.message + '; '; return; }
+      try { res = M[id].run(Object.assign(defVals(id), inp)); } catch (e) { ok = false; bad += id + ':run ' + e.message + '; '; return; }
       res.frames.forEach((f, k) => {
         try {
           const svg = M[id].render(f.snap);
@@ -1122,6 +1704,125 @@ console.log('— 代码行高亮：下标必须合法，且指到正在执行的
     t('全部模块: 输入框不占用深链保留字 m/f/mp', clash.length === 0, clash);
   }
 
+/* 画布里的 h.txt 不解析 markdown：解说条能用的 **加粗** / `代码` 写进画布会原样显示出来。
+   喂 CASES 全部输入——只喂默认输入的话，非默认场景的画布永远查不到（约瑟夫那行反引号就是这么漏的） */
+{
+  const md = [];
+  DSC.mods.forEach(m => {
+    const def = {};
+    (m.inputs || []).forEach(s => { def[s.key] = s.type === 'checkbox' ? !!s.value : s.value; });
+    const sets = [def].concat((CASES[m.id] || []).map(x => Object.assign({}, def, x)));
+    sets.forEach(v => {
+      let res;
+      try { res = m.run(v); } catch (e) { return; }
+      res.frames.forEach((f, i) => {
+        let svg;
+        try { svg = m.render(f.snap); } catch (e) { return; }
+        (svg.match(/>([^<]*)<\/text>/g) || []).forEach(t2 => {
+          if (/\*\*|`/.test(t2)) md.push(m.id + '#f' + (i + 1) + ' ' + t2.slice(1, -6).slice(0, 24));
+        });
+      });
+    });
+  });
+  t('全部模块: 画布文字里不出现未渲染的 markdown 记号', md.length === 0, md.slice(0, 6));
+}
+
+console.log('— 第2章 链表经典题 —');
+{
+  const b = {};
+  (M.linkProblems.inputs || []).forEach(x => { b[x.key] = x.type === 'checkbox' ? !!x.value : x.value; });
+  const run = o => M.linkProblems.run(Object.assign({}, b, o));
+  const last = r => r.frames[r.frames.length - 1];
+  const pan = f => JSON.stringify(f.panel);
+
+  /* ---------- ① 就地逆置 ---------- */
+  const rv = run({ scene: 'reverse', data: '25,12,47,89,36' });
+  t('链表逆置: 末帧结果 = 输入逆序', last(rv).panel['结果'] === '36→89→47→12→25', last(rv).panel['结果']);
+  /* 守恒 = "就地"的机器可查版本：任何一帧，已逆置 + 待处理 恰好是原序列的重排 */
+  const broken = rv.frames.filter(f => {
+    const sn = f.snap, all = sn.built.concat(sn.rest).slice().sort((x, y) => x - y);
+    return all.join() !== sn.orig.slice().sort((x, y) => x - y).join();
+  });
+  t('链表逆置: 每帧「已逆置 + 待处理」= 原序列（不新建、不丢结点）', broken.length === 0,
+    broken.map(f => f.snap.built.join() + '|' + f.snap.rest.join()).slice(0, 3));
+  const notHead = rv.frames.filter(f =>
+    f.snap.built.join() !== f.snap.orig.slice(0, f.snap.built.length).reverse().join());
+  t('链表逆置: 已逆置段永远是原前缀的逆序（头插法的定义）', notHead.length === 0,
+    notHead.map(f => f.snap.built.join()).slice(0, 3));
+  const qAt = rv.frames.findIndex(f => /把后继/.test(f.msg));
+  const insAt = rv.frames.findIndex(f => /p->next = L->next/.test(f.msg));
+  t('链表逆置: 每轮第一步就是记后继 q（顺序错了整条链就断）', qAt >= 0 && qAt < insAt, [qAt, insAt]);
+  let rvErr = '';
+  try { run({ scene: 'reverse', data: '1' }); } catch (e) { rvErr = e.message; }
+  try { run({ scene: 'reverse', data: '1,2,3,4,5,6,7,8,9,10' }); } catch (e) { rvErr += '/' + e.message; }
+  t('链表逆置: 少于 2 个或多于 8 个结点都拒绝演示', (rvErr.match(/2~8/g) || []).length === 2, rvErr);
+
+  /* ---------- ② 约瑟夫环：和独立的数组模拟对拍 ---------- */
+  function joseBrute(n, k) {
+    const a = []; for (let i = 1; i <= n; i++) a.push(i);
+    const out = []; let i = 0;
+    while (a.length > 1) { i = (i + k - 1) % a.length; out.push(a.splice(i, 1)[0]); }
+    return { out: out, surv: a[0] };
+  }
+  [[7, 3], [10, 6], [3, 2], [5, 5], [8, 4], [6, 2]].forEach(nk => {
+    const r = run({ scene: 'josephus', n: nk[0], k: nk[1] }), exp = joseBrute(nk[0], nk[1]);
+    const pn = last(r).panel;
+    t('约瑟夫环 n=' + nk[0] + ',k=' + nk[1] + ': 出圈顺序 = 独立模拟',
+      pn['出圈顺序'] === exp.out.join('→'), [pn['出圈顺序'], exp.out.join('→')]);
+    t('约瑟夫环 n=' + nk[0] + ',k=' + nk[1] + ': 幸存者 = ' + exp.surv,
+      pn['幸存者'] === String(exp.surv), pn['幸存者']);
+  });
+  const j73 = run({ scene: 'josephus', n: 7, k: 3 });
+  t('约瑟夫环: 教材常见例 n=7,k=3 的出圈顺序 3→6→2→7→5→1、幸存者 4',
+    last(j73).panel['出圈顺序'] === '3→6→2→7→5→1' && last(j73).panel['幸存者'] === '4',
+    [last(j73).panel['出圈顺序'], last(j73).panel['幸存者']]);
+  const leak = j73.frames.filter(f => f.snap.alive.length + f.snap.out.length !== 7);
+  t('约瑟夫环: 每帧「圈里剩下 + 已出圈」恒等于 n', leak.length === 0,
+    leak.map(f => f.snap.alive.length + '+' + f.snap.out.length).slice(0, 4));
+  const counted = j73.frames.filter(f => /当前报数/.test(pan(f)));
+  t('约瑟夫环: 报数帧数 = (n−1)(k−1)，确实逐个人数过去',
+    counted.length === 6 * 2, [counted.length, 6 * 2]);
+  let jErr = '';
+  try { run({ scene: 'josephus', n: 2, k: 3 }); } catch (e) { jErr = e.message; }
+  try { run({ scene: 'josephus', n: 7, k: 9 }); } catch (e) { jErr += '/' + e.message; }
+  t('约瑟夫环: n、k 越出范围时明确报错', /人数 n/.test(jErr) && /报数 k/.test(jErr), jErr);
+
+  /* ---------- ③ 两链表找公共结点 ---------- */
+  const ic = run({ scene: 'intersect', segs: '7,2|5|8,3,6' });
+  t('找公共结点: la、lb 都把公共段算进去',
+    ic.frames[1].panel['A 长'] === '5' && ic.frames[1].panel['B 长'] === '4',
+    [ic.frames[1].panel['A 长'], ic.frames[1].panel['B 长']]);
+  t('找公共结点: 答案 = 公共段第一个结点，位序从 1 数',
+    last(ic).panel['结果'] === '公共结点 8' &&
+    ic.frames.filter(f => f.panel['位置']).pop().panel['位置'] === '第 3 个结点',
+    [last(ic).panel['结果'], ic.frames.filter(f => f.panel['位置']).pop().panel['位置']]);
+  const align = ic.frames.filter(f => /补齐进度/.test(pan(f)));
+  t('找公共结点: 长表先走的步数 = |la − lb|',
+    align.length === 1 && align[0].panel['补齐进度'] === '1 / 1',
+    align.map(f => f.panel['补齐进度']).join());
+  ['1,2,3,4|5,6|7,8,9', '|1|3,4', '1,2,3|4|9', '1,2,3,4,5,6|7|8'].forEach(sg => {
+    const pt = sg.split('|');
+    const A = pt[0] ? pt[0].split(',').map(Number) : [];
+    const B = pt[1] ? pt[1].split(',').map(Number) : [];
+    const S = pt[2] ? pt[2].split(',').map(Number) : [];
+    const r = run({ scene: 'intersect', segs: sg });
+    const want = S.length ? '公共结点 ' + S[0] : 'NULL';
+    const got = last(r).panel['结果'] || '';
+    t('找公共结点 ' + sg + ': 与按结点身份直接求得的一致',
+      got === want || (want === 'NULL' && /NULL/.test(got)), [got, want]);
+    const walk = r.frames.filter(f => /步数/.test(pan(f))).pop();
+    if (walk) t('找公共结点 ' + sg + ': 同步走的步数 = 两条链独有段的较小值',
+      walk.panel['步数'] === String(Math.min(A.length, B.length)),
+      [walk.panel['步数'], A.length, B.length]);
+  });
+  const none = run({ scene: 'intersect', segs: '1,2|1,2|' });
+  t('找公共结点: 公共段为空时返回 NULL（不相交）', /NULL/.test(last(none).panel['结果']), last(none).panel['结果']);
+  let iErr = '';
+  try { run({ scene: 'intersect', segs: '1,2|3' }); } catch (e) { iErr = e.message; }
+  try { run({ scene: 'intersect', segs: '1,2,3,4,5,6,7|1|9' }); } catch (e) { iErr += '/' + e.message; }
+  t('找公共结点: 段数不对/单段过长都明确报错', /三段/.test(iErr) && /6 个/.test(iErr), iErr);
+}
+
 console.log('— 画布几何：文字不得重叠/越界、盒子不得互撞 —');
 
 {
@@ -1138,14 +1839,13 @@ console.log('— 画布几何：文字不得重叠/越界、盒子不得互撞 �
     return s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
   }
   let overlap = [], clipped = [], boxHit = [], rectOut = [];
-  /* 把检查从"只喂默认输入"扩到 CASES 全部输入后，扫出 3 个老模块的存量缺陷
-     （都不是本期新增模块，也没在默认视图上出现）：
-       dualList  循环链表场景 prior 标签重复、"✗ 断开"两处叠在一起
-       huffman   HT 表下方图例的 y 随行数增长，落到"编码表"标题上
-       hanoi     n=5 时盘标签盒互相重叠
-     本期目标是补模块，不在这三处陷进去：先记账、跳过，**新模块与其余 40 个
-     模块仍是零容忍**；欠账清单见 实验缺口清单.md，另开一轮清。 */
-  const GEOM_DEBT = { dualList: '循环链表 prior/断开标签重叠', huffman: 'HT 表图例压编码表标题', hanoi: 'n=5 盘标签盒互撞' };
+  /* 这里曾经记着 3 个老模块的存量欠账（把检查从"只喂默认输入"扩到 CASES 全部输入时扫出来的）：
+       dualList  循环链表 prior/断开标签重叠      —— 已修：回环 prior 改画下方大弧线 + 标签按占位让位
+       huffman   HT 表图例压编码表标题            —— 已修：树行距随深度压、表行高随行数压
+       hanoi     n=5 时盘标签盒互相重叠            —— 已修
+     现在 56 个模块全部零容忍。这个空壳留着是有意的：万一以后又扫出存量缺陷，
+     宁可显式记账 + 每次运行都打印欠账，也不要偷偷把检查改弱。记在这里就必须同步记进缺口清单。 */
+  const GEOM_DEBT = {};
   const debtSkips = {};
   const skipDebt = id => { if (GEOM_DEBT[id]) { debtSkips[id] = (debtSkips[id] || 0) + 1; return true; } return false; };
   const defV = m => { const v = {}; (m.inputs || []).forEach(s => { v[s.key] = s.type === 'checkbox' ? !!s.value : s.value; }); return v; };
@@ -1268,7 +1968,7 @@ console.log('\n— 概念节拍（趟/轮边界识别） —');
     counts[m.id] = n;
     if (n) hit[m.id] = true;
   });
-  const want = ['insertSort', 'selectSort', 'bubbleSort', 'radixSort', 'mst', 'dijkstra', 'floyd'];
+  const want = ['insertSort', 'selectSort', 'bubbleSort', 'radixSort', 'mst', 'dijkstra', 'floyd', 'linkProblems'];
   const got = Object.keys(hit).sort();
   t('节拍: 命中且仅命中趟/轮类算法', JSON.stringify(got) === JSON.stringify(want.slice().sort()), got);
   t('节拍: 命中模块节拍数在 4-16 之间', want.every(id => counts[id] >= 4 && counts[id] <= 16),

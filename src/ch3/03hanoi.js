@@ -78,7 +78,9 @@
     },
     render: function (s) {
       var W = 980, H = 470;
-      var baseY = 356, px = [240, 490, 740], pegNames = ['A', 'B', 'C'];
+      var baseY = 356, px = [170, 400, 630], pegNames = ['A', 'B', 'C'];
+      /* 栈面板与最右一根柱子共用横向空间：盘 5 的右缘必须停在 STK_X 之前，否则 n=5 时盘子压到栈框上 */
+      var STK_X = 762, STK_W = 218;
       var g = '';
       g += h.txt(W / 2, 36, '汉诺塔（n = ' + s.n + '，目标 A → C，借助 B）', { size: 19, w: 600 });
       var colors = ['#bfdbfe', '#93c5fd', '#60a5fa', '#3b82f6', '#2563eb'];
@@ -89,7 +91,7 @@
         g += h.txt(X, baseY + 38, pegNames[p], { size: 20, w: 700 });
         for (var k = 0; k < discs.length; k++) {
           var dsz = discs[k];
-          var wHalf = 22 + dsz * 22;
+          var wHalf = 20 + dsz * 18;   /* 相邻柱最大盘不得相碰（间距 230 > 2×110），且最右盘缘停在栈面板 762 之前 */
           var y = baseY - (k + 1) * 26 + 4;
           var isLast = s.last && s.last.to === pegNames[p] && s.phase === 'move' &&
             k === discs.length - 1;
@@ -103,15 +105,15 @@
         g += h.txt(W / 2, 84, '第 ' + s.step + ' 步：盘 ' + s.last.disc + '  ' + s.last.from + ' → ' + s.last.to, { size: 16, fill: C.amber, w: 700 });
       }
       // 递归栈（右侧）
-      var sx = 900, sy = 90;
-      g += h.txt(sx - 55, sy - 20, '递归工作栈', { size: 13, fill: C.muted, w: 600 });
+      var sx = STK_X + STK_W / 2, sy = 90;
+      g += h.txt(sx, sy - 20, '递归工作栈', { size: 13, fill: C.muted, w: 600 });
       for (var k2 = 0; k2 < s.stack.length; k2++) {
         var yy = sy + (s.stack.length - 1 - k2) * 34;
         var isTop = k2 === s.stack.length - 1;
-        g += h.rect(sx - 185, yy, 265, 30, { fill: isTop ? C.blueBg : '#fff', stroke: isTop ? C.blue : C.grey, rx: 6, sw: isTop ? 2 : 1 });
-        g += h.txt(sx - 42, yy + 20, s.stack[k2], { size: 12.5, fill: isTop ? C.blue : C.ink, family: 'Consolas,monospace' });
+        g += h.rect(STK_X, yy, STK_W, 30, { fill: isTop ? C.blueBg : '#fff', stroke: isTop ? C.blue : C.grey, rx: 6, sw: isTop ? 2 : 1 });
+        g += h.txt(STK_X + STK_W / 2, yy + 20, s.stack[k2], { size: 12, fill: isTop ? C.blue : C.ink, family: 'Consolas,monospace' });
       }
-      if (!s.stack.length) g += h.txt(sx - 42, sy + 20, '（栈空）', { size: 13, fill: C.muted });
+      if (!s.stack.length) g += h.txt(STK_X + STK_W / 2, sy + 20, '（栈空）', { size: 13, fill: C.muted });
       var note = s.phase === 'init' ? '预测步数 f(n) = 2^n − 1 = ' + s.total + '，下面逐层递归验证'
         : s.done ? '完成：共 ' + s.step + ' 步 = 2^' + s.n + ' − 1；最大栈深 = n → 空间 O(n)，步数指数增长 → 时间 O(2^n)'
         : (s.phase === 'call' ? '压栈：保存工作记录' : s.phase === 'ret' ? '弹栈：恢复现场' : '移动一个盘');
