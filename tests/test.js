@@ -636,7 +636,7 @@ console.log('— 第6章 图的基本概念 —');
   const msgs = r => r.frames.map(f => f.msg).join('\n');
   const D = '0-1 0-2 1-2 1-3 2-3 4-5 5-6 4-6';
 
-  const dg = run({ scene: 'deg', edges: D, dir: false, nv: 7 });
+  const dg = run({ scene: 'deg', edges: D, nv: 7 });
   t('图: 握手定理 Σ度 = 2|E| = 16',
     dg.frames.some(f => f.panel['度之和'] === '16 = 2×8'),
     dg.frames.map(f => f.panel['度之和']).filter(Boolean).join(','));
@@ -646,24 +646,44 @@ console.log('— 第6章 图的基本概念 —');
     dg.frames.some(f => f.panel['顶点'] === '6' && f.panel['度'] === '2'));
   t('图: 奇数度顶点个数被断言为偶数', /必是偶数个/.test(msgs(dg)));
 
-  const dd = run({ scene: 'deg', edges: D, dir: true, nv: 7 });
+  const dd = run({ scene: 'ideg', edges: D, nv: 7 });
   t('图: 有向版 Σ入度 = Σ出度 = |E| = 8', /Σ入度 = 8、Σ出度 = 8/.test(msgs(dd)),
     dd.frames.filter(f => /Σ入度/.test(f.msg)).map(f => f.msg.slice(0, 40)).join('|'));
   t('图: 有向版不再自称"无向完全图"', !/无向完全图/.test(msgs(dd)), (msgs(dd).match(/完全图[^。]*/) || [''])[0]);
   t('图: 有向完全图按 n(n−1) 算 = 42', /n\(n−1\) = 42/.test(msgs(dd)));
+  t('图: 有向场景逐点给入度/出度两个数',
+    dd.frames.some(f => f.panel['顶点'] === '0' && f.panel['入度'] === '0' && f.panel['出度'] === '2'),
+    dd.frames.filter(f => f.panel['顶点'] === '0').map(f => JSON.stringify(f.panel)).join('|'));
+  t('图: 有向场景是独立场景，不再藏在勾选框里',
+    M.graphBasic.inputs.some(x => x.key === 'scene' && x.options.some(o => o[0] === 'ideg')) &&
+    !M.graphBasic.inputs.some(x => x.key === 'dir'));
+  /* 反向弧必须画成两条：叠在一起就看不出 <a,b> 与 <b,a> 是两码事 */
+  {
+    const rp = run({ scene: 'ideg', edges: '0>1 1>0 1>2 2>1 2>3', nv: 5 });
+    const tw = rp.frames[0].snap.twin;
+    t('图: 互为反向的弧被识别成两条（0↔1、1↔2 共 4 条）', tw.length === 4, tw);
+    const svgRP = M.graphBasic.render(rp.frames[0].snap);
+    const svgND = M.graphBasic.render(run({ scene: 'ideg', edges: '0-1 1-2 2-3', nv: 4 }).frames[0].snap);
+    t('图: 反向弧走曲线、无反向弧时不引入曲线',
+      (svgRP.match(/<path/g) || []).length >= 4 && (svgND.match(/<path/g) || []).length === 0,
+      { twinPaths: (svgRP.match(/<path/g) || []).length, plainPaths: (svgND.match(/<path/g) || []).length });
+  }
 
-  const cn = run({ scene: 'conn', edges: D, dir: false, nv: 7 });
+  const cn = run({ scene: 'conn', edges: D, nv: 7 });
   t('图: 无向切成 2 个连通分量 {0 1 2 3} + {4 5 6}',
     /2 个连通分量/.test(msgs(cn)) && /\{0 1 2 3\} \+ \{4 5 6\}/.test(msgs(cn)),
     (msgs(cn).match(/切成[^。]*/) || [''])[0]);
-  const cw = run({ scene: 'conn', edges: D, dir: true, nv: 7 });
+  t('图: 连通场景画的是"顶点→第几块"归属表，不是度数表',
+    /第 1 块/.test(M.graphBasic.render(cn.frames[cn.frames.length - 1].snap)) &&
+    !/入度/.test(M.graphBasic.render(cn.frames[cn.frames.length - 1].snap)));
+  const cw = run({ scene: 'sconn', edges: D, nv: 7 });
   t('图: 同样边当弧→弱连通 2 块、强连通 7 块', /忽略方向是 2 块，讲方向是 7 块/.test(msgs(cw)),
-    (msgs(cw).match(/对比：[^。]*。/) || [''])[0]);
-  const cy = run({ scene: 'conn', edges: '0-1 1-2 2-0 3-4', dir: true, nv: 5 });
+    (msgs(cw).match(/对比：[^。]*。|同一张图：[^。]*。/) || [''])[0]);
+  const cy = run({ scene: 'sconn', edges: '0-1 1-2 2-0 3-4', nv: 5 });
   t('图: 含 3-环的有向图强连通分量 = {0 1 2}+{3}+{4}',
     /\{0 1 2\} \+ \{3\} \+ \{4\}/.test(msgs(cy)),
     (msgs(cy).match(/强连通分量\*\*：[^。]*/) || [''])[0]);
-  const iso = run({ scene: 'conn', edges: '0-1 2-3', dir: false, nv: 6 });
+  const iso = run({ scene: 'conn', edges: '0-1 2-3', nv: 6 });
   t('图: 孤立点各自自成一分量（4 块）', /4 个连通分量/.test(msgs(iso)), (msgs(iso).match(/切成[^。]*/) || [''])[0]);
 
   let e1 = '', e2 = '', e3 = '';
@@ -671,6 +691,8 @@ console.log('— 第6章 图的基本概念 —');
   try { M.graphBasic.run(Object.assign({}, b, { edges: '01' })); } catch (e) { e2 = e.message; }
   try { M.graphBasic.run(Object.assign({}, b, { edges: '0-0 1-2' })); } catch (e) { e3 = e.message; }
   t('图: 越界/格式/自环都明确报错', /0~4/.test(e1) && /a-b/.test(e2) && /自环/.test(e3), [e1, e2, e3]);
+  t('图: 三种写法 a-b / a>b / <a,b> 都能解析',
+    ['0-1 1-2', '0>1 1>2', '<0,1> <1,2>'].every(x => M.graphBasic.run(Object.assign({}, b, { edges: x })).frames.length > 0));
 }
 
 console.log('— 第3章 中缀转后缀与后缀求值 —');
@@ -1603,13 +1625,14 @@ const CASES = {
       { way: 'mul', edges: '0-1 0-2 0-3', pick: 0 }
     ],
     graphBasic: [
-      { scene: 'deg', edges: '0-1 0-2 1-2 1-3 2-3 4-5 5-6 4-6', dir: false, nv: 7 },
-      { scene: 'deg', edges: '0-1 0-2 1-2 1-3 2-3 4-5 5-6 4-6', dir: true, nv: 7 },
-      { scene: 'conn', edges: '0-1 0-2 1-2 1-3 2-3 4-5 5-6 4-6', dir: false, nv: 7 },
-      { scene: 'conn', edges: '0-1 0-2 1-2 1-3 2-3 4-5 5-6 4-6', dir: true, nv: 7 },
-      { scene: 'conn', edges: '0-1 1-2 2-0 3-4', dir: true, nv: 5 },
-      { scene: 'deg', edges: '0-1 2-3', dir: false, nv: 6 },
-      { scene: 'conn', edges: '0-1 2-3', dir: false, nv: 6 }
+      { scene: 'deg', edges: '0-1 0-2 1-2 1-3 2-3 4-5 5-6 4-6', nv: 7 },
+      { scene: 'ideg', edges: '0-1 0-2 1-2 1-3 2-3 4-5 5-6 4-6', nv: 7 },
+      { scene: 'conn', edges: '0-1 0-2 1-2 1-3 2-3 4-5 5-6 4-6', nv: 7 },
+      { scene: 'sconn', edges: '0-1 0-2 1-2 1-3 2-3 4-5 5-6 4-6', nv: 7 },
+      { scene: 'sconn', edges: '0-1 1-2 2-0 3-4', nv: 5 },
+      { scene: 'ideg', edges: '0>1 1>0 1>2 2>1 2>3', nv: 5 },
+      { scene: 'deg', edges: '0-1 2-3', nv: 6 },
+      { scene: 'conn', edges: '0-1 2-3', nv: 6 }
     ],
     heapPQ: [
       { scene: 'build', data: '49,38,65,97,76,13,27,49', k: 3, op: 'mix' },
@@ -1725,6 +1748,93 @@ console.log('— 代码行高亮：下标必须合法，且指到正在执行的
     });
   });
   t('全部模块: 画布文字里不出现未渲染的 markdown 记号', md.length === 0, md.slice(0, 6));
+  /* 伪代码面板是 <pre> 纯文本，** 和 ` 在那里同样不会被渲染 */
+  const mdCode = [];
+  DSC.mods.forEach(m => {
+    let res;
+    try { res = m.run(defVals(m.id)); } catch (e) { return; }
+    res.code.forEach((t2, i) => {
+      if (/\*\*|`/.test(t2)) mdCode.push(m.id + ' code#' + (i + 1) + ' ' + t2.slice(0, 34));
+    });
+  });
+  t('全部模块: 伪代码行里不出现未渲染的 markdown 记号', mdCode.length === 0, mdCode.slice(0, 6));
+}
+
+/* 解说条与状态面板支持 **加粗** 和 `代码`，但记号必须成对——落单的一个 ` 会原样显示。
+   面板值以前是直接拼进 innerHTML 的（既不转义也不管记号），所以这里连面板一起查 */
+{
+  const odd = [];
+  DSC.mods.forEach(m => {
+    const def = {};
+    (m.inputs || []).forEach(s => { def[s.key] = s.type === 'checkbox' ? !!s.value : s.value; });
+    const sets = [def].concat((CASES[m.id] || []).map(x => Object.assign({}, def, x)));
+    sets.forEach(v => {
+      let res;
+      try { res = m.run(v); } catch (e) { return; }
+      res.frames.forEach((f, i) => {
+        [f.msg].concat(Object.keys(f.panel || {}).map(k => f.panel[k])).forEach(tx => {
+          const s = String(tx == null ? '' : tx);
+          const bt = (s.match(/`/g) || []).length, st = (s.match(/\*\*/g) || []).length;
+          if (bt % 2 || st % 2) odd.push(m.id + '#f' + (i + 1) + ' bt=' + bt + ' st=' + st + ' ' + s.slice(0, 36));
+        });
+      });
+    });
+  });
+  t('全部模块: 解说与面板里的 markdown 记号成对', odd.length === 0, odd.slice(0, 6));
+}
+
+/* 每个模块都有一句常驻在标题下的"这动画在讲什么"：引导层要点 ? 才看得到，
+   多数人一辈子不点，于是"看了不知道演示的是什么" */
+{
+  const bad = [];
+  DSC.mods.forEach(m => {
+    const a = m.aim || '';
+    const stars = (a.match(/\*\*/g) || []).length;
+    if (!a || a.length > 62 || stars % 2 || /`/.test(a)) bad.push(m.id + ' [len=' + a.length + '] ' + a.slice(0, 26));
+  });
+  t('全部模块: 都有 aim 一句话（非空、≤62 字、无未渲染记号）', bad.length === 0, bad.slice(0, 6));
+}
+
+/* 全量复核卡口：把"内容自洽"里能自动查的几项钉住，防止改着改着回退。
+   2026-09-24 第一次跑它查出来的问题都已修：seqOps 的取值/表长/遍历三股操作
+   伪代码高亮全指着"按值查找"那一行、glist 表头表尾只有 2~3 帧、
+   huffman 译码最后一帧留了个空面板值。 */
+{
+  const bad = [];
+  const CH408 = { 1: '一', 2: '二', 3: '三', 4: '三', 5: '四', 6: '五', 7: '六', 8: '七' };
+  const CONCL = /★|✗|小结|结论|要点|对照|完成|这就是|为什么|这就是/;
+  DSC.mods.forEach(m => {
+    const tag = 'ch' + m.ch + ' ' + m.id;
+    const mm = /^教材\s*(\d+)\./.exec(m.note || '');
+    if (mm && +mm[1] !== m.ch) bad.push('教材小节号与章号不符 ' + tag + ' ' + m.note);
+    const g4 = /^408 大纲\s*([一二三四五六七])/.exec(m.note || '');
+    if (g4 && g4[1] !== CH408[m.ch]) bad.push('408 部分号与章号不符 ' + tag + ' ' + m.note);
+    if ((m.guide || []).length < 3 || (m.guide || []).length > 5) bad.push('引导条数异常 ' + tag + ' =' + (m.guide || []).length);
+    const dv = {};
+    (m.inputs || []).forEach(s => { dv[s.key] = s.type === 'checkbox' ? !!s.value : s.value; });
+    const probe = (over, label) => {
+      let r;
+      try { r = m.run(Object.assign({}, dv, over)); }
+      catch (e) { bad.push('跑不出来 ' + tag + ' ' + label + ' ' + e.message); return; }
+      if (r.frames.length < 3) bad.push('帧数偏少 ' + tag + ' ' + label + ' =' + r.frames.length);
+      const lm = String(r.frames[r.frames.length - 1].msg || '');
+      if (!CONCL.test(lm)) bad.push('末帧没有结论 ' + tag + ' ' + label + ' → ' + lm.slice(0, 26));
+      r.frames.forEach((f, i) => {
+        Object.keys(f.panel || {}).forEach(k => {
+          const v = f.panel[k];
+          if (v === undefined || v === null || v === '' || /undefined|NaN/.test(String(v))) {
+            bad.push('面板空值 ' + tag + ' #f' + (i + 1) + ' ' + k + '=' + JSON.stringify(v));
+          }
+        });
+      });
+    };
+    probe({}, '默认');
+    (m.inputs || []).forEach(sp => {
+      if (sp.type !== 'select') return;
+      sp.options.forEach(o => probe({ [sp.key]: o[0] }, sp.key + '=' + o[0]));
+    });
+  });
+  t('复核卡口: 章节号自洽 / 引导 3–5 条 / 每个选项都够演 / 末帧有结论 / 面板无空值', bad.length === 0, bad.slice(0, 8));
 }
 
 console.log('— 第2章 链表经典题 —');

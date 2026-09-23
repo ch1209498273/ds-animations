@@ -32,6 +32,7 @@
 
   DSC.reg({
     id: 'dfsBfs', ch: 6, name: '图的 DFS 与 BFS 遍历',
+    aim: 'DFS 一条路走到黑（栈），BFS 一圈圈往外扩（队）：**同一张图两种访问序列**',
     note: '教材 6.5 图的遍历（DFS/BFS、存储结构的影响）',
     guide: [
       '切换 DFS（递归+栈）与 BFS（队列），以及起点；右侧同步显示递归栈/队列',
@@ -120,9 +121,9 @@
               if (!visited[w]) {
                 visited[w] = true; seq.push(w); queue.push(w); treeEdges.push([u, w]);
                 F([6, 7, 8], 'v' + u + ' 的邻接点 v' + w + ' 未访问 → 访问并入队。序列：' + seq.join(' → '),
-                  { 队列: queue.join(', '), 已访问: seq.join(' → ') }, snap({}));
+                  { 队列: queue.join(', ') || '（空）', 已访问: seq.join(' → ') }, snap({}));
               } else {
-                F(6, 'v' + u + ' 的邻接点 v' + w + ' 已访问，跳过。', { 队列: queue.join(', ') }, snap({}));
+                F(6, 'v' + u + ' 的邻接点 v' + w + ' 已访问，跳过。', { 队列: queue.join(', ') || '（空）' }, snap({}));
               }
             });
           }

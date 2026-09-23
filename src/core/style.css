@@ -26,6 +26,28 @@ main .card{display:flex;flex-direction:column}
 .modtitle{display:flex;align-items:baseline;gap:10px;padding:8px 14px 4px;flex:none}
 .modtitle b{font-size:15.5px}
 .modtitle .modnote{margin-left:auto}
+/* 一句话"这个动画在讲什么"，常驻在标题下面——引导层要点 ? 才看得到，
+   多数师生不会点，结果就是"看了不知道这演示是干什么的" */
+.modaim{padding:0 14px 6px;font-size:.86em;line-height:1.5;color:#334155;flex:none}
+.modaim:empty{display:none}
+.modaim b{color:var(--ink)}
+/* 手机放映要"画面就是窗口"，标题下这行必须让位——它会把舞台压矮，
+   画布等比缩得更小（堆排序最小字号会从 5px 掉到 4.9px） */
+body.mp .modaim{display:none}
+/* 使用引导：此前 .guidebox 一条样式都没有，浏览器默认的 <ol> 直接摊在页面上，
+   像一段没排版的正文，还把舞台挤掉三分之一——"引导效果太差"的直接原因就在这 */
+.guidebox{margin:4px 14px 8px;padding:9px 14px 11px;background:#f0f7ff;border:1px solid #bfdbfe;
+  border-left:4px solid var(--blue);border-radius:8px;flex:none;max-height:33%;overflow:auto}
+.guidebox .gt{font-size:.95em;font-weight:700;color:var(--ink)}
+.guidebox .gaim{font-size:.88em;color:#1d4ed8;margin:2px 0 6px}
+.guidebox ol{margin:0;padding-left:1.4em}
+.guidebox li{font-size:.85em;line-height:1.65;color:#334155;margin:3px 0}
+.guidebox li b{color:var(--ink)}
+.guidebox code{font-family:Consolas,Menlo,monospace;font-size:.95em;background:#e2e8f0;padding:0 3px;border-radius:3px}
+.guidebox #btnGo{margin-top:8px;font:inherit;font-size:.84em;padding:5px 16px;border:1px solid var(--blue);
+  background:var(--blue);color:#fff;border-radius:6px;cursor:pointer}
+body.present .guidebox li{font-size:1em}
+body.present .guidebox .gaim{font-size:1.05em}
 /* 舞台：#stage 是滚动容器，#canvas 由 JS 按 viewBox 比例与缩放档位定尺寸。
    子元素用 margin:auto 居中——若用 justify-content:center，放大后左侧/上侧内容会滚不到 */
 #stage{flex:1;min-height:0;overflow:auto;display:flex;padding:4px;cursor:grab}

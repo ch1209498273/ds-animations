@@ -46,6 +46,7 @@
 
   DSC.reg({
     id: 'polyAdd', ch: 2, name: '一元多项式相加（有序链表）',
+    aim: '两个有序链表按指数归并成一条——一元多项式相加就是合并有序表',
     note: '教材 2.8 案例分析与实现（指数升序合并、同类项合并）',
     guide: [
       '多项式按指数**升序**存进链表：相加就变成"两个有序表归并"——第2章 mergeList 的直接应用',
@@ -87,7 +88,7 @@
       }
       while (i < A.length) { R.push(A[i]); F(0, 'B 已尽：A 剩余项 ' + A[i].c + 'x^' + A[i].e + ' 直接并入。', { hiA: i }); i++; }
       while (j < B.length) { R.push(B[j]); F(0, 'A 已尽：B 剩余项 ' + B[j].c + 'x^' + B[j].e + ' 直接并入。', { hiB: j }); j++; }
-      F(0, 'A(x) + B(x) = ' + fmt(R) + '。多项式相加 = 有序表归并 + 同类项合并，O(m+n)。系数链表让"删除中间项"也不必搬动其他项。', { mark: 'final' });
+      F(0, '★ A(x) + B(x) = ' + fmt(R) + '。多项式相加 = 有序表归并 + 同类项合并，O(m+n)。系数链表让"删除中间项"也不必搬动其他项。', { mark: 'final' });
       return { code: CODE, frames: frames };
     },
     render: function (s) {

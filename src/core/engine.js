@@ -255,11 +255,13 @@
         /* m/f/mp 是深链保留字，绝不能当成输入值回填（否则 #m=x 会把模块 id 灌进同名输入框） */
         if (c && RESERVED[sp.key] == null && h[sp.key] != null) {
           if (sp.type === 'checkbox') c.checked = (h[sp.key] === '1' || h[sp.key] === 'true');
-          else c.value = clean(h[sp.key]);
+          else c.value = h[sp.key];
         }
       });
       build();
-      if (h.f) { idx = Math.max(0, Math.min(frames.length - 1, +h.f || 0)); draw(); }
+      /* frames 为空说明这次输入被判错了，此时别再动 idx——draw() 会把
+         「输入有误」整条擦掉，深链就变成一片空白，老师看不出哪里错 */
+      if (h.f && frames.length) { idx = Math.max(0, Math.min(frames.length - 1, +h.f || 0)); draw(); }
       if (h.mp && !document.body.classList.contains('mp')) toggleMp();   // 深链直达"打开就是手机放映"
     }
   }
@@ -312,6 +314,7 @@
     });
     $('modname').textContent = m.disp || m.name;
     $('modnote2').textContent = m.note || '';
+    $('modaim').innerHTML = m.aim ? md(m.aim) : '';
     renderGuide(false);
     build();
   }
@@ -320,7 +323,7 @@
     var v = {};
     cur.inputs.forEach(function (s) {
       var c = $('inp_' + s.key);
-      v[s.key] = s.type === 'checkbox' ? c.checked : (s.type === 'number' ? +c.value : clean(c.value));
+      v[s.key] = s.type === 'checkbox' ? c.checked : (s.type === 'number' ? +c.value : c.value);
     });
     return v;
   }
@@ -358,14 +361,19 @@
     }
     var p = f.panel || {}, keysArr = Object.keys(p);
     $('panel').innerHTML = keysArr.map(function (k) {
-      return '<tr><td>' + esc(k) + '</td><td>' + p[k] + '</td></tr>';
+      return '<tr><td>' + esc(k) + '</td><td>' + md(p[k]) + '</td></tr>';
     }).join('');
-    $('msg').innerHTML = (f.msg || '').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+    $('msg').innerHTML = md(f.msg || '');
     $('mpMsg').innerHTML = $('msg').innerHTML;
     updateProgress();
   }
 
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  /* 一律先转义再上标记：课件里大量用 `ident` 标代码符号，之前只认 **加粗**，
+     反引号就原样显示在解说里。转义放在最前面，去掉 clean() 后输入值回显也不会注入。 */
+  function md(s) {
+    return esc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
+  }
 
   function updateProgress() {
     $('pos').textContent = frames.length ? (idx + 1) + ' / ' + frames.length : '0 / 0';
@@ -487,9 +495,9 @@
     if (!cur) { g.hidden = true; return; }
     var has = cur.guide && cur.guide.length;
     if (has && force) {
-      var boldify = function (s) { return esc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>'); };
-      g.innerHTML = '<div class="gt">💡 使用引导 · ' + esc(cur.disp || cur.name) + '</div><ol>' +
-        cur.guide.map(function (s) { return '<li>' + boldify(s) + '</li>'; }).join('') +
+      g.innerHTML = '<div class="gt">💡 使用引导 · ' + esc(cur.disp || cur.name) + '</div>' +
+        (cur.aim ? '<div class="gaim">' + md(cur.aim) + '</div>' : '') + '<ol>' +
+        cur.guide.map(function (s) { return '<li>' + md(s) + '</li>'; }).join('') +
         '</ol><button id="btnGo">开始演示 ▶</button>';
       g.hidden = false;
     } else {
@@ -703,7 +711,6 @@
       ov.classList.add('touch');
     }
   }
-  function clean(s) { return String(s).replace(/[<>]/g, ''); }
   function closeOverlays() {
     var ov = document.getElementById('catalog');
     if (ov) ov.parentNode.removeChild(ov);

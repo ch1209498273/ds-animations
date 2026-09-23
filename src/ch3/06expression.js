@@ -37,6 +37,7 @@
 
   DSC.reg({
     id: 'expression', ch: 3, name: '表达式求值：双栈法（案例3.3）',
+    aim: '双栈法求值：运算符栈 + 操作数栈，**栈顶运算符优先级低才先算**',
     note: '教材 3.6 案例分析与实现（案例3.3 表达式求值）',
     guide: [
       '两个栈分工：OPTR 只存运算符（栈底压 #），OPND 只存操作数',
@@ -126,7 +127,7 @@
         }
       }
       var result = opnd.pop();
-      F(16, '两栈都只剩 "#"，扫描结束——OPND 栈顶即为结果：' + expr + ' = ' + result + '。（共进行 ' + calcCount + ' 次弹栈计算；时间 O(n)）',
+      F(16, '★ 两栈都只剩 "#"，扫描结束——OPND 栈顶即为结果：' + expr + ' = ' + result + '。（共进行 ' + calcCount + ' 次弹栈计算；时间 O(n)）',
         { 结果: expr + ' = ' + result, 计算次数: calcCount + ' 次' },
         snap({ cur: seq.length - 1, done: true, result: result }));
       return { code: CODE, frames: frames };

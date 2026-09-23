@@ -88,6 +88,7 @@
 
   DSC.reg({
     id: 'traversal', ch: 5, name: '二叉树的四种遍历',
+    aim: '先中后序只是**访问时机**不同：把递归栈画出来，三种序列立刻对得上',
     note: '教材 5.5 遍历二叉树（访问时机与递归栈）',
     guide: [
       '结点下方的 ①②③ 圆点 = 第几次"经过"；绿色那一次才是真正"访问"',
@@ -145,7 +146,7 @@
           if (byId[pid].l) { queue.push(byId[pid].l.id); F(5, byId[pid].ch + ' 的左孩子 ' + byId[pid].l.ch + ' 入队。', { 队列: qTxt() }, snap({})); }
           if (byId[pid].r) { queue.push(byId[pid].r.id); F(6, byId[pid].ch + ' 的右孩子 ' + byId[pid].r.ch + ' 入队。', { 队列: qTxt() }, snap({})); }
         }
-        F(3, '队列空，层次遍历结束：' + seq.join(' ') + '。借助【队列】实现"先访问先扩展"。',
+        F(3, '★ 队列空，层次遍历结束：' + seq.join(' ') + '。借助【队列】实现"先访问先扩展"。',
           { 层次序列: seq.join(' '), 四种序列对比: '先 ' + orders.pre.join('') + ' ｜ 中 ' + orders.in.join('') + ' ｜ 后 ' + orders.post.join('') + ' ｜ 层 ' + orders.level.join('') },
           snap({ done: true }));
         return { code: code, frames: frames };

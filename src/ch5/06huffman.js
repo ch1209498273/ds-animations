@@ -50,6 +50,7 @@
 
   DSC.reg({
     id: 'huffman', ch: 5, name: '哈夫曼树构造与编码/译码',
+    aim: '权值越大离根越近，**带权路径长度 WPL 最小**；前缀编码保证译码不歧义',
     note: '教材 5.7 哈夫曼树及其应用（WPL、前缀编码）',
     guide: [
       '阶段下拉可直达：① 构造（森林视图逐轮合并最小的两棵）② 编码 ③ 译码',
@@ -199,7 +200,7 @@
         var nxt = (b === '0') ? HT[decode.at].lch : HT[decode.at].rch;
         decode.at = nxt;
         F(L_DEC_BIT, '读入 ' + b + ' → 走' + (b === '0' ? '左' : '右') + '子树，p → HT[' + nxt + ']' + (HT[nxt].ch ? '（叶子 ' + HT[nxt].ch + '）' : '') + '。',
-          { 剩余报文: sample.slice(bi + 1), 已译出: decode.out.join(' ') || '（无）' },
+          { 剩余报文: sample.slice(bi + 1) || '（已读完）', 已译出: decode.out.join(' ') || '（无）' },
           snap({ hl: { c: nxt } }));
         if (!HT[nxt].lch && !HT[nxt].rch) {
           decode.out.push(HT[nxt].ch);

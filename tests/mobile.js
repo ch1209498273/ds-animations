@@ -185,6 +185,63 @@ function measureCatalog(hash) {
   }
 }
 
+/* 全模块出帧卡口（端到端）：逐个切到每个模块，量"浏览器里到底画出了没有"。
+   v3.1 的邻接多重表在 Node 里 run() 出 9 帧、断言全绿，浏览器里却是一片空白——
+   因为引擎的 values() 会把输入里的 < > 剥掉，默认边表 "0>1 0>2" 变成 "01 02" 直接抛错。
+   只要断言走的是 Node 侧 run()，这类"引擎管线吃掉输入"的缺陷就永远照不出来，
+   所以这里必须从真实页面进、按渲染结果出。 */
+const SWEEP = `
+setTimeout(function () {
+  var w = f.contentWindow, d = f.contentDocument;
+  var ids = w.DSC.mods.map(function (m) { return m.id; });
+  var bad = [], noAim = [], n = 0;
+  function step(i) {
+    if (i >= ids.length) {
+      var el = document.createElement('pre'); el.id = 'out';
+      el.textContent = 'PROBE:' + JSON.stringify({ n: n, total: ids.length, bad: bad, noAim: noAim });
+      document.body.appendChild(el);
+      return;
+    }
+    w.location.hash = '#m=' + ids[i];
+    setTimeout(function () {
+      n++;
+      var pos = d.getElementById('pos'), svg = d.querySelector('#canvas svg');
+      var msg = d.getElementById('msg'), aim = d.getElementById('modaim');
+      var p = pos ? pos.textContent.trim() : '-';
+      var e = msg ? msg.textContent.trim() : '';
+      var a = aim ? aim.textContent.trim() : '';
+      if (p === '0 / 0' || !svg || e.indexOf('输入有误') >= 0) bad.push(ids[i] + ' [' + p + '] ' + e.slice(0, 46));
+      if (!a) noAim.push(ids[i]);
+      step(i + 1);
+    }, 130);
+  }
+  step(0);
+}, 1500);
+`;
+
+function sweepAll() {
+  const html = '<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0}iframe{border:0;width:1280px;height:900px}</style></head><body>' +
+    '<iframe id="f" src="m.html"></iframe>' +
+    '<script>var f=document.getElementById("f");' + SWEEP + '<\/script></body></html>';
+  const hp = path.join(tmp, 'sweep.html');
+  fs.writeFileSync(hp, html, 'utf8');
+  const r = cp.spawnSync(edge, ['--headless=new', '--disable-gpu', '--user-data-dir=' + PROFILE, '--allow-file-access-from-files',
+    '--hide-scrollbars', '--window-size=1320,960', '--virtual-time-budget=30000',
+    '--dump-dom', 'file:///' + hp.replace(/\\/g, '/')], { encoding: 'utf8', timeout: 180000 });
+  const m = /PROBE:(\{[^<]*)/.exec(r.stdout || '');
+  return m ? JSON.parse(m[1]) : null;
+}
+
+{
+  const o = sweepAll();
+  if (!o) t('全模块出帧: 量测成功', false, '探针无输出');
+  else {
+    t('全模块出帧: 每个模块都走了一遍', o.n === o.total, { n: o.n, total: o.total });
+    t('全模块出帧: 默认输入下都有帧、画布都有 svg、且不报输入有误', o.bad.length === 0, o.bad);
+    t('全模块出帧: 每个模块标题下都有一句常驻的"在讲什么"', (o.noAim || []).length === 0, o.noAim);
+  }
+}
+
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log('  手机视口小计: 通过 ' + pass + '，失败 ' + fail);
 process.exit(fail ? 1 : 0);

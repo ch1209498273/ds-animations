@@ -44,6 +44,7 @@
 
   DSC.reg({
     id: 'circQueue', ch: 3, name: '假溢出与循环队列：入队与出队',
+    aim: '顺序队列为什么会"假溢出"，以及**判满的三种方案**各自牺牲了什么',
     note: '教材 3.5 队列的表示和操作的实现（假溢出、队空/队满三方案）',
     guide: [
       '场景①假溢出：普通顺序队列 front 单向右移——前面明明有空位却"队满"，这就是必须循环的原因',
@@ -227,7 +228,7 @@
               : '本方案 front==rear 时队空与队满都可能，靠' + (scheme === 'size' ? 'size' : 'tag') + '区分。'),
             cond(), snap({ op: 'full' }));
         } else {
-          F(L_JUDGE_EMPTY, '演示结束。当前队长 = ' + (scheme === 'fewer'
+          F(L_JUDGE_EMPTY, '★ 演示结束。当前队长 = ' + (scheme === 'fewer'
             ? '(rear − front + M) % M = (' + rear + ' − ' + front + ' + ' + M + ') % ' + M + ' = ' + ((rear - front + M) % M)
             : (scheme === 'size' ? 'size = ' + size : (front === rear ? (tag === 1 ? M : 0) : (rear - front + M) % M))) + '。' +
             (scheme === 'fewer'

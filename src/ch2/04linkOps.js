@@ -22,6 +22,7 @@
 
   DSC.reg({
     id: 'linkOps', ch: 2, name: '单链表基本操作合集',
+    aim: '建表、查找、插删、求表长在单链表的**游标走法**下各要摸几个结点',
     note: '教材 2.5 基本操作（无随机存取，全靠 p 后移）',
     guide: [
       '链表没有下标：任何"定位"都要从表头出发，让 p 沿 next 逐结点后移',
@@ -60,16 +61,16 @@
           F('p->data = ' + arr[i] + ' ≠ ' + k + ' → p = p->next，后移。', { at: i, line: 3 });
         }
         if (found < 0) F('p 走到 NULL——链上没有 ' + k + '，查找失败。共比较 ' + n + ' 次。', { at: n, res: '未找到', line: 3 }, 'fail');
-        F('按值查找 O(n)：链表必须顺着指针走，无法像顺序表那样按下标直达。', { at: found >= 0 ? found : n, hit: found >= 0 ? found : undefined, res: found >= 0 ? '找到' : '未找到' });
+        F('★ 按值查找 O(n)：链表必须顺着指针走，无法像顺序表那样按下标直达。', { at: found >= 0 ? found : n, hit: found >= 0 ? found : undefined, res: found >= 0 ? '找到' : '未找到' });
       } else if (op === 'len') {
         var cnt = 0;
         for (var i2 = 0; i2 < n; i2++) { cnt++; cmp++; F('第 ' + cnt + ' 次计数：p->data = ' + arr[i2] + '，n = ' + cnt + ' → p 后移。', { at: i2, line: 7 }); }
-        F('p 到 NULL，链表长 n = ' + n + '。求表长 O(n)——对比顺序表 O(1) 读字段。', { at: n, res: 'n = ' + n }, 'ok');
+        F('★ p 到 NULL，链表长 n = ' + n + '。求表长 O(n)——对比顺序表 O(1) 读字段。', { at: n, res: 'n = ' + n }, 'ok');
       } else {
         if (pos < 1 || pos > n) F('i = ' + pos + ' 不合法（1 ≤ i ≤ ' + n + '）→ 返回 ERROR。', { at: n, res: 'ERROR', line: 11 }, 'err');
         else {
           for (var i3 = 0; i3 < pos; i3++) { cmp++; if (i3 < pos - 1) F('j = ' + (i3 + 1) + ' < ' + pos + ' → p 后移到第 ' + (i3 + 2) + ' 个结点。', { at: i3, line: 11 }); }
-          F('j = ' + pos + ' 到达：p->data = ' + arr[pos - 1] + '。取第 ' + pos + ' 个元素走了 ' + pos + ' 步——O(n)！顺序表同样操作只要 1 步。', { at: pos - 1, hit: pos - 1, res: '第 ' + pos + ' 个 = ' + arr[pos - 1] }, 'ok');
+          F('★ j = ' + pos + ' 到达：p->data = ' + arr[pos - 1] + '。取第 ' + pos + ' 个元素走了 ' + pos + ' 步——O(n)！顺序表同样操作只要 1 步。', { at: pos - 1, hit: pos - 1, res: '第 ' + pos + ' 个 = ' + arr[pos - 1] }, 'ok');
         }
       }
       return { code: CODE, frames: frames };

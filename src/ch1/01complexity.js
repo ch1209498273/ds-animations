@@ -29,6 +29,7 @@
 
   DSC.reg({
     id: 'complexity', ch: 1, name: '时间复杂度可视化',
+    aim: 'n 一大，各种量级的差距就这么残酷——**跑得快慢不看常数，看阶**',
     note: '教材 1.4 算法与算法分析（增长速度分级、渐近符号）',
     guide: [
       '播放时曲线逐点生长，横纵坐标每帧自动缩放——n 小的时候大家都是 1，分不出好坏',
@@ -46,7 +47,7 @@
         var vals = FNS.map(function (f) { return { name: f.name, v: f.f(n), color: f.color }; });
         frames.push({
           /* CODE[0] 是标题行，六条复杂度占 [1..6]：模数写成 7 会让 n=7 那一帧高亮到不存在的行 */
-          line: [(n - 1) % 6 + 1], msg: 'n = ' + n + '：' + vals.map(function (x) { return x.name + ' = ' + fmt(x.v); }).join('，') + (n === 1 ? '。自动播放，看曲线生长、坐标轴跟着缩放。' : n === NMAX ? '。O(2^' + NMAX + ') = ' + fmt(Math.pow(2, NMAX)) + '——指数阶在真实机器上不可行。' : ''),
+          line: [(n - 1) % 6 + 1], msg: (n === NMAX ? '★ ' : '') + 'n = ' + n + '：' + vals.map(function (x) { return x.name + ' = ' + fmt(x.v); }).join('，') + (n === 1 ? '。自动播放，看曲线生长、坐标轴跟着缩放。' : n === NMAX ? '。O(2^' + NMAX + ') = ' + fmt(Math.pow(2, NMAX)) + '——指数阶在真实机器上不可行。' : ''),
           panel: (function () {
             var p = {};
             vals.forEach(function (x) { p[x.name] = fmt(x.v); });

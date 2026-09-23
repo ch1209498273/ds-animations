@@ -45,6 +45,7 @@
 
   DSC.reg({
     id: 'treeStore', ch: 5, name: '树的三种存储结构：双亲 / 孩子 / 孩子兄弟',
+    aim: '普通树孩子个数不定，必须换表示法：**双亲找爹快、孩子找娃快、孩子兄弟能表示森林**',
     note: '408 大纲 四(三)1 树的存储结构（三种表示在同一棵树上对照，找爹与找孩子各要摸几格）',
     guide: [
       '二叉树只用"最多两个孩子"，所以能靠下标算父子；**普通树孩子个数不定**，必须换表示法——这就是三种存储结构的由来',
@@ -119,7 +120,7 @@
         F([25, 26, 27, 28], PN + '：每个结点两个指针——`firstchild` 指**第一个孩子**，`nextsibling` 指**下一个兄弟**。' +
           '于是"一长串孩子"被压成一条兄弟链，任意一棵树都能这样表成二叉树。',
           { 结点数: '8 个', 每格占用: '数据 + 2 个指针' }, {});
-        var chain = [], k = ti;
+        var chain = [];
         F([27, 28], t + ' 的 `firstchild` 指向' + (kids.length ? '大孩子 ' + LBL[kids[0]] : '空（它是叶子）') + '。',
           { 第一步: 'firstchild(' + t + ') → ' + (kids.length ? LBL[kids[0]] : 'NULL') }, { hit: kids.slice(0, 1) });
         if (kids.length) {
@@ -136,16 +137,20 @@
           { 找孩子: kids.map(function (x) { return LBL[x]; }).join('、') || '叶子', 访问格数: (kids.length + 1) + ' 格' },
           { hit: kids });
         /* 找爹：从根沿 firstchild / nextsibling 走到目标所在的兄弟链 */
-        var path = [];
         if (par >= 0) {
-          var walk = [0];
-          if (ti !== 1 && ti !== 2 && ti !== 3) {
-            walk.push(PAR[ti]);        // 先下到大孩子那一层
-            for (var w = 0; w < 8; w++) if (PAR[w] === PAR[ti] && w !== ti) walk.push(w);
+          var walk = [0], route;
+          if (ti >= 1 && ti <= 3) {
+            for (var w1 = 1; w1 <= 3; w1++) walk.push(w1);
+            route = 'A 的 firstchild→nextsibling 链（' + KID[0].map(function (x) { return LBL[x]; }).join('、') + '）';
+          } else {
+            walk.push(par);
+            KID[par].forEach(function (x) { if (walk.indexOf(x) < 0) walk.push(x); });
+            route = LBL[par] + ' 的 firstchild→nextsibling 链（' + KID[par].map(function (x) { return LBL[x]; }).join('、') + '）';
           }
-          F([27, 28], '但找爹仍然不行——**结点里根本没存爹**。只能从根 A 出发，沿 firstchild 下、沿 nextsibling 右，' +
-            '一个个问「你的孩子是不是 ' + t + '？」。要走过 ' + (ti <= 3 ? 'A 的兄弟链' : LBL[par] + ' 的孩子链') + '。',
-            { 找双亲: '必须自顶向下搜', 访问格数: 'O(n)' }, { scan: walk.slice(), hit: [par] });
+          F([27, 28], '但找爹仍然不行——**结点里根本没存爹**。只能从根 A 出发，沿 `firstchild` 往下、沿 `nextsibling` 往右，' +
+            '一个个问「你的孩子是不是 ' + t + '？」，最坏要把整棵树走一遍。这次要摸到 ' + route + '，共 ' + walk.length + ' 格。',
+            { 找双亲: '自顶向下搜', 走过: walk.map(function (x) { return LBL[x]; }).join('→'), 访问格数: walk.length + ' / 8' },
+            { scan: walk.slice(), hit: [par] });
         } else {
           F([27, 28], '而 ' + t + ' 本身就是根，没有双亲——不过要判断"它是不是根"，' +
             '在双亲表示法里看一眼 parent==−1 就行，这里却得从它往上搜一遍才知道没人指着它。',
@@ -218,44 +223,50 @@
         g += h.txt(60, y0 + 8 * rowH + 20, '链上依次是该结点的孩子，∧ = 空链（叶子）。找孩子顺自己那条链就行；找爹要把 8 条链全遍历一遍。',
           { size: 11.5, fill: C.muted, anchor: 'start' });
       } else {
-        g += h.txt(60, y0 - 14, '二叉链表：firstchild（左）指大孩子，nextsibling（右）指下一个兄弟',
+        function nextSib(i) {
+          if (PAR[i] < 0) return -1;
+          var bk = KID[PAR[i]], at = bk.indexOf(i);
+          return (at >= 0 && at + 1 < bk.length) ? bk[at + 1] : -1;
+        }
+        g += h.txt(60, y0 - 14, '二叉链表：每格 data | firstchild | nextsibling，指针格里写的就是它指向的结点',
           { size: 12, fill: C.muted, anchor: 'start' });
         for (var i4 = 0; i4 < 8; i4++) {
           var x4 = cellX(i4), cur4 = s.cur === i4;
+          var fc4 = KID[i4][0], sb4 = nextSib(i4);
+          var hF = fc4 != null && s.hit.indexOf(fc4) >= 0, hS = sb4 >= 0 && s.hit.indexOf(sb4) >= 0;
           g += h.rect(x4, y0, cw, 24, { fill: cur4 ? C.blueBg : '#fff', stroke: cur4 ? C.blue : C.grey, sw: cur4 ? 2.2 : 1.2, rx: 4 });
           g += h.txt(x4 + cw / 2, y0 + 17, LBL[i4], { size: 13, w: 700 });
-          g += h.rect(x4, y0 + 26, cw / 2, 20, { fill: '#f8fafc', stroke: C.line, sw: 1, rx: 3 });
-          g += h.rect(x4 + cw / 2, y0 + 26, cw / 2, 20, { fill: '#f8fafc', stroke: C.line, sw: 1, rx: 3 });
-          g += h.txt(x4 + cw / 4, y0 + 41, 'child', { size: 9.5, fill: C.muted });
-          g += h.txt(x4 + 3 * cw / 4, y0 + 41, 'sibling', { size: 9.5, fill: C.muted });
+          g += h.rect(x4, y0 + 26, cw / 2, 20, { fill: hF ? C.greenBg : '#f8fafc', stroke: hF ? C.green : C.line, sw: hF ? 2 : 1, rx: 3 });
+          g += h.rect(x4 + cw / 2, y0 + 26, cw / 2, 20, { fill: hS ? C.amberBg : '#f8fafc', stroke: hS ? C.amber : C.line, sw: hS ? 2 : 1, rx: 3 });
+          g += h.txt(x4 + cw / 4, y0 + 41, fc4 == null ? '∧' : LBL[fc4], { size: 11.5, w: hF ? 700 : 400, fill: hF ? C.green : C.ink });
+          g += h.txt(x4 + 3 * cw / 4, y0 + 41, sb4 < 0 ? '∧' : LBL[sb4], { size: 11.5, w: hS ? 700 : 400, fill: hS ? C.amber : C.ink });
         }
-        /* 指针弧线：firstchild 走下方，nextsibling 走上方 */
+        /* 两类指针各走一条道，箭头从下方指回目标格的指针行——之前两条道挤在一起、
+           箭头落在格子下方的空处，看不出"指给谁" */
         for (var a1 = 0; a1 < 8; a1++) {
-          var fc = KID[a1][0], sib = -1;
-          if (PAR[a1] >= 0) {
-            var bk = KID[PAR[a1]];
-            var at = bk.indexOf(a1);
-            if (at >= 0 && at + 1 < bk.length) sib = bk[at + 1];
-          }
+          var x1 = cellX(a1), fc = KID[a1][0], sb = nextSib(a1);
           if (fc != null) {
             var hot1 = s.cur === a1 || s.hit.indexOf(fc) >= 0;
-            g += h.arrow(cellX(a1) + cw / 4, y0 + 46, cellX(fc) + cw / 2, y0 + 52,
-              { stroke: hot1 ? C.green : C.grey, sw: hot1 ? 2.2 : 1.2, head: 6 });
+            g += h.curve(x1 + cw / 4, y0 + 47, (x1 + cellX(fc)) / 2 + cw / 4, y0 + 72,
+              cellX(fc) + cw / 4, y0 + 47, { stroke: hot1 ? C.green : '#cbd5e1', sw: hot1 ? 2.2 : 1.2, head: 7 });
           }
-          if (sib >= 0) {
-            var hot2 = s.cur === a1 || s.hit.indexOf(sib) >= 0;
-            g += h.arrow(cellX(a1) + 3 * cw / 4, y0 + 46, cellX(sib) + cw / 2, y0 + 68,
-              { stroke: hot2 ? C.amber : '#dbe3ec', sw: hot2 ? 2.2 : 1.1, head: 6 });
+          if (sb >= 0) {
+            var hot2 = s.cur === a1 || s.hit.indexOf(sb) >= 0;
+            g += h.curve(x1 + 3 * cw / 4, y0 + 47, (x1 + cellX(sb)) / 2 + 3 * cw / 4, y0 + 106,
+              cellX(sb) + 3 * cw / 4, y0 + 47, { stroke: hot2 ? C.amber : '#e2e8f0', sw: hot2 ? 2.2 : 1.2, head: 7 });
           }
         }
-        g += h.txt(60, y0 + 88, '绿线 = firstchild（大孩子，走下面第一条道）　灰橙线 = nextsibling（右兄弟，第二条道）',
+        g += h.txt(60, y0 + 130, '绿线 = firstchild（大孩子，走第一条道）　橙线 = nextsibling（右兄弟，走第二条道）　∧ = 空指针',
           { size: 11.5, fill: C.muted, anchor: 'start' });
       }
       var note = s.done
         ? '★ ' + { parent: '双亲表示法：找爹 O(1)、找孩子要扫全表 O(n)',
           child: '孩子表示法：找孩子 O(度数)、找爹要遍历所有链表 O(n)',
           sib: '孩子兄弟表示法：能表示森林，代价是找爹只能自顶向下搜' }[s.way]
-        : '上半是同一棵树，下半是它在' + PN0(s.way) + '下的样子；橙=正在比较，绿=命中';
+        : '上半是同一棵树，下半是它在' + PN0(s.way) + '下的样子：' +
+          { parent: '橙=正在比较的 parent 域，绿=比中的孩子',
+            child: '橙=正在遍历的那条孩子链，绿=命中',
+            sib: '绿=firstchild 指到的结点，橙=nextsibling 指到的结点' }[s.way];
       g += h.txt(W / 2, H - 18, note, { size: 12.5, fill: s.done ? C.green : C.muted, w: 600 });
       return h.svg(W, H, g);
     }

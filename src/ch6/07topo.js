@@ -24,6 +24,7 @@
 
   DSC.reg({
     id: 'topo', ch: 6, name: '拓扑排序：AOV 网与回路检测',
+    aim: 'AOV 网反复摘**入度为 0** 的点；摘不满 n 个就说明图里有回路',
     note: '教材 6.6 图的应用（AOV 网、拓扑排序、回路检测）',
     guide: [
       '只有入度为 0 的顶点才能输出——输出后删除它的所有出弧',
@@ -88,7 +89,7 @@
         }
       }
       if (out.length >= N) {
-        F([10], '拓扑排序成功！序列：' + out.map(function (i) { return NAMES[i]; }).join(' → ') + '（共 ' + N + ' 个顶点全部输出）。同一 AOV 网的拓扑序列可能不唯一（栈中同时可弹时选择不同），但都必须满足所有先后约束。',
+        F([10], '★ 拓扑排序成功！序列：' + out.map(function (i) { return NAMES[i]; }).join(' → ') + '（共 ' + N + ' 个顶点全部输出）。同一 AOV 网的拓扑序列可能不唯一（栈中同时可弹时选择不同），但都必须满足所有先后约束。',
           { 拓扑序列: out.map(function (i) { return NAMES[i]; }).join(' → '), 输出顶点数: N + ' / ' + N }, snap({ done: true }));
       } else {
         var rest = [];

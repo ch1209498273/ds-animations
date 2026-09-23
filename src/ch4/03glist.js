@@ -18,7 +18,7 @@
     '    if (!L) return NULL;',
     '    return L->tag == 1 ? L->sub : L;      // 返回第一个结点本身',
     '}',
-    'GList GetTail(GList L) {          // 表尾：除第一个元素外的**其余部分**，必是表',
+    'GList GetTail(GList L) {          // 表尾：除第一个元素外的「其余部分」，必是表',
     '    if (!L || !L->tp) return NULL;',
     '    t = new GList; t->tag = 1; t->sub = L->tp;   // 套一层表头结点',
     '    return t;',
@@ -73,6 +73,7 @@
 
   DSC.reg({
     id: 'glist', ch: 4, name: '广义表：链式存储与表头/表尾/长度/深度',
+    aim: '广义表的结点靠 tag 域区分**原子还是子表**；表头、表尾、长度、深度各怎么算',
     note: '教材 4.4 广义表（tag/sub/tp 三域结点、GetHead/GetTail、长度与递归深度）',
     guide: [
       '线性表的元素必须是原子。一旦允许"元素本身也是一个表"，就成了**广义表**——它是树、图的通用化表示，也是 LISP 系列语言的底层结构',
@@ -123,28 +124,50 @@
       }
 
       if (scene === 'head') {
-        F([11, 12, 13], 'GetHead(`' + show(L) + '`)：取最外层**第一个元素**本身。' +
-          (isAtom(L[0]) ? '第一个是原子 `' + L[0] + '`，tag=0，直接返回这个结点。'
-            : '第一个是子表 `' + show(L[0]) + '`，tag=1，返回它（表头**可以是表**）。'),
-          { 结果: show(L[0]), 是: isAtom(L[0]) ? '原子' : '子表' }, { hl: { node: [0] } });
-        F([13], '★ GetHead = ' + show(L[0]) + '。注意它返回的是**一个元素**，可以是原子也可以是表。',
-          { 结果: show(L[0]) }, { hl: { node: [0] }, done: true });
+        var first = L[0];
+        F([7, 8], '先找到最外层的**表头结点**：它 tag=1，`sub` 指向第一个元素结点。' +
+          '画面里最外层那条链的起点就是它，往右用 tp 串起 ' + lenOf(L) + ' 个元素。',
+          { 表头结点: 'tag=1，sub → 第一个元素', 最外层元素: lenOf(L) + ' 个' }, {});
+        F([10, 11], '`GetHead(L)` 第一行只判空：`if (!L) return NULL;`——表都不存在就没什么可取的。',
+          { 入参: 'L = ' + show(L) }, { hl: { node: [0] } });
+        F([12], '核心就一行三元：`return L->tag == 1 ? L->sub : L;`。表头结点 tag=1，所以**走 sub 往下钻**，' +
+          '落到第一个元素结点——' + (isAtom(first) ? '它 tag=0，联合域里存的是原子 `' + show(first) + '`。'
+            : '它 tag=1，本身就是一张子表 `' + show(first) + '`，表头**可以是表**。'),
+          { 走哪条指针: 'sub（往下钻）', 落点: isAtom(first) ? '原子结点 tag=0' : '子表结点 tag=1' },
+          { hl: { node: [0] } });
+        F([12, 13], '★ GetHead = ' + show(first) + '。返回的是**一个元素**，不是' +
+          (L.some(function (x) { return !isAtom(x); }) ? '一张表——本例第一个元素恰好是原子；把 LS 换成 ((b,c),a) 试试，' +
+            '表头就会是整张子表 (b,c)。' : '一张表——对照记忆：`GetHead` 的结果**少一层括号**。'),
+          { 结果: show(first), 是: isAtom(first) ? '原子（一个元素）' : '子表（但仍算一个元素）' },
+          { hl: { node: [0] }, done: true });
         return { code: CODE, frames: frames };
       }
 
       if (scene === 'tail') {
         var rest = L.slice(1);
-        F([14, 15, 16, 17], 'GetTail(`' + show(L) + '`)：去掉第一个元素，**剩下的整体仍然是一张表**——' +
-          '所以实现上要新建一个 tag=1 的表头结点，把它的 sub 指向 `L->tp`（第二个元素结点）。',
-          { 第一步: '跳过 ' + show(L[0]) }, { hl: { node: [0], skip: true } });
-        F([16, 17], '套上的这一层很关键：表尾是"表"，不是"元素"。' +
-          (rest.length ? '本例表尾 = (' + rest.map(show).join(',') + ')' : '本例去掉第一个之后什么都不剩 → 表尾为 **NULL**（不是空表 ()）'),
-          { 结果: rest.length ? '(' + rest.map(show).join(',') + ')' : 'NULL' },
-          { hl: { node: rest.length ? rest.map(function (_, i) { return i + 1; }) : [] }, done: true });
-        F([17], '★ GetTail = ' + (rest.length ? '(' + rest.map(show).join(',') + ')' : 'NULL') +
-          '。对照记忆：`GetHead` 少一层括号、`GetTail` 保留括号。' +
-          (rest.length && !isAtom(rest[0]) ? '再取一次表头 GetHead(GetTail(L)) = ' + show(rest[0]) + '。' : ''),
-          { 结果: rest.length ? '(' + rest.map(show).join(',') + ')' : 'NULL' }, { done: true });
+        F([14], '`GetTail(L)` 要的是"**除第一个元素之外的其余部分**"。入参仍然是最外层那个表头结点，' +
+          '第一个元素 ' + show(L[0]) + ' 就是待跳过的那一个。',
+          { 原表: show(L), 待跳过: show(L[0]) }, { hl: { node: [0], skip: true } });
+        F([15], '先判 `!L->tp`：`tp` 指向同层的**下一个**元素，也就是第二个元素结点。' +
+          (rest.length ? '本例 tp 非空，继续往下走。' : '本例最外层只有一个元素，tp 为空 → **直接返回 NULL**。') +
+          '注意返回的是 NULL 而不是空表 `()`，这两件事在广义表里不等价。',
+          { 判空: 'L->tp' + (rest.length ? ' 非空 → 继续' : ' 为空 → NULL') },
+          { hl: { node: [0], skip: true } });
+        if (rest.length) {
+          F([16], '顺 `tp` 横着走一步 → 落到第二个元素结点（' + show(L[1]) + '），它就是其余部分的开头。' +
+            '到这一步还没新建任何结点。',
+            { 走哪条指针: 'tp（同层横着走）', 落点: show(L[1]) + ' 所在结点' }, { hl: { node: [1] } });
+          F([16, 17], '可表尾必须是一张**表**，于是 `new` 一个 tag=1 的表头结点，把它的 `sub` 指向上一步的落点——' +
+            '给其余部分**再套一层表头结点**。原结点一个都不复制，只是多挂一个头。',
+            { 新表头结点: 'tag=1，sub → 第二个元素结点', 套上的括号: '(' + rest.map(show).join(',') + ')' },
+            { hl: { node: rest.map(function (_, i) { return i + 1; }) } });
+          F([17], '★ GetTail = (' + rest.map(show).join(',') + ')。对照记忆：`GetHead` 少一层括号、`GetTail` 保留括号。' +
+            '再取一次表头：GetHead(GetTail(L)) = ' + show(rest[0]) + '。',
+            { 结果: '(' + rest.map(show).join(',') + ')', 是: '一张表' }, { done: true });
+        } else {
+          F([17], '★ GetTail = NULL。只剩一个元素时"其余部分"根本不存在，返回空指针而不是空表 `()`。',
+            { 结果: 'NULL' }, { done: true });
+        }
         return { code: CODE, frames: frames };
       }
 

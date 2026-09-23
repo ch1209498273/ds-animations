@@ -62,7 +62,7 @@ sort_common_min = terser(sort_common_src)
 css_min = min_css(css)
 
 tpl = (src / 'index.template.html').read_text(encoding='utf-8')
-VER = 'v3.1'
+VER = 'v3.2'
 NMOD = len(module_files)          # 对外文案里的动画数一律由实际模块数推出，不再手写
 stamp = VER + ' · 构建 ' + time.strftime('%Y-%m-%d %H:%M')
 MAIN_DESC = ('%d 个可交互数据结构算法动画：线性表、栈队列、串数组、树、图、查找、排序全部章节，'

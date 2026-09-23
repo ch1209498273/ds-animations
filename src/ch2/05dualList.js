@@ -87,6 +87,7 @@
 
   DSC.reg({
     id: 'dualList', ch: 2, name: '双向链表与循环链表',
+    aim: '双向多一个 prior 指针换来**能从尾倒着走**；循环链表靠尾结点回指头结点',
     note: '教材 2.5 双向链表（prior/next 对称改链）、循环链表',
     guide: [
       '双向链表每个结点两个指针：prior 指前驱、next 指后继——可以 O(1) 找到前驱，单链表不行',
@@ -151,7 +152,7 @@
       F('第 2 步：经回环链到达头结点 10。走到头了也没关系——继续沿 next 前进。', { stage: 'walk', walk: 10 }, 'cyc2', 3);
       F('第 3 步：访问 20。', { stage: 'walk', walk: 20 }, 'cyc3', 2);
       F('第 4 步：访问 30。全表 4 个结点从"尾结点出发"全部走完——单链表做不到，这就是循环的价值。', { stage: 'walk', walk: 30 }, 'cyc4', 2);
-      F('意义②：若再设一个尾指针 rear，则 rear->next 就是头——表头与表尾的操作都 O(1)；两条循环链表合并只需改两次指针。', { stage: 'done' }, 'done');
+      F('★ 意义②：若再设一个尾指针 rear，则 rear->next 就是头——表头与表尾的操作都 O(1)；两条循环链表合并只需改两次指针。', { stage: 'done' }, 'done');
       return { code: CODE_CYC, frames: frames };
     },
     render: function (s) {

@@ -57,6 +57,7 @@
 
   DSC.reg({
     id: 'linkStackQueue', ch: 3, name: '链栈与链队列：栈和队列的链式实现',
+    aim: '链栈在表头 push/pop 最快；链队列必须**另设一个 rear 指针**，否则入队也要从头找',
     note: '教材 3.3/3.4 栈与队列的链式存储（top 即栈顶结点、rear 的"最后一个结点"特判）',
     guide: [
       '**链栈不带头结点**：top 本身就是栈顶结点，进栈就是头插法（s->next = top; top = s），出栈就是删除首元结点',
@@ -105,13 +106,13 @@
           pending.forEach(function (e) {
             fly = { v: e, link: false };
             F([6, 7, 8], '进栈 e = ' + e + '：malloc 一个结点。链栈没有"栈满"这回事，只有内存真的分配不出来才算失败。',
-              { 栈内: cnt(nodes.length), 待进栈: pending.join(' ') }, S({}));
+              { 栈内: cnt(nodes.length), 待进栈: pending.join(' ') || '（已进完）' }, S({}));
             fly = { v: e, link: true };
             F([10], '① s->next = top：先让新结点接住当前栈顶' + (nodes.length ? '（' + nodes[0] + '）' : '（NULL）') + '。',
-              { 栈内: cnt(nodes.length), 待进栈: pending.join(' ') }, S({}));
+              { 栈内: cnt(nodes.length), 待进栈: pending.join(' ') || '（已进完）' }, S({}));
             nodes.unshift(e); fly = null; pending = pending.slice(1);
             F([11], '② top = s：头指针指过来，' + e + ' 就成了新的栈顶。这就是**头插法**。',
-              { 栈内: cnt(nodes.length), 栈顶: e, 待进栈: pending.join(' ') }, S({}));
+              { 栈内: cnt(nodes.length), 栈顶: e, 待进栈: pending.join(' ') || '（已进完）' }, S({}));
           });
           F([12], '★ 进栈完成：' + items.length + ' 个元素全插在链头，从栈顶到栈底是 ' + nodes.join(' → ') +
             '。对照顺序栈：不用判满、不会假溢出，代价是每个结点多背一个 next 指针。',
@@ -158,13 +159,13 @@
         qpend.forEach(function (e) {
           fly = { v: e, link: false };
           F([11, 12], '入队 e = ' + e + '：新建结点 s，s->data = e、s->next = NULL。',
-            { 队列长: cnt(qn.length - 1), 待入队: qpend.join(' ') }, Q({}));
+            { 队列长: cnt(qn.length - 1), 待入队: qpend.join(' ') || '（已入完）' }, Q({}));
           fly = { v: e, link: true };
           F([13], '① rear->next = s：先把新结点挂到**尾结点**后面。此时 rear 还指着' + qn[qn.length - 1] + '。',
-            { 队列长: cnt(qn.length - 1), 待入队: qpend.join(' ') }, Q({}));
+            { 队列长: cnt(qn.length - 1), 待入队: qpend.join(' ') || '（已入完）' }, Q({}));
           qn.push(e); fly = null; rear = qn.length - 1; qpend = qpend.slice(1);
           F([14], '② rear = s：尾指针才后移。**先移指针再挂结点就会丢掉后面整条链**，这两步顺序是考点。',
-            { 队列长: cnt(qn.length - 1), 队头: qn[1], 队尾: e, 待入队: qpend.join(' ') }, Q({}));
+            { 队列长: cnt(qn.length - 1), 队头: qn[1], 队尾: e, 待入队: qpend.join(' ') || '（已入完）' }, Q({}));
         });
         F([14], '★ 入队完成：从队头到队尾是 ' + qn.slice(1).join(' → ') + '。链队列不会假溢出，' +
           '也不需要像循环队列那样留一个空位来区分"空"和"满"。',
