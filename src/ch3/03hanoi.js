@@ -15,7 +15,7 @@
   ];
 
   DSC.reg({
-    id: 'hanoi', ch: 3, name: '⑤ 递归调用栈：汉诺塔',
+    id: 'hanoi', ch: 3, name: '递归调用栈：汉诺塔',
     note: '教材 3.4 栈与递归（递归工作栈）',
     guide: [
       '右侧递归工作栈与左侧圆盘移动完全同步：压栈=展开一层计划，弹栈=该层完成',
@@ -108,7 +108,7 @@
       for (var k2 = 0; k2 < s.stack.length; k2++) {
         var yy = sy + (s.stack.length - 1 - k2) * 34;
         var isTop = k2 === s.stack.length - 1;
-        g += h.rect(sx - 175, yy, 265, 30, { fill: isTop ? C.blueBg : '#fff', stroke: isTop ? C.blue : C.grey, rx: 6, sw: isTop ? 2 : 1 });
+        g += h.rect(sx - 185, yy, 265, 30, { fill: isTop ? C.blueBg : '#fff', stroke: isTop ? C.blue : C.grey, rx: 6, sw: isTop ? 2 : 1 });
         g += h.txt(sx - 42, yy + 20, s.stack[k2], { size: 12.5, fill: isTop ? C.blue : C.ink, family: 'Consolas,monospace' });
       }
       if (!s.stack.length) g += h.txt(sx - 42, sy + 20, '（栈空）', { size: 13, fill: C.muted });

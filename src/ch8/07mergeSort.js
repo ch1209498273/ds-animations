@@ -88,7 +88,7 @@
     render: function (s) {
       var g = su.bars(s, { title: '归并排序（蓝=左半区，黄=左右指针比较，红=写入，绿=该区间已有序）' });
       g += su.legend([['左半区', 'P'], ['比较指针', 'C'], ['写入', 'S'], ['已有序', 'D']]);
-      return g;
+      return su.wrap(g);
     }
   });
 })();

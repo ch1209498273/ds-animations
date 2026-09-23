@@ -74,7 +74,7 @@
     render: function (s) {
       var g = su.bars(s, { title: '直接选择排序（蓝=当前候选最小，黄=正在比较，红=交换，绿=已就位）' });
       g += su.legend([['候选最小', 'P'], ['比较', 'C'], ['交换', 'S'], ['已就位', 'D']]);
-      return g;
+      return su.wrap(g);
     }
   });
 })();

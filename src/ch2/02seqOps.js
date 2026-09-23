@@ -93,19 +93,21 @@
       return { code: CODE, frames: frames };
     },
     render: function (s) {
-      var W = 980, H = 470, n = s.arr.length;
-      var cw = Math.min(84, Math.floor((W - 140) / n) - 10), x0 = (W - n * cw - (n - 1) * 10) / 2, y = 200;
+      var W = 980, H = 470, n = s.arr.length, TOT = 12, gp = 10;
+      /* 格宽必须按 12 个槽位算。原来用已填元素数 n：n=6 时 cw=84，
+         可空槽照样画到第 12 格 → 整排 1118 单位，超出 980 画布 351，右边格子看不见 */
+      var cw = Math.min(84, Math.floor((W - 140) / TOT) - gp), x0 = (W - TOT * cw - (TOT - 1) * gp) / 2, y = 200;
       var g = '';
       g += h.txt(W / 2, 90, '顺序表 L（MAXSIZE = 12）', { size: 18, w: 600 });
       for (var i = 0; i < n; i++) {
-        var x = x0 + i * (cw + 10), key = s.colors[i] || 'N';
+        var x = x0 + i * (cw + gp), key = s.colors[i] || 'N';
         var cm = { N: ['#fff', C.grey], C: [C.amberBg, C.amber], S: [C.greenBg, C.green], D: ['#f8fafc', C.line], P: [C.blueBg, C.blue] }[key];
         g += h.rect(x, y, cw, 56, { fill: cm[0], stroke: cm[1], sw: key === 'N' ? 1.5 : 2.4, rx: 7 });
         g += h.txt(x + cw / 2, y + 34, String(s.arr[i]), { size: 17, w: 700 });
         g += h.txt(x + cw / 2, y + 76, '下标 ' + i, { size: 11, fill: C.muted });
         g += h.txt(x + cw / 2, y + 94, '位序 ' + (i + 1), { size: 11, fill: C.muted });
       }
-      for (var j = n; j < 12; j++) g += h.rect(x0 + j * (cw + 10), y, cw, 56, { fill: '#fbfcfe', stroke: C.line, sw: 1, rx: 7, dash: '5,4' });
+      for (var j = n; j < 12; j++) g += h.rect(x0 + j * (cw + gp), y, cw, 56, { fill: '#fbfcfe', stroke: C.line, sw: 1, rx: 7, dash: '5,4' });
       if (s.tag) g += h.txt(W / 2, 350, s.tag, { size: 15, w: 700, fill: C.blue });
       g += h.txt(W / 2, 400, '蓝=当前最大  黄=比较  绿=命中  灰虚线=空闲空间', { size: 12.5, fill: C.muted });
       return h.svg(W, H, g);

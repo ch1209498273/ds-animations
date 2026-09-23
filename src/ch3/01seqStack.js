@@ -32,7 +32,7 @@
   };
 
   DSC.reg({
-    id: 'seqStack', ch: 3, name: '③ 顺序栈：进栈与出栈',
+    id: 'seqStack', ch: 3, name: '顺序栈：进栈与出栈',
     note: '教材 3.3 栈的表示和操作的实现（栈空/栈满判定、上溢/下溢）',
     guide: [
       '场景①进栈：观察 *S.top++ 两步——先放元素、top 再加 1；栈满判定 top−base==stacksize',
@@ -186,7 +186,7 @@
         g += h.txt(W - 125, y0 + 19, 'e = ' + s.ret, { size: 17, fill: C.amber, w: 700, family: 'Consolas,monospace' });
       }
       // 待进栈序列 / 出栈序列展示带（演示依据一目了然）
-      var wy = 470, py3 = 505;
+      var wy = 400, py3 = 440;   /* 原来 470/505 与底部解说条（482-516）同处一行，出栈序列的字全压在提示条上 */
       if (s.wait && s.wait.length && s.scene !== 'pop') {
         var wx = 30;
         g += h.txt(wx, wy, '待进栈序列：', { size: 13, fill: C.muted, anchor: 'start', w: 600 });

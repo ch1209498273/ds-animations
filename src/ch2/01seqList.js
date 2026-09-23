@@ -4,7 +4,7 @@
   var MAXSIZE = 10;
 
   DSC.reg({
-    id: 'seqList', ch: 2, name: '① 顺序表的插入与删除',
+    id: 'seqList', ch: 2, name: '顺序表的插入与删除',
     note: '教材 2.4 线性表的顺序表示和实现（插入/删除、移动次数分析）',
     guide: [
       '顶部选择"插入/删除"，改位置 i 或初始序列后自动重新演示',

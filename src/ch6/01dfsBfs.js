@@ -31,7 +31,7 @@
   };
 
   DSC.reg({
-    id: 'dfsBfs', ch: 6, name: '⑪ 图的 DFS 与 BFS 遍历',
+    id: 'dfsBfs', ch: 6, name: '图的 DFS 与 BFS 遍历',
     note: '教材 6.5 图的遍历（DFS/BFS、存储结构的影响）',
     guide: [
       '切换 DFS（递归+栈）与 BFS（队列），以及起点；右侧同步显示递归栈/队列',
@@ -86,13 +86,17 @@
           stack.push('DFS(v' + u + ')');
           visit(u, from === undefined ? null : from);
           ADJ[u].forEach(function (w) {
+            cur = u;                  // 当前结点必须跟着"正在扫谁的行"走：递归返回到祖先时，
+                                      // 若仍停在最后访问的点上，画面会显示"人在 v6、却在扫 v2 的行"
             checkCell = { r: u, c: w };
             if (!visited[w]) {
               F([2, 3], '检查 v' + u + ' 的邻接点 v' + w + '：未访问 → 递归调用 DFS(v' + w + ')。',
                 { 递归栈: stack.join(' → '), 已访问: seq.join(' → ') }, snap({}));
               dfs(w, u);
             } else {
-              F([3, 4], '检查 v' + u + ' 的邻接点 v' + w + '：已访问，跳过（避免绕回路）。', { 递归栈: stack.join(' → ') }, snap({}));
+              F([3, 4], (seq.length === N ? '【回溯收尾】' : '') + '检查 v' + u + ' 的邻接点 v' + w + '：已访问，跳过（避免绕回路）。' +
+                (seq.length === N ? '全部结点已访问完，这些检查是递归返回前的收尾，不产生新结点。' : ''),
+                { 递归栈: stack.join(' → ') }, snap({}));
             }
           });
           checkCell = null;
@@ -159,7 +163,7 @@
       var mx = 762, my = 106, cell = 28;
       if (s.storage === 'list') {
         var rowGap = 38;
-        g += h.txt(mx + 100, my - 22, '邻接表（头插法，邻居顺序与边输入顺序相反）', { size: 12.5, w: 600 });
+        g += h.txt(mx + 88, my - 22, '邻接表（头插法：邻居顺序与输入相反）', { size: 12.5, w: 600 });
         for (var li = 1; li <= N; li++) {
           var ly = my + (li - 1) * rowGap;
           var rowCur = s.checkCell && s.checkCell.r === li;

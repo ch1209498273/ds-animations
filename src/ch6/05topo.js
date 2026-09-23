@@ -23,7 +23,7 @@
   ];
 
   DSC.reg({
-    id: 'topo', ch: 6, name: '⑮ 拓扑排序：AOV 网与回路检测',
+    id: 'topo', ch: 6, name: '拓扑排序：AOV 网与回路检测',
     note: '教材 6.6 图的应用（AOV 网、拓扑排序、回路检测）',
     guide: [
       '只有入度为 0 的顶点才能输出——输出后删除它的所有出弧',
@@ -145,7 +145,7 @@
       }
       if (!s.stack.length) g += h.txt(tx + 95, sy + 20, '（空）', { size: 13, fill: C.muted });
       // 输出序列
-      var oy = 585;
+      var oy = 575;
       g += h.txt(30, oy + 22, '拓扑序列输出', { size: 14, fill: C.muted, anchor: 'start', w: 600 });
       s.out.forEach(function (v2, k3) {
         g += h.rect(150 + k3 * 62, oy, 56, 40, { fill: C.greenBg, stroke: C.green, rx: 8 });

@@ -45,7 +45,8 @@
       for (var n = 1; n <= NMAX; n++) {
         var vals = FNS.map(function (f) { return { name: f.name, v: f.f(n), color: f.color }; });
         frames.push({
-          line: [(n - 1) % 7 + 1], msg: 'n = ' + n + '：' + vals.map(function (x) { return x.name + ' = ' + fmt(x.v); }).join('，') + (n === 1 ? '。自动播放，看曲线生长、坐标轴跟着缩放。' : n === NMAX ? '。O(2^' + NMAX + ') = ' + fmt(Math.pow(2, NMAX)) + '——指数阶在真实机器上不可行。' : ''),
+          /* CODE[0] 是标题行，六条复杂度占 [1..6]：模数写成 7 会让 n=7 那一帧高亮到不存在的行 */
+          line: [(n - 1) % 6 + 1], msg: 'n = ' + n + '：' + vals.map(function (x) { return x.name + ' = ' + fmt(x.v); }).join('，') + (n === 1 ? '。自动播放，看曲线生长、坐标轴跟着缩放。' : n === NMAX ? '。O(2^' + NMAX + ') = ' + fmt(Math.pow(2, NMAX)) + '——指数阶在真实机器上不可行。' : ''),
           panel: (function () {
             var p = {};
             vals.forEach(function (x) { p[x.name] = fmt(x.v); });
@@ -77,6 +78,17 @@
         g += h.line(ox, y, ox + pw, y, { stroke: '#eef2f7', sw: 1 });
         g += h.txt(ox - 8, y + 4, e === 0 ? '1' : '10' + sup(e), { size: 10.5, fill: C.muted, anchor: 'end' });
       });
+      /* 轴顶标实际最大值：刻度取 floor 后顶格刻度低于轴顶，不补的话曲线最高点没有数可读。
+         比较的是像素间距而非数值差——yMaxLog 略大于整数时顶格刻度只差零点几像素，
+         补上去会和"10³"叠成一行 */
+      if (ph * (1 - ye[ye.length - 1] / yMaxLog) >= 12) {
+        g += h.line(ox, oy, ox + pw, oy, { stroke: '#eef2f7', sw: 1 });
+        var mxv = Math.max.apply(null, vals.map(function (x) { return x.v; }));
+        /* 标签右对齐在 x=88，最多约 15 个字符：nmax=64 时 O(2^n) 的原值有 19 位，
+           直接 String() 会画到画布外，超过 12 位改科学计数法 */
+        var mxTxt = String(mxv).length > 12 ? mxv.toExponential(2).replace('e+', 'e') : String(mxv);
+        g += h.txt(ox - 8, oy + 4, mxTxt, { size: 10.5, fill: C.muted, anchor: 'end' });
+      }
       /* 横轴：整数步长刻度（1 起到 n，不重复） */
       var xstep = Math.max(1, Math.ceil((n - 1) / 4));
       var xticks = [1];

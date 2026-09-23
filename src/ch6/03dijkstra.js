@@ -30,7 +30,7 @@
   ];
 
   DSC.reg({
-    id: 'dijkstra', ch: 6, name: '⑬ 最短路径：Dijkstra',
+    id: 'dijkstra', ch: 6, name: '最短路径：Dijkstra',
     note: '教材 6.6 图的应用（单源最短路径）',
     guide: [
       '每轮先在 V−S 中比较 D 值选最小者（消息里列出比较过程），其最短路径就此确定',

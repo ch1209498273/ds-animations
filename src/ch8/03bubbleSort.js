@@ -76,7 +76,7 @@
     render: function (s) {
       var g = su.bars(s, { title: '冒泡排序（黄=比较相邻对，红=交换，绿=已就位）' });
       g += su.legend([['比较中', 'C'], ['交换', 'S'], ['已就位', 'D']]);
-      return g;
+      return su.wrap(g);
     }
   });
 })();

@@ -101,8 +101,10 @@
         out += h.txt(77, y + 25, headName, { size: 14, w: 700, fill: C.blue });
         out += h.arrow(114, y + 20, 148, y + 20, { stroke: C.blue, sw: 2 });
         var nLen = arr.length;
-        var step = nLen ? Math.max(88, Math.min(150, Math.floor((W - 320) / nLen))) : 150;
-        var nw = step - 22;
+        /* 间隙 34（原 22）：箭头原本只有 step-18-(step-22)=4 单位长，等于一个点；
+           next 标签的居中公式化简后是 x+nw，正好压在结点右边框上 */
+        var step = nLen ? Math.max(104, Math.min(150, Math.floor((W - 320) / nLen))) : 150;
+        var nw = step - 34;
         var cfs = nw < 100 ? 12 : 13.5;
         arr.forEach(function (t2, k) {
           var x = 150 + k * step;
@@ -119,8 +121,8 @@
           out += h.txt(x + 29, y + 27, String(t2.c), { size: cfs, w: 700, family: 'Consolas,monospace' });
           out += h.txt(x + 58 + (nw - 58) / 2, y + 27, 'x' + supx(t2.e), { size: cfs - 1.5, family: 'Consolas,monospace' });
           if (k < nLen - 1) {
-            out += h.arrow(x + nw, y + 22, x + step - 18, y + 22, { stroke: C.grey, sw: 1.7, head: 7 });
-            out += h.txt(x + nw + (step - 22 - nw) / 2, y + 14, 'next', { size: 8.5, fill: C.muted });
+            out += h.arrow(x + nw + 2, y + 22, x + step - 4, y + 22, { stroke: C.grey, sw: 1.7, head: 7 });
+            out += h.txt(x + nw + 17, y + 14, 'next', { size: 8.5, fill: C.muted });
           }
           if (isHi) {
             var px = x + nw / 2;

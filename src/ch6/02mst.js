@@ -45,7 +45,7 @@
   };
 
   DSC.reg({
-    id: 'mst', ch: 6, name: '⑫ 最小生成树：Prim / Kruskal',
+    id: 'mst', ch: 6, name: '最小生成树：Prim / Kruskal',
     note: '教材 6.6 图的应用（最小生成树：Prim / Kruskal）',
     guide: [
       'Prim：看右侧候选边表逐轮更新，每次把"离 U 最近"的点并入（绿色）',

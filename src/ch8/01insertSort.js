@@ -113,7 +113,7 @@
       var g = su.bars(s, { title: '插入排序（绿=有序区，蓝=待插元素，黄=比较，红=后移/写入）' });
       g += su.legend([['有序区', 'D'], ['取出/待插', 'P'], ['比较', 'C'], ['后移/写入', 'S']]);
       if (s.sent != null) g += h.txt(490, 446, '哨兵 a[0] = ' + s.sent, { size: 14, w: 700, fill: C.blue });
-      return g;
+      return su.wrap(g);
     }
   });
 })();

@@ -95,7 +95,7 @@
     render: function (s) {
       var g = su.bars(s, { title: '快速排序（蓝=当前区间/基准，黄=扫描，红=填坑，绿=已归位）' });
       g += su.legend([['基准/区间', 'P'], ['扫描', 'C'], ['填坑', 'S'], ['已归位', 'D']]);
-      return g;
+      return su.wrap(g);
     }
   });
 })();

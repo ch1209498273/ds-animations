@@ -67,8 +67,11 @@
         g += h.txt(x, base + 40, t.text, { size: 12.5, fill: t.color || C.blue, w: 600 });
       });
       if (o.note) g += h.txt(W / 2, H - 14, o.note, { size: 12.5, fill: C.muted });
-      return h.svg(W, H, g);
+      // 只返回内部图元：曾经在这里包 <svg>，各模块又在外面拼图例，
+      // 结果图例落在 </svg> 之后、脱离 SVG 命名空间，色块不渲染、文字挤成一行、还被舞台裁掉
+      return g;
     },
+    wrap: function (g) { return h.svg(980, 470, g); },
     /* 图例 */
     legend: function (items) {
       var h = DSC.h, g = '', x = 30;

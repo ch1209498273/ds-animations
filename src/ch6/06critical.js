@@ -27,7 +27,7 @@
   ];
 
   DSC.reg({
-    id: 'critical', ch: 6, name: '⑯ 关键路径：AOE 网与关键活动',
+    id: 'critical', ch: 6, name: '关键路径：AOE 网与关键活动',
     note: '教材 6.6 图的应用（AOE 网、关键路径、关键活动）',
     guide: [
       'AOE 网：顶点=事件（状态），带权弧=活动（持续时间为权）；源点 v0 开始、汇点 v5 结束',

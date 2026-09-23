@@ -15,7 +15,7 @@
 <body>
 <header class="top">
   <h1>《数据结构》互动课件</h1>
-  <span class="sub">教材：《数据结构（C语言版）第3版》（严蔚敏 · 李冬梅 · 吴伟民） ｜ 操作：← → 单步 ｜ 空格 播放/暂停 ｜ C 打开目录 ｜ 放映中按 ⋯ 展开完整操作台，Esc 退出</span>
+  <span class="sub">教材：《数据结构（C语言版）第3版》（严蔚敏 · 李冬梅 · 吴伟民） ｜ <span id="hintKeys">操作：← → 单步 ｜ 空格 播放/暂停 ｜ ☰ 打开目录</span></span>
   <span class="hbtns">
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：放大画面文字、收起导航条，适合课堂投屏">🖥 投影</button>
@@ -27,9 +27,13 @@
 <div class="modbar" id="modbar"></div>
 <main>
   <section class="card">
-    <div class="modtitle"><b id="modname"></b><span id="modnote2" class="modnote"></span></div>
+    <div class="modtitle"><b id="modname"></b><span id="modnote2" class="modnote"></span><button id="mpExit" class="mponly">✕ 退出放映</button></div>
     <div id="guide" class="guidebox" hidden></div>
     <div id="stage"><div id="canvas"></div></div>
+    <button id="mpPrev" class="mp-arrow prev" aria-label="上一步">‹</button>
+    <button id="mpNext" class="mp-arrow next" aria-label="下一步">›</button>
+    <div id="mpBar"><div id="mpMsg"></div><span id="mpCounter"></span></div>
+    <div id="mpHintBar" hidden>↕ 画面比屏幕高，上下拖动可看其余部分</div>
     <div class="controls">
       <div id="inputs" class="inputs hideable"></div>
       <button id="btnReset" class="hideable">⟲ 重置</button>

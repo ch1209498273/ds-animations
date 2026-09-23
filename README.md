@@ -1,9 +1,9 @@
 <div align="center">
   <img src="assets/banner.png" alt="《数据结构》互动课件" width="100%">
 
-  ![版本](https://img.shields.io/badge/版本-v2.10-2b6cb0) ![动画](https://img.shields.io/badge/算法动画-42个-2f855a) ![覆盖](https://img.shields.io/badge/覆盖-全部8章·对齐408考纲-c05621) ![测试](https://img.shields.io/badge/正确性断言-337项通过-553c9a) ![依赖](https://img.shields.io/badge/依赖-零·单文件-4a5568)
+  ![版本](https://img.shields.io/badge/版本-v3.0-2b6cb0) ![动画](https://img.shields.io/badge/算法动画-46个-2f855a) ![覆盖](https://img.shields.io/badge/覆盖-全部8章·对齐408考纲-c05621) ![测试](https://img.shields.io/badge/正确性断言-397项通过-553c9a) ![依赖](https://img.shields.io/badge/依赖-零·单文件-4a5568)
 
-  **[▶ 在线打开（点开就用）](https://ch1209498273.github.io/ds-animations/) ｜ [⬇ 下载单文件 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v2.10.zip)**
+  **[▶ 在线打开（点开就用）](https://ch1209498273.github.io/ds-animations/) ｜ [⬇ 下载单文件 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.0.zip)**
 
   © 2026 **芦老师聊AI** · 版权归芦老师聊AI所有，未经授权不得商用
 
@@ -42,20 +42,22 @@
 | <img src="assets/shots/kmp-run.png" alt="KMP"><br>**模式匹配 BF/KMP**：next 逐格计算，主串指针不回退对照 · [直达](https://ch1209498273.github.io/ds-animations/#m=kmp&f=28) | <img src="assets/shots/dijkstra.png" alt="Dijkstra"><br>**Dijkstra 最短路径**：图、状态表、伪代码三方联动 · [直达](https://ch1209498273.github.io/ds-animations/#m=dijkstra&f=15) |
 | <img src="assets/shots/huffman.png" alt="哈夫曼"><br>**哈夫曼树**：树 + HT 数组同步，WPL=350 可验 · [直达](https://ch1209498273.github.io/ds-animations/#m=huffman&f=29) | <img src="assets/shots/hashChain.png" alt="链地址"><br>**哈希表·链地址**：同余挂链，与线性探测 ASL 对照 · [直达](https://ch1209498273.github.io/ds-animations/#m=hashChain&f=10) |
 
-## 42 个动画目录
+## 46 个动画目录
 
 用 [在线总目录](https://ch1209498273.github.io/ds-animations/)（页面右上角 ☰，或放映中按 `C`）可按章浏览并复制任意一步的深链接。
 
 > 下面刻意**不标 ①②③ 序号**——站内序号按注册顺序自动生成，加一个动画就会让后面全部错位，写进文档就是维护陷阱。要序号看 ☰ 目录。
+>
+> 排列顺序 = **教材小节顺序**（v3.0 起），不再是开发顺序。
 
 **第1章 绪论**：时间复杂度可视化（六阶增长曲线）
-**第2章 线性表**：顺序表插入/删除 · 单链表插入/删除 · 顺序表基本操作合集 · 链表基本操作合集 · 合并有序表 · 双向/循环链表 · 一元多项式相加
-**第3章 栈和队列**：顺序栈 · 假溢出与循环队列（四方案） · 递归调用栈·汉诺塔 · 括号匹配 · 表达式求值（双栈法） · 数制转换 · 迷宫求解
+**第2章 线性表**：顺序表插入/删除 · 顺序表基本操作合集 · 单链表插入/删除 · 链表基本操作合集 · 双向/循环链表 · 合并有序表 · 一元多项式相加
+**第3章 栈和队列**：顺序栈 · 链栈与链队列（rear 的"最后一个结点"特判） · 递归调用栈·汉诺塔 · 假溢出与循环队列（四方案） · 数制转换 · 括号匹配 · 迷宫求解 · 表达式求值（双栈法）
 **第4章 串和数组**：模式匹配 BF/KMP（next 数组） · 矩阵压缩存储（对称映射 + 快速转置）
-**第5章 树和二叉树**：四种遍历 · 中序线索二叉树 · 哈夫曼树与编码/译码 · 树/森林与二叉树转换
+**第5章 树和二叉树**：四种遍历 · 中序线索二叉树 · 树/森林与二叉树转换 · 哈夫曼树与编码/译码 · 并查集（按大小合并 + 路径压缩）
 **第6章 图**：DFS/BFS · Prim/Kruskal 最小生成树 · Dijkstra · Floyd · 拓扑排序（含回路检测） · 关键路径
-**第7章 查找**：顺序/折半查找（判定树 + ASL） · 分块查找 · 二叉排序树 · AVL 四种旋转 · 哈希·线性探测 · 哈希·链地址
-**第8章 排序**：直接插入（含折半） · 希尔 · 冒泡 · 快速 · 直接选择 · 堆排序 · 归并 · 基数 · 八大排序总览对比
+**第7章 查找**：顺序/折半查找（判定树 + ASL） · 分块查找 · 二叉排序树 · AVL 四种旋转 · **B 树与 B+ 树**（分裂上移、叶子链表） · 哈希·线性探测 · 哈希·链地址
+**第8章 排序**：直接插入（含折半） · 希尔 · 冒泡 · 快速 · 直接选择 · 堆排序 · 归并 · 基数 · 八大排序总览对比 · **外部排序**（归并段生成、置换-选择、⌈log_k m⌉ 趟）
 
 > 第 2、3、7、8 章的多数模块支持**自定义数据**（改权值、改表达式、换存储结构、随机/有序/逆序/几乎有序预设），课堂上可以现场出题现场演；第 6 章目前只能切预设图，自定义图已排期。
 
@@ -63,14 +65,14 @@
 
 **方式一 · 在线用**：打开 [ch1209498273.github.io/ds-animations](https://ch1209498273.github.io/ds-animations/)，点开即用。
 
-**方式二 · 本地用（推荐课堂场景）**：[下载 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v2.10.zip)，解压双击 `数据结构动画课件.html`——不联网、不装任何环境，教室机也能跑。
+**方式二 · 本地用（推荐课堂场景）**：[下载 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.0.zip)，解压双击 `数据结构动画课件.html`——不联网、不装任何环境，教室机也能跑。
 
 **方式三 · 开发者**：
 
 ```bash
 git clone https://github.com/ch1209498273/ds-animations.git
-# 双击 index.html 即可使用；改源码后运行 python build.py 重新构建
-node tests/test.js   # 288 项正确性断言
+# 双击 index.html 即可使用；改源码后运行 python src/build.py 重新构建
+node tests/test.js   # 397 项正确性断言
 ```
 
 ## 架构与实现
@@ -86,26 +88,31 @@ node tests/test.js   # 288 项正确性断言
 
 ## 正确性保障
 
-`tests/test.js` 内置 **288 项断言**（GitHub Actions 每次推送自动执行），与教材/PPT 例题逐一对拍，例如：
+`tests/test.js` 内置 **397 项断言**（GitHub Actions 每次推送自动执行），与教材/PPT 例题逐一对拍，例如：
 
 - 排序：教材例 `{49,38,65,97,76,13,27,49*}` 每一趟结果（插入/希尔/冒泡/快排/选择/堆/归并逐趟对拍），基数排序三趟收集结果与教材一致
 - 查找：折半判定树路径 `6→3→4`；哈希线性探测终表与教材一致、ASL=1.80；链地址 ASL=1.50
 - 串：KMP `next("abaabcac") = 0,1,1,2,2,3,1,2`；BF 20 次 vs KMP 15 次
-- 树：BST 删除三情形后中序仍递增；AVL 四种旋转后全部 |bf|≤1
+- 树：BST 删除三情形后中序仍递增；AVL 四种旋转后全部 |bf|≤1；**B 树/B+ 树守结构不变式**（容量上下界、结点内有序、孩子数=键数+1、所有叶子同层、子树左右界、B+ 叶子层必须是全集且索引键等于右子树首键）
 - 图：Dijkstra `D=[0,∞,10,50,30,60]`；Prim/Kruskal 总权值 15；关键路径工期 8
+- 附加结构：并查集三种策略长出三种形状（不优化=长链、按大小=星形、路径压缩=树高峰值 7 压到 1）；外部排序趟数必须等于 ⌈log_k m⌉ 且末层全序
+
+除算法正确性外还有两类闸门：
+
+- **画布几何**：逐帧扫描文字重叠/越出画布、盒子互撞、矩形画出 viewBox、`render` 必须只返回一个完整 `<svg>`
+- **手机视口**（`tests/mobile.js`，需本地 Chrome，CI 上自动跳过）：390×844 与 844×390 下量无横向溢出、可点元素 ≥44px、放映控件真的被布局出来、翻页后"当前执行行"仍在代码框可视区内
 
 ## 常见问题
 
 **Q：github.io 打不开 / 很慢？**
-国内访问 GitHub Pages 不稳定。下载 zip（[仓库内直链](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v2.10.zip)），解压双击打开，体验完全一致。
+国内访问 GitHub Pages 不稳定。下载 zip（[仓库内直链](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.0.zip)），解压双击打开，体验完全一致。
 
-**Q：手机上能用吗？**
 **Q：手机上能用吗？**
 能用，推荐 **⛶ 手机放映**（v2.6）：只留画面，左右缘 ‹ › 箭头翻页，画面严格铺满窗口不用拖动，竖屏进入自动转成横屏，右上角 ✕ 退出，`&mp=1` 深链可分享。
-注意画布是 980×500 的横宽比，**竖屏下宽度只有 390px，字必然只有 4~5px**——这不是没做适配，是几何决定的，请用横屏或双击放大。
+注意画布是 980 单位宽的横宽比，**竖屏下宽度只有 390px，字必然只有 5~7px**——这不是没做适配，是几何决定的，请用横屏或双击放大。
 
 **Q：不是这个教材/学校能用吗？**
-可以。界面只对齐《数据结构（C语言版）》通用章节体系（严蔚敏经典八章），不绑定任何学校；两套教材章节编号兼容。
+可以。界面只对齐《数据结构（C语言版）》通用章节体系（严蔚敏经典八章），不绑定任何学校；两套教材章节编号兼容。站内动画顺序 = 教材小节顺序（v3.0 起）。
 
 **Q：怎么给学生的作业里嵌入某个动画？**
 iframe 引用在线地址即可，目录页可一键复制任意动画的深链接。
@@ -113,8 +120,8 @@ iframe 引用在线地址即可，目录页可一键复制任意动画的深链�
 ## 参与
 
 - 发现演示错误、文字错误 → [提 Issue](../../issues/new?template=bug_report.md)
-- 想要新动画（B 树、KMP 优化 nextval、串的其他算法等）→ [动画许愿](../../issues/new?template=feature_request.md)
-- PR 欢迎：改完跑 `node tests/test.js` 保证 288 项全绿
+- 想要新动画（红黑树、B 树删除、串的其他算法等）→ [动画许愿](../../issues/new?template=feature_request.md)
+- PR 欢迎：改完跑 `node tests/test.js` 保证 397 项全绿
 
 ## 声明
 

@@ -36,7 +36,7 @@
   ];
 
   DSC.reg({
-    id: 'expression', ch: 3, name: '⑦ 表达式求值：双栈法（案例3.3）',
+    id: 'expression', ch: 3, name: '表达式求值：双栈法（案例3.3）',
     note: '教材 3.6 案例分析与实现（案例3.3 表达式求值）',
     guide: [
       '两个栈分工：OPTR 只存运算符（栈底压 #），OPND 只存操作数',

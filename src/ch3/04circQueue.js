@@ -43,7 +43,7 @@
   var L_JUDGE_FULL = 8, L_PLACE = 9, L_MOVEREAR = 10, L_JUDGE_EMPTY = 15, L_TAKE = 16, L_MOVEFRONT = 17;
 
   DSC.reg({
-    id: 'circQueue', ch: 3, name: '④ 假溢出与循环队列：入队与出队',
+    id: 'circQueue', ch: 3, name: '假溢出与循环队列：入队与出队',
     note: '教材 3.5 队列的表示和操作的实现（假溢出、队空/队满三方案）',
     guide: [
       '场景①假溢出：普通顺序队列 front 单向右移——前面明明有空位却"队满"，这就是必须循环的原因',
@@ -387,7 +387,7 @@
     var nc = s.err ? C.red : C.blue;
     g += h.rect(W / 2 - 310, H - 50, 620, 34, { fill: s.err ? C.redBg : C.blueBg, stroke: nc, rx: 8 });
     g += h.txt(W / 2, H - 28, note, { size: 13.5, fill: nc, w: 600 });
-    g += drawStrips(s, 588);
+    g += drawStrips(s, 548);
     return h.svg(W, H, g);
   }
 })();

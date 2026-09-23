@@ -89,7 +89,7 @@
       (s.group || []).forEach(function (i, k) { tags.push({ i: i - 1, text: '组' + ((k % 4) + 1), color: ['#2563eb', '#16a34a', '#d97706', '#7c3aed'][k % 4] }); });
       var g = su.bars({ arr: s.arr, colors: s.colors, tags: tags }, { title: '希尔排序（dk = ' + (s.dk || '—') + '）：同色位置为一组，组内插入排序' });
       g += su.legend([['比较', 'C'], ['后移/写入', 'S'], ['哨兵来源', 'P']]);
-      return g;
+      return su.wrap(g);
     }
   });
 })();

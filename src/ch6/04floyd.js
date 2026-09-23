@@ -24,7 +24,7 @@
   ];
 
   DSC.reg({
-    id: 'floyd', ch: 6, name: '⑭ Floyd：各顶点间最短路径',
+    id: 'floyd', ch: 6, name: 'Floyd：各顶点间最短路径',
     note: '教材 6.6 图的应用（所有顶点间最短路径）',
     guide: [
       '每一轮只允许一个新中转点 v_k，用它检查全部 i→j：经 k 更短就更新 D[i][j]',
