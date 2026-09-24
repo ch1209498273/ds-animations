@@ -18,6 +18,20 @@
     grey: '#94a3b8', greyBg: '#f1f5f9', line: '#cbd5e1'
   };
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  var _rights;
+  /* 版权指纹：把页头的 x-rights 元信息嵌进每一张画布（<desc> 不渲染、看不见，
+     data-r 便于肉眼核查）。删页脚、删 meta 都留得下痕迹，导出图被裁掉水印也能取证 */
+  function rightsTag() {
+    if (_rights == null) {
+      _rights = '';
+      try {
+        var m = document.querySelector('meta[name="x-rights"]');
+        if (m) _rights = m.getAttribute('content') || '';
+      } catch (e) { /* Node 侧跑逻辑层时没有 DOM，留空即可 */ }
+    }
+    return _rights;
+  }
+  DSC.rights = rightsTag;
   DSC.h = {
     C: C, esc: esc,
     /* 逗号/空格分隔的整数串 → 数组（各章模块通用） */
@@ -26,7 +40,9 @@
         .map(Number).filter(function (x) { return !isNaN(x); });
     },
     svg: function (w, hh, inner) {
-      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + hh + '" role="img">' + inner + '</svg>';
+      var r = rightsTag();
+      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + hh + '" role="img"' +
+        (r ? ' data-r="' + esc(r) + '"><desc>' + esc(r) + '</desc>' : '>') + inner + '</svg>';
     },
     txt: function (x, y, s, o) {
       o = o || {};

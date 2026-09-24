@@ -2322,5 +2322,29 @@ console.log('\n— 手机视口（390×844，headless 浏览器实测） —');
   if ((r.stdout || '').indexOf('✗') >= 0 || r.status !== 0) fail++;
 }
 
+/* 版权指纹卡口：构建产物必须带署名元信息，且"文件自己的 SHA-256"要复算得回来。
+   负向对照已验证：往副本里塞一个字符，校验立刻报"内容被改动过"。 */
+console.log('\n— 版权指纹（构建产物自校验） —');
+{
+  const py = process.platform === 'win32' ? 'python' : 'python3';
+  const r = require('child_process').spawnSync(py, [path.join(__dirname, 'verify_rights.py')], { encoding: 'utf8' });
+  const so = r.stdout || '';
+  const lines = so.split('\n').filter(x => /^\[(OK|WARN|FAIL)\]/.test(x));
+  if (r.error || !lines.length) {
+    console.log('  (跳过: 无 python 或无构建产物可校验)');
+  } else {
+    const bad = lines.filter(x => x.indexOf('[FAIL]') >= 0);
+    t('版权指纹: ' + lines.length + ' 份产物带署名、哈希可复算、暗记可回溯',
+      r.status === 0 && bad.length === 0, bad.slice(0, 3));
+  }
+  /* 私钥一旦跟着 src/ 拷进发布仓库，整套暗记就作废。只在发布仓库那一侧查
+     （开发仓库里 tests/../src/.rights.key 是正当位置） */
+  const relRoot = path.join(__dirname, '..');
+  if (fs.existsSync(path.join(relRoot, 'index.html'))) {
+    t('版权指纹: 发布仓库里没有私钥 src/.rights.key',
+      !fs.existsSync(path.join(relRoot, 'src', '.rights.key')));
+  }
+}
+
 console.log('\n结果: 通过 ' + pass + '，失败 ' + fail);
 process.exit(fail ? 1 : 0);

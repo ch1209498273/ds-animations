@@ -1,0 +1,5 @@
+# 构建暗记的私钥：一旦进公开仓库，"证明这份是我的"就作废
+.rights.key
+src/.rights.key
+__pycache__/
+*.pyc

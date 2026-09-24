@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 import os
 import re
+import hashlib
 
 root = pathlib.Path(__file__).resolve().parent.parent   # 互动课件/
 src = root / 'src'
@@ -59,12 +60,61 @@ def min_css(c):
 core_min = terser(core)
 mods_min = terser(mods_js)
 sort_common_min = terser(sort_common_src)
-css_min = min_css(css)
+css_min = min_css(css) + ':root{--ds-ck:"__FIXED__"}'
 
 tpl = (src / 'index.template.html').read_text(encoding='utf-8')
-VER = 'v3.3'
+VER = 'v3.4'
 NMOD = len(module_files)          # 对外文案里的动画数一律由实际模块数推出，不再手写
 stamp = VER + ' · 构建 ' + time.strftime('%Y-%m-%d %H:%M')
+RIGHTS = ('author=芦老师聊AI;work=数据结构互动课件;kind=原创算法动画课件;'
+          'license=CC BY-NC-SA 4.0;ver=' + VER + ';built=' + time.strftime('%Y-%m-%d %H:%M') +
+          ';sha256=__SELFHASH__')
+
+
+KEY_FILE = src / '.rights.key'
+KEY = KEY_FILE.read_text(encoding='utf-8').strip() if KEY_FILE.exists() else ''
+
+
+def seal(text):
+    """两道印记，顺序不能换：
+    ① 暗记 ck = SHA-256(私钥 + 定稿前文本) 的前 20 位。它混在看着无害的三处
+      （generator 标签、:root 自定义属性、<html data-b>）里，删掉明面上的版权声明也还在，
+      而没有 src/.rights.key 的人算不出同一个值——这才是"证明那份是我的"的依据。
+    ② 自校验哈希：__SELFHASH__ 换成本文件自己的 SHA-256。
+      自引用没法直接算，所以约定：校验时把那 64 位还原成占位符 __SELFHASH__ 再复算。"""
+    fixed = hashlib.sha256((KEY + '|dsck-provenance|').encode('utf-8')).hexdigest()[:12] if KEY else ''
+    text = text.replace('__FIXED__', fixed)
+    if KEY:
+        ck = hashlib.sha256((KEY + text).encode('utf-8')).hexdigest()[:20]
+    else:
+        ck = ''
+        print('  警告: 缺 src/.rights.key，本次构建没埋暗记，这份产物无法据此取证')
+    text = text.replace('__CK__', ck)
+    digest = hashlib.sha256(text.encode('utf-8')).hexdigest()
+    return text.replace('sha256=__SELFHASH__', 'sha256=' + digest)
+
+
+def ledger(main_html):
+    """每次构建把主文件指纹记进发布仓库的 RELEASES.md（公开、有 git 时间线可举证）。
+    同一版本重复构建只替换那一行，不追加。"""
+    body = main_html.encode('utf-8')
+    row = '| {} | {} | {} | {:,} |'.format(
+        VER, time.strftime('%Y-%m-%d %H:%M'), hashlib.sha256(body).hexdigest(), len(body))
+    p = root / 'gitee-pages' / 'RELEASES.md'
+    head = ('# 发版台账\n\n'
+            '每行是一次构建的主文件指纹。核对某份副本出自哪一次发版：\n\n'
+            '`python tests/verify_rights.py 那份.html`\n\n'
+            '| 版本 | 构建时间 | 主文件 SHA-256 | 字节 |\n|---|---|---|---|\n')
+    rows = []
+    if p.exists():
+        rows = [x for x in p.read_text(encoding='utf-8').split('\n') if x.startswith('| v')]
+    rows = [x for x in rows if not x.startswith('| ' + VER + ' ')]
+    rows.append(row)
+    rows.sort(key=lambda s: [int(x) for x in s.split('|')[1].strip().lstrip('v').split('.')])
+    p.parent.mkdir(exist_ok=True)
+    p.write_text(head + '\n'.join(rows) + '\n', encoding='utf-8')
+    return p
+
 MAIN_DESC = ('%d 个可交互数据结构算法动画：线性表、栈队列、串数组、树、图、查找、排序全部章节，'
              '教材例题对拍验证，单文件零依赖，点开即用。') % NMOD
 MAIN_OGT = '《数据结构》互动课件 —— %d 个算法动画' % NMOD
@@ -73,13 +123,16 @@ html = (tpl.replace('/*__CSS__*/', css_min)
            .replace('//__MODULES__', mods_min)
            .replace('__DESC__', MAIN_DESC)
            .replace('__OGTITLE__', MAIN_OGT)
+           .replace('__RIGHTS__', RIGHTS)
            .replace('__BUILD__', stamp))
+html = seal(html)          # 指纹要在全部内容定稿之后再算，否则哈希对不上
 
 out_dir = root / 'dist'
 out_dir.mkdir(exist_ok=True)
 out = out_dir / '数据结构互动课件.html'
 out.write_text(html, encoding='utf-8')
 raw = len(css) + len(core) + len(mods_js) + len(qrcode_js)
+lp = ledger(html)
 print('built:', out, '({:,} chars，压缩前 {:,})'.format(len(html), raw), '｜', stamp)
 
 # ---------- 单动画分享页：a/<id>.html（引擎 + 该动画） ----------
@@ -106,12 +159,14 @@ for i, p in enumerate(module_files):
                .replace('__BUILD__', stamp)
                .replace('<title>《数据结构》互动课件</title>', '<title>' + disp + ' · 数据结构动画</title>')
                .replace('__DESC__', m_note + '（数据结构互动课件·单动画页）')
-               .replace('__OGTITLE__', disp))
+               .replace('__OGTITLE__', disp)
+               .replace('__RIGHTS__', RIGHTS))
 
     scripts = ('<script>window.DSC_SINGLE={no:' + str(m_no) + '};</script>\n'
                '<script>\n' + core_min + '\n' + qrcode_js + '\n'
                + sort_common_min + '\n' + code + '\n</script>')
     page = page.replace('<script>\n//__CORE__\n</script>\n<script>\n//__MODULES__\n</script>', scripts)
-    (single_dir / (m_id + '.html')).write_text(page, encoding='utf-8')
+    # 每个分享页各自算自己的哈希——被人单独改动某一只动画页时同样能查出来
+    (single_dir / (m_id + '.html')).write_text(seal(page), encoding='utf-8')
     count += 1
 print('single pages:', count, '→', single_dir)
