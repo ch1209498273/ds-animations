@@ -454,6 +454,21 @@ console.log('— 第5章 堆与优先队列 —');
   const tk2 = run({ scene: 'topk', data: '5,1,9,7,3', k: 2 });
   t('堆: Top-2 of 5,1,9,7,3 = 9,7', fin(tk2).arr.slice(1).sort((x, y) => y - x).join(',') === '9,7', fin(tk2).arr.slice(1).join(','));
   t('堆: 比守门员小的数被丢弃且不进堆', /直接丢弃/.test(tk2.frames.map(f => f.msg).join('\n')));
+  /* B2 错误演示：建堆只筛一层。手推教材序列：i=2 时 97 上浮、38 停在 4 号位不再往下看；
+     i=1 时 49 落到 2 号位 → r[2]=49 < r[5]=76、r[4]=38 < r[8]=49 两处违反 */
+  {
+    const bb = run({ scene: 'bad', data: D });
+    const badF = bb.frames.find(f => /✗ 跑完逐对检查父子/.test(f.msg));
+    t('堆错误演示: 只筛一层的建堆结果 97,49,65,38,76,13,27,49', badF.snap.arr.slice(1).join(',') === '97,49,65,38,76,13,27,49', badF.snap.arr.slice(1).join(','));
+    t('堆错误演示: 自查出 2 处父子违反', badF.panel['违反'] === '2 处' && /r\[2\]=49/.test(badF.msg) && /r\[4\]=38/.test(badF.msg), badF.panel);
+    t('堆错误演示: 对照给出正确建堆结果', badF.panel['正确结果'] === '97 76 65 49 49 13 27 38', badF.panel['正确结果']);
+    t('堆错误演示: 停手帧明确说"不再往下看孙子"', bb.frames.some(f => /停手/.test(f.msg) && /孙子/.test(f.msg)));
+    t('堆错误演示: 末帧是结论帧（★ 讲清 j*=2 与 s=j 缺一不可）', /★/.test(bb.frames[bb.frames.length - 1].msg) && /j \*= 2/.test(bb.frames[bb.frames.length - 1].msg));
+    const bb2 = run({ scene: 'bad', data: '1,2,3,4,5,6' });
+    const bad2 = bb2.frames.find(f => /✗ 跑完逐对检查父子/.test(f.msg));
+    t('堆错误演示: 换数据也真违反（不是写死的例子）', isMaxHeap(bad2.snap.arr) === 'r[3] < r[6]', isMaxHeap(bad2.snap.arr));
+    t('堆错误演示: 不勾时建堆场景帧数不受影响', run({ scene: 'build', data: D }).frames.length === bd.frames.length);
+  }
   let eb = '';
   try { M.heapPQ.run(Object.assign({}, b, { data: '1,2' })); } catch (e) { eb = e.message; }
   t('堆: 少于 4 个关键字要报错', /4~12/.test(eb), eb);
@@ -542,6 +557,20 @@ console.log('— 第6章 Dijkstra —');
   const r2 = M.dijkstra.run({ start: '1' });
   const s2 = last(r2);
   t('源点 v1: D=[∞,0,5,55,∞,65] (v0,v4不可达)', JSON.stringify(s2.D.map(x => x === INF ? '∞' : x)) === JSON.stringify(['∞', 0, 5, 55, '∞', 65]), s2.D);
+  /* B2 错误演示：加一条 -60 的负权弧 v5→v2。回路 v2→v3→v5→v2 权重恰好 50+10-60=0，
+     没有负环，真实最短路是良定义的——错只错在贪心把 v2 提前定死了 */
+  {
+    const rn = M.dijkstra.run({ start: '0', negW: true });
+    const warn = rn.frames.find(f => /⚠ 出事了/.test(f.msg));
+    t('Dijkstra负权: v5 并入时才发现 v2 能缩到 0，可 v2 第 1 轮就定了', !!warn && /第 1 轮就被定死为 10/.test(warn.msg) && /60 \+ \(-60\) = 0/.test(warn.msg), warn && warn.msg.slice(0, 50));
+    const badF = rn.frames[rn.frames.length - 1];
+    t('Dijkstra负权: 末帧对照 v2（Dijkstra 10，真实 0）', /✗/.test(badF.msg) && /v2：Dijkstra 10，真实 0/.test(badF.msg), badF.msg.slice(0, 70));
+    t('Dijkstra负权: 贪心跑完的 D 与不带负权时完全一致（错在"没变"）', JSON.stringify(badF.snap.D) === JSON.stringify([0, INF, 10, 50, 30, 60]), badF.snap.D);
+    t('Dijkstra负权: 面板并排给出算出/真实', badF.panel['v2 算出/真实'] === '10 / 0' && badF.panel['v5 算出/真实'] === '60 / 60', badF.panel);
+    const r1n = M.dijkstra.run({ start: '1', negW: true });
+    t('Dijkstra负权: 源点 v1 时如实说"碰巧全对"', /碰巧全对/.test(r1n.frames[r1n.frames.length - 1].msg), r1n.frames[r1n.frames.length - 1].msg.slice(0, 60));
+    t('Dijkstra负权: 不勾时弧表仍是教材那 8 条', M.dijkstra.run({ start: '0' }).frames[0].snap.arcs.length === 8 && rn.frames[0].snap.arcs.length === 9);
+  }
 }
 
 console.log('— 第3章 表达式求值 —');
@@ -914,6 +943,28 @@ console.log('— 第7章 散列表（线性探测 / 链地址） —');
   t('线性探测: ASL成功 = 18/10 = 1.80', /1\.80/.test(rh.frames[rh.frames.length - 1].msg), rh.frames[rh.frames.length - 1].msg.slice(0, 60));
   const rdup = M.hashLinear.run({ w: '19,19,1' });
   t('线性探测: 重复关键码被跳过（表中 19 仅一份）', rdup.frames[rdup.frames.length - 2].snap.table.filter(x => x === 19).length === 1);
+  /* B2 错误演示：删除时置空 → 探测链断在半路。断链对不写死，取"最长的那条链"：
+     教材序列里 27 的链 HT[1]→HT[4] 最长（4 格），链头是 14 */
+  {
+    const rbd = M.hashLinear.run({ w: KW, errDel: true });
+    const by = {}; rbd.frames.forEach(f => { if (f.snap.mark) by[f.snap.mark] = f.snap; });
+    t('线性探测错误演示: 选中最长链 27（链头 HT[1] 上是 14）', JSON.stringify(by.chain.table.slice(1, 5)) === JSON.stringify([14, 1, 68, 27]) && /HT\[1\] → HT\[2\] → HT\[3\] → HT\[4\]/.test(by.chain.chainTxt), by.chain.chainTxt);
+    t('线性探测错误演示: 置空后 27 仍躺在 HT[4]', by.baddel.table[1] === null && by.baddel.table[4] === 27, by.baddel.table);
+    t('线性探测错误演示: 查找 27 判失败（✗ + NOTFOUND + 指出 27 还在 HT[4]）',
+      /✗/.test(rbd.frames.find(f => f.snap.mark === 'badmiss').msg) && /NOTFOUND/.test(rbd.frames.find(f => f.snap.mark === 'badmiss').msg) && /HT\[4\]/.test(rbd.frames.find(f => f.snap.mark === 'badmiss').msg),
+      rbd.frames.find(f => f.snap.mark === 'badmiss').msg.slice(0, 40));
+    t('线性探测错误演示: 置 D 标记后格子不再是 EMPTY', by.markok.table[1] === 'D' && by.markok.table[4] === 27, by.markok.table);
+    t('线性探测错误演示: 末帧是结论帧（★ 删除标记）', rbd.frames[rbd.frames.length - 1].snap.mark === 'badfinal' && /★/.test(rbd.frames[rbd.frames.length - 1].msg), rbd.frames[rbd.frames.length - 1].msg.slice(0, 20));
+    t('线性探测错误演示: 面板"已存"跟着变（腾空 9/13，标记 10/13）',
+      rbd.frames.find(f => f.snap.mark === 'baddel').panel['已存'] === '9 / 13' && rbd.frames.find(f => f.snap.mark === 'markok').panel['已存'] === '10 / 13',
+      [rbd.frames.find(f => f.snap.mark === 'baddel').panel['已存'], rbd.frames.find(f => f.snap.mark === 'markok').panel['已存']]);
+    const rf = M.hashLinear.run({ w: '1,2,3', errDel: true });
+    t('线性探测错误演示: 无跨格数据时如实说明（nofault 末帧）', rf.frames[rf.frames.length - 1].snap.mark === 'nofault', rf.frames[rf.frames.length - 1].snap.mark);
+    const rl = M.hashLinear.run({ w: '13,26,39,52,65,78,91,4,17,30,43', errDel: true });
+    const lc = rl.frames.find(f => f.snap.mark === 'chain');
+    t('线性探测错误演示: 7 格长链改用省略写法（不顶破画布）',
+      /跨 7 格/.test(lc.snap.chainTxt) && lc.snap.chain.length === 7 && lc.snap.chainTxt.length < 46, lc.snap.chainTxt);
+  }
   const rc2 = M.hashChain.run({ w: KW });
   t('链地址: 总比较 15 次 → ASL 1.50', /15 ÷ 10 = 1\.50/.test(rc2.frames[rc2.frames.length - 1].msg), rc2.frames[rc2.frames.length - 1].msg.slice(0, 90));
   t('链地址: 桶1终链 27→1→14（头插）', JSON.stringify(rc2.frames[rc2.frames.length - 2].snap.HT[1]) === JSON.stringify([27, 1, 14]), rc2.frames[rc2.frames.length - 2].snap.HT[1]);
@@ -930,6 +981,18 @@ console.log('— 第4章 KMP / 矩阵压缩 —');
   t('KMP: BF 比较 20 次', /20 次/.test(bd.msg), bd.msg.slice(0, 40));
   t('KMP: KMP 比较 15 次（i 不回退）', /15 次/.test(kd.msg), kd.msg.slice(0, 40));
   t('KMP: 两者都在主串第 6 位匹配', /第 6 位/.test(bd.msg) && /第 6 位/.test(kd.msg));
+  /* B2 错误演示：next 整体左移一格——两种错位方向的后果都实测过（左移丢解、右移死循环） */
+  {
+    const ke = M.kmp.run({ s: 'acabaabaabcacaabc', t: 'abaabcac', errNext: true });
+    const bn = ke.frames.find(f => f.snap.mark === 'badnext');
+    t('KMP错误演示: 错位表 = 正确表左移一格、末位补 0', JSON.stringify(bn.snap.nx) === JSON.stringify([0, 1, 1, 2, 2, 3, 1, 2, 0]), bn.snap.nx);
+    const bd2 = ke.frames.find(f => f.snap.mark === 'baddiff');
+    t('KMP错误演示: 首个实质差异在 next[3]（1 → 2）', /next\[3\]/.test(bd2.msg) && /正确值 1/.test(bd2.msg) && /错位值 2/.test(bd2.msg), bd2.msg.slice(0, 46));
+    const br = ke.frames.find(f => f.snap.mark === 'badrun');
+    t('KMP错误演示: 错位表跑完查不到（正确表在第 6 位）', /失败/.test(br.msg) && /第 6 位/.test(br.msg), br.msg.slice(0, 60));
+    t('KMP错误演示: 末帧是结论帧（★ 死循环提醒）', ke.frames[ke.frames.length - 1].snap.mark === 'badfinal' && /★/.test(ke.frames[ke.frames.length - 1].msg) && /死循环/.test(ke.frames[ke.frames.length - 1].msg));
+    t('KMP错误演示: 不勾时帧数一字不变（默认视图零影响）', ke.frames.length > km.frames.length && M.kmp.run({ s: 'acabaabaabcacaabc', t: 'abaabcac' }).frames.length === km.frames.length, [km.frames.length, ke.frames.length]);
+  }
   let bad = false;
   try { M.kmp.run({ s: 'abc', t: 'A1' }); } catch (e) { bad = true; }
   t('KMP: 非小写字母输入被拒绝', bad);
@@ -971,6 +1034,20 @@ console.log('— 第8章 排序（教材例题逐趟对拍） —');
   t('快排: 终帧有序', JSON.stringify(qs.final) === JSON.stringify([13, 27, 38, 49, 49, 65, 76, 97]), qs.final);
   const qso = marksOf('quickSort', { preset: 'ordered', w: '' });
   t('快排: 有序输入仍正确（最坏情形不崩）', JSON.stringify(qso.final) === JSON.stringify([12, 23, 34, 45, 56, 67, 78, 89]), qso.final);
+  /* B2 错误演示：只在第一次划分漏掉 L.r[low]=L.r[0]，后面全按正确写法跑——
+     错一处就足以让整趟失败，因果才看得清。数组内容按挖坑法手推：
+     切点 4 留着搬来的副本 97，基准 49 丢在哨兵位，左右子区间各自排对也救不回来 */
+  const qe = marksOf('quickSort', { preset: 'textbook', w: '', errPivot: true });
+  t('快排错误演示: 漏归位时切点 a[4] 仍是副本 97', JSON.stringify(qe.badcnt) === JSON.stringify([27, 38, 13, 97, 76, 97, 65, 49]), qe.badcnt);
+  t('快排错误演示: 终序列 13,27,38,97,49,65,76,97（不是有序的）', JSON.stringify(qe.badfinal) === JSON.stringify([13, 27, 38, 97, 49, 65, 76, 97]), qe.badfinal);
+  {
+    const f = qe.badfinal, c49 = f.filter(x => x === 49).length, c97 = f.filter(x => x === 97).length;
+    t('快排错误演示: 49 只剩 1 个、97 变成 2 个（数据被吞了一份）', c49 === 1 && c97 === 2, { c49, c97 });
+  }
+  t('快排错误演示: 只漏第一趟，后面子区间仍正常归位（帧里 part 标记齐全）',
+    !!qe.part1_3 && !!qe.badhole && !!qe.badret && !qe.part1_8, Object.keys(qe));
+  const qeFrames = M.quickSort.run(Object.assign({}, defVals('quickSort'), { preset: 'textbook', w: '', errPivot: true })).frames;
+  t('快排错误演示: 末帧是结论帧且带 ✗', /✗/.test(qeFrames[qeFrames.length - 1].msg), qeFrames[qeFrames.length - 1].msg.slice(0, 24));
   const sel = marksOf('selectSort', { preset: 'textbook', w: '' });
   t('选择: 第4趟 13,27,38,49,76,97,65,49', JSON.stringify(sel[4]) === JSON.stringify([13, 27, 38, 49, 76, 97, 65, 49]), sel[4]);
   const selFrames = M.selectSort.run({ preset: 'textbook', w: '' }).frames;
@@ -1215,7 +1292,7 @@ console.log('— v2.1 深度校验：排列不变量 / 随机数据 / 教材第�
   t('链表取值 i=1: 1 步即得', lo1 && lo1.snap.res === '第 1 个 = 25');
   /* 结构完整性：43 模块注册规范 */
   const all = DSC.mods;
-    t('结构: 模块总数 56（新增链表经典题）', all.length === 56, all.length);
+    t('结构: 模块总数 58（绪论新增空间复杂度与"怎么算时间复杂度"）', all.length === 58, all.length);
   t('结构: 模块 id 无重复', new Set(all.map(m => m.id)).size === all.length);
   t('结构: 全部模块有非空使用引导', all.every(m => m.guide && m.guide.length >= 3));
   t('结构: 全部模块有非空教材标注（无本校 cp 编号）', all.every(m => (m.note || '').length >= 6 && m.note.indexOf('cp') < 0));
@@ -1543,10 +1620,21 @@ const CASES = {
     huffman: [{ preset: 'a', w: '' }, { preset: 'b', w: '' }, { preset: 'a', w: '', phase: 'decode' }, { preset: 'a', w: '', phase: 'code' }, { preset: 'a', w: '', phase: 'build' }],
     dfsBfs: [{ method: 'dfs', start: '2' }, { method: 'bfs', start: '2' }, { method: 'dfs', start: '2', storage: 'list' }],
     mst: [{ method: 'prim' }, { method: 'kruskal' }],
-    dijkstra: [{ start: '0' }, { start: '1' }],
+    dijkstra: [{ start: '0' }, { start: '1' }, { start: '0', negW: true }, { start: '1', negW: true },
+      { start: '4', negW: true }, { start: '2', negW: true }, { start: '5', negW: true }],
+    quickSort: [{ preset: 'textbook', w: '', errPivot: true }, { preset: 'ordered', w: '', errPivot: true },
+      { preset: 'reverse', w: '', errPivot: true }, { preset: 'nearly', w: '', errPivot: true }],
+    hashLinear: [{ w: '19,14,23,1,68,20,84,27,55,11', errDel: true }, { w: '1,2,3', errDel: true },
+      { w: '13,26,39,52,65,78,91,4,17,30,43', errDel: true }, { w: '13,26,39,52,0,1,2,3,4,5,6,7,8', errDel: true }],
+    kmp: [{ s: 'acabaabaabcacaabc', t: 'abaabcac', errNext: true }, { s: 'aaaaab', t: 'aaab', errNext: true },
+      { s: 'abcabcabca', t: 'abcabca', errNext: true }, { s: 'aabaaaba', t: 'aabaaab', errNext: true }],
     bracket: [{ expr: '([()])' }, { expr: ')(' }, { expr: '([)]' }, { expr: '(()' }, { expr: 'a(b)c' }],
     expression: [{ expr: '3*(7-2)' }, { expr: '2+3*4' }, { expr: '5/(3-3)' }, { expr: '12*(3+4)' }],
     complexity: [{ nmax: 16 }, { nmax: 64 }],
+    spaceComplexity: [{ scene: 'aux', n: 2 }, { scene: 'aux', n: 8 }, { scene: 'rec', n: 2 },
+      { scene: 'rec', n: 8 }, { scene: 'rank', n: 6 }],
+    timeCount: [{ scene: 'four', n: 2 }, { scene: 'four', n: 64 }, { scene: 'log', n: 2 },
+      { scene: 'log', n: 64 }, { scene: 'rule', n: 32 }],
     seqOps: [{ op: 'find', key: 47, data: '25,12,47' }, { op: 'max', data: '25,12,47,89' }],
     linkOps: [{ op: 'find', key: 47, data: '25,12,47' }, { op: 'len', data: '25,12,47' }],
     mergeList: [{ la: '1,3,5', lb: '2,4' }],
@@ -1640,7 +1728,11 @@ const CASES = {
       { scene: 'pq', data: '49,38,65,97,76,13,27,49', k: 3, op: 'pop' },
       { scene: 'pq', data: '49,38,65,97,76,13,27,49', k: 3, op: 'push' },
       { scene: 'topk', data: '49,38,65,97,76,13,27,49', k: 3, op: 'mix' },
-      { scene: 'topk', data: '5,1,9,7,3', k: 2, op: 'mix' }
+      { scene: 'topk', data: '5,1,9,7,3', k: 2, op: 'mix' },
+      { scene: 'bad', data: '49,38,65,97,76,13,27,49', k: 3, op: 'mix' },
+      { scene: 'bad', data: '1,2,3,4,5,6', k: 2, op: 'mix' },
+      { scene: 'bad', data: '9,8,7,6,5,4,3,2,1', k: 3, op: 'mix' },
+      { scene: 'bad', data: '5,10,3,8,1', k: 2, op: 'mix' }
     ],
     treeStore: [
       { way: 'parent', target: 'A' }, { way: 'parent', target: 'E' },
@@ -1690,14 +1782,38 @@ console.log('— 代码行高亮：下标必须合法，且指到正在执行的
   DSC.mods.forEach(m => {
     const v = {};
     (m.inputs || []).forEach(s => { v[s.key] = s.type === 'checkbox' ? !!s.value : s.value; });
-    let res;
-    try { res = m.run(v); } catch (e) { return; }
-    const n = (res.code || []).length;
-    res.frames.forEach((f, i) => (f.line || []).forEach(k => {
-      if (!(k >= 0 && k < n)) bad.push(m.id + '#f' + (i + 1) + ' line=' + k + '（code 只有 ' + n + ' 行）');
-    }));
+    /* 必须连 CASES 一起查：只跑默认输入的话，非默认场景（双向链表的"错误演示"、
+       B 树的删除…）里的越界行号永远查不到——那条 line=4 就是这么漏的 */
+    const sets = [v].concat((CASES[m.id] || []).map(x => Object.assign({}, v, x)));
+    sets.forEach(inp => {
+      let res;
+      try { res = m.run(inp); } catch (e) { return; }
+      const n = (res.code || []).length;
+      res.frames.forEach((f, i) => (f.line || []).forEach(k => {
+        if (!(k >= 0 && k < n)) bad.push(m.id + '#f' + (i + 1) + ' line=' + k + '（code 只有 ' + n + ' 行）');
+      }));
+    });
   });
   t('全部模块: frame.line 都是 code 的合法下标', bad.length === 0, bad.slice(0, 6));
+
+  /* 双向链表"错误演示"：讲解念的是第④步，高亮就必须是第④步那一行。
+     曾经整体错位一行（念 ① 却亮 ②），而且末帧行号越界——因为这条闸门当时只查默认输入 */
+  {
+    const dv = {};
+    (M.dualList.inputs || []).forEach(s => { dv[s.key] = s.type === 'checkbox' ? !!s.value : s.value; });
+    const br = M.dualList.run(Object.assign({}, dv, { op: 'bad' }));
+    const hiAt = re => {
+      const i = br.frames.findIndex(f => re.test(f.msg));
+      return i < 0 ? '（找不到帧）' : (br.frames[i].line || []).map(k => br.code[k]).join(' ⏎ ');
+    };
+    t('双向链表错误演示: 首帧不高亮任何一步', hiAt(/^错误演示/) === '', hiAt(/^错误演示/));
+    t('双向链表错误演示: ④ 帧亮 p->prior = s', /^p->prior = s;/.test(hiAt(/^④/)), hiAt(/^④/));
+    t('双向链表错误演示: ① 帧亮 s->prior = p->prior', /^s->prior = p->prior;/.test(hiAt(/^①/)), hiAt(/^①/));
+    t('双向链表错误演示: ② 帧亮 p->prior->next = s', /^p->prior->next = s;/.test(hiAt(/^②/)), hiAt(/^②/));
+    t('双向链表错误演示: ③ 帧亮 s->next = p', /^s->next = p;/.test(hiAt(/^③/)), hiAt(/^③/));
+    t('双向链表错误演示: 后果帧不高亮（没有语句在执行）', hiAt(/^后果检查/) === '', hiAt(/^后果检查/));
+    t('双向链表错误演示: 结论帧亮 ①② 两行', hiAt(/^结论/).split(' ⏎ ').length === 2 && /s->prior = p->prior/.test(hiAt(/^结论/)), hiAt(/^结论/));
+  }
 
   const hi = (r, i) => (r.frames[i].line || []).map(k => r.code[k]).join('\n');
   const at = (r, re) => hi(r, r.frames.findIndex(f => re.test(f.msg)));
@@ -1793,6 +1909,52 @@ console.log('— 代码行高亮：下标必须合法，且指到正在执行的
     if (!a || a.length > 62 || stars % 2 || /`/.test(a)) bad.push(m.id + ' [len=' + a.length + '] ' + a.slice(0, 26));
   });
   t('全部模块: 都有 aim 一句话（非空、≤62 字、无未渲染记号）', bad.length === 0, bad.slice(0, 6));
+}
+
+/* A1：目录搜索加了 keywords，装的是"教材小标题里没有、学生嘴上会说"的那批词。
+   卡两件事：① 每个模块都得有足够词，且这些词得是真增量（名称/note/aim 里查不到的）；
+   ② 一批真实查询必须命中对应动画——只写字段不接线，搜索照样搜不到。 */
+{
+  const thin = [], dup = [];
+  DSC.mods.forEach(m => {
+    const kw = (m.keywords || '').trim();
+    const toks = kw ? kw.split(/\s+/) : [];
+    if (toks.length < 6) thin.push(m.id + ' [' + toks.length + ']');
+    const base = ((m.name || '') + ' ' + (m.note || '') + ' ' + (m.aim || '')).toLowerCase();
+    const fresh = toks.filter(w => base.indexOf(w.toLowerCase()) < 0);
+    if (fresh.length < 4) dup.push(m.id + ' 只新增 ' + fresh.length + ' 个词: ' + fresh.join(','));
+  });
+  t('A1: 全部模块 keywords ≥6 词', thin.length === 0, thin);
+  t('A1: keywords 里至少 4 个词是名称/note/aim 之外的增量', dup.length === 0, dup.slice(0, 5));
+
+  const keys = {};
+  DSC.mods.forEach(m => { keys[m.id] = DSC.searchKey(m); });
+  const miss = [];
+  [['迪杰斯特拉', 'dijkstra'], ['普里姆', 'mst'], ['赫夫曼', 'huffman'], ['除留余数', 'hashLinear'],
+   ['拉链法', 'hashChain'], ['牺牲一个单元', 'circQueue'], ['一次聚集', 'hashLinear'],
+   ['逆波兰', 'toPostfix'], ['路径压缩', 'ufset'], ['关键活动', 'critical'], ['下溢', 'seqStack'],
+   ['假溢出', 'circQueue'], ['左孩子右兄弟', 'treeConvert'], ['平衡因子', 'avl'], ['黑高', 'rbt'],
+   ['m阶', 'btree'], ['前缀编码', 'huffman'], ['置换-选择', 'extSort'], ['判定树', 'seqBinSearch'],
+   ['约瑟夫环', 'linkProblems'], ['快慢指针', 'linkProblems'], ['三元组', 'matrix'], ['表尾', 'glist'],
+   ['递归工作栈', 'hanoi'], ['基准', 'quickSort'], ['不稳定', 'shellSort'], ['原地算法', 'spaceComplexity'],
+   ['语句频度', 'timeCount'], ['先连后断', 'linkList'], ['带权路径长度', 'huffman']
+  ].forEach(pr => {
+    const w = pr[0].toLowerCase();
+    const hit = Object.keys(keys).filter(i => keys[i].indexOf(w) >= 0);
+    if (hit.indexOf(pr[1]) < 0) miss.push(pr[0] + ' → ' + (hit.join('|') || '（无命中）') + ' 期望 ' + pr[1]);
+  });
+  t('A1: 30 组真实查询都能搜到对应动画', miss.length === 0, miss);
+
+  /* 精度也要钉：命中太多等于没搜。章标题/note 混进匹配串时，
+     "哈夫"会命中整个第5章 8 行——这条就是拦住那种改法 */
+  const wide = [];
+  [['哈夫', ['huffman']], ['下溢', ['seqStack']], ['拉链', ['hashChain']],
+   ['关键活动', ['critical']], ['假溢出', ['circQueue', 'linkStackQueue']]].forEach(pr => {
+    const w = pr[0].toLowerCase();
+    const hit = Object.keys(keys).filter(i => keys[i].indexOf(w) >= 0).sort();
+    if (JSON.stringify(hit) !== JSON.stringify(pr[1].slice().sort())) wide.push(pr[0] + ' → ' + hit.join('|'));
+  });
+  t('A1: 精确查询不多命中（5 组查询的命中集合与预期完全一致）', wide.length === 0, wide);
 }
 
 /* 全量复核卡口：把"内容自洽"里能自动查的几项钉住，防止改着改着回退。
@@ -2078,12 +2240,79 @@ console.log('\n— 概念节拍（趟/轮边界识别） —');
     counts[m.id] = n;
     if (n) hit[m.id] = true;
   });
-  const want = ['insertSort', 'selectSort', 'bubbleSort', 'radixSort', 'mst', 'dijkstra', 'floyd', 'linkProblems'];
+  /* timeCount 的"每轮 i 翻倍"本身就是按轮计数，节拍停一下正好配合讲解；
+     spaceComplexity 刻意把交换写成"第 N 对"而不是"第 N 轮"，就是为了不被误判成节拍 */
+  const want = ['insertSort', 'selectSort', 'bubbleSort', 'radixSort', 'mst', 'dijkstra', 'floyd', 'linkProblems', 'timeCount'];
   const got = Object.keys(hit).sort();
   t('节拍: 命中且仅命中趟/轮类算法', JSON.stringify(got) === JSON.stringify(want.slice().sort()), got);
   t('节拍: 命中模块节拍数在 4-16 之间', want.every(id => counts[id] >= 4 && counts[id] <= 16),
     want.map(id => id + ':' + counts[id]));
   t('节拍: 堆排序/汉诺塔等无趟/轮误报', !['heapSort', 'hanoi', 'traversal', 'mergeSort'].some(id => hit[id]));
+}
+
+console.log('— 第1章 复杂度计算（新增：怎么算 + 空间复杂度） —');
+{
+  const d = {};
+  (M.timeCount.inputs || []).forEach(x => { d[x.key] = x.type === 'checkbox' ? !!x.value : x.value; });
+  const run = (scene, n) => M.timeCount.run(Object.assign({}, d, { scene, n }));
+  /* O(log2 n)：用"真的跑一遍循环"独立对拍轮数，而不是再套一次 log2 公式自证 */
+  function bruteHalve(n) { let i = 1, k = 0; while (i < n) { i *= 2; k++; } return k; }
+  [2, 3, 5, 8, 16, 32, 64].forEach(n => {
+    const r = run('log', n);
+    const kFrame = r.frames.find(f => f.panel['轮数'] === bruteHalve(n) + ' 轮');
+    t(`timeCount: n=${n} 的轮数与独立模拟一致（${bruteHalve(n)} 轮）`, !!kFrame,
+      { 面板: r.frames.map(f => f.panel['轮数']).filter(Boolean), 模拟: bruteHalve(n) });
+  });
+  {
+    const r = run('log', 32);
+    const js = r.frames.filter(f => f.panel['i 现在']).map(f => f.panel['i 现在']);
+    t('timeCount: 每轮 i 确实是 2 的幂（2^1…2^5）',
+      JSON.stringify(js) === JSON.stringify(['2 = 2^1', '4 = 2^2', '8 = 2^3', '16 = 2^4', '32 = 2^5']), js);
+    t('timeCount: 末帧给出 O(log₂n) 结论', /O\(log₂n\)/.test(r.frames[r.frames.length - 1].msg));
+  }
+  {
+    const r = run('four', 12);
+    const last = r.frames[r.frames.length - 1];
+    t('timeCount: 四步法 T(n) = 3n + 2', last.panel['T(n)'] === '3n + 2', last.panel);
+    t('timeCount: 答案取到 O(n) 而不是 O(3n+2)', /O\(n\)/.test(last.msg) && last.panel['答案'] === 'O(n)', last.panel);
+    const exit = r.frames.find(f => /再多判一次/.test(f.msg));
+    t('timeCount: 判断次数是 n+1（最后一次为假也算）', exit && exit.panel['判断次数'] === '13 次', exit && exit.panel);
+    t('timeCount: 四步法帧数被压到 10 帧以内（不是一轮一帧）', r.frames.length <= 10, r.frames.length);
+    const trLen = r.frames.map(f => (f.snap.trace || []).length);
+    t('timeCount: 执行轨迹逐帧累积、不回头', trLen.every((x, i) => i === 0 || x >= trLen[i - 1]), trLen);
+  }
+  const sd = {};
+  (M.spaceComplexity.inputs || []).forEach(x => { sd[x.key] = x.type === 'checkbox' ? !!x.value : x.value; });
+  const srun = (scene, n) => M.spaceComplexity.run(Object.assign({}, sd, { scene, n }));
+  {
+    const r = srun('aux', 6);
+    const aux = r.frames.filter(f => f.snap.b).map(f => f.snap.auxUsed);
+    const inplace = r.frames.filter(f => !f.snap.b && f.snap.auxUsed).map(f => f.snap.auxUsed);
+    t('空间: 非原地写法辅助空间恒为 n 格', aux.length && aux.every(x => x === 6), aux.slice(0, 3));
+    t('空间: 原地写法辅助空间恒为 1 格', inplace.length && inplace.every(x => x === 1), inplace.slice(0, 3));
+    const fin = r.frames[r.frames.length - 1].snap.a;
+    t('空间: 两种写法结果都等于逆序（原地没算错）',
+      JSON.stringify(fin) === JSON.stringify([6, 5, 4, 3, 2, 1]), fin);
+    t('空间: 末帧结论同时给出 O(n) 与 O(1)', /O\(n\)/.test(r.frames[r.frames.length - 1].msg) && /O\(1\)/.test(r.frames[r.frames.length - 1].msg));
+  }
+  {
+    const r = srun('rec', 5);
+    const depths = r.frames.map(f => f.snap.stack.length);
+    t('空间: 递归栈最大深度 = n', Math.max.apply(null, depths) === 5, depths);
+    t('空间: 栈深先增后减（压到 n 层再逐层弹回）',
+      depths.indexOf(5) < depths.length - 1 && depths[depths.length - 1] === 0, depths);
+    const fact = r.frames.filter(f => /结果/.test(f.panel['结果'] || '') || f.panel['结果']);
+    t('空间: 递归版算出的 5! = 120', fact.some(f => f.panel['结果'] === '120'), fact.map(f => f.panel['结果']));
+  }
+  {
+    const r = srun('rank', 6);
+    const rows = r.frames[1].snap.rows;
+    t('空间: 对照表 8 行', rows.length === 8, rows.length);
+    const pick = k => (rows.find(x => x[0].indexOf(k) >= 0) || [])[1];
+    t('空间: 堆排序 O(1)、归并 O(n)、快排 O(log n)',
+      pick('堆排序') === 'O(1)' && pick('归并') === 'O(n)' && pick('快速排序') === 'O(log n)',
+      [pick('堆排序'), pick('归并'), pick('快速排序')]);
+  }
 }
 
 console.log('\n— 手机视口（390×844，headless 浏览器实测） —');

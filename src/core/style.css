@@ -36,15 +36,22 @@ main .card{display:flex;flex-direction:column}
 body.mp .modaim{display:none}
 /* 使用引导：此前 .guidebox 一条样式都没有，浏览器默认的 <ol> 直接摊在页面上，
    像一段没排版的正文，还把舞台挤掉三分之一——"引导效果太差"的直接原因就在这 */
-.guidebox{margin:4px 14px 8px;padding:9px 14px 11px;background:#f0f7ff;border:1px solid #bfdbfe;
-  border-left:4px solid var(--blue);border-radius:8px;flex:none;max-height:33%;overflow:auto}
-.guidebox .gt{font-size:.95em;font-weight:700;color:var(--ink)}
+/* 引子卡：浮在舞台中央，不占布局高度——原来它挤在标题下面，展开就把画面顶掉三分之一，
+   于是默认收起，结果没人点，等于没有。现在打开动画先弹出来，看完点「开始演示」收掉 */
+.card{position:relative}
+.guidebox{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);z-index:24;
+  width:min(780px,88%);max-height:74%;overflow:auto;margin:0;padding:20px 26px 22px;
+  background:#fff;border:1px solid #bfdbfe;border-top:4px solid var(--blue);border-radius:14px;
+  box-shadow:0 26px 70px rgba(8,24,49,.34)}
+.guidebox:before{content:"";position:fixed;inset:0;background:rgba(8,20,40,.42);z-index:-1}
+.guidebox .gt{font-size:1.05em;font-weight:800;color:var(--ink)}
+.guidebox .lead{font-size:.86em;color:#1d4ed8;margin:4px 0 10px;font-weight:700}
 .guidebox .gaim{font-size:.88em;color:#1d4ed8;margin:2px 0 6px}
 .guidebox ol{margin:0;padding-left:1.4em}
 .guidebox li{font-size:.85em;line-height:1.65;color:#334155;margin:3px 0}
 .guidebox li b{color:var(--ink)}
 .guidebox code{font-family:Consolas,Menlo,monospace;font-size:.95em;background:#e2e8f0;padding:0 3px;border-radius:3px}
-.guidebox #btnGo{margin-top:8px;font:inherit;font-size:.84em;padding:5px 16px;border:1px solid var(--blue);
+.guidebox #btnGo{margin-top:12px;font:inherit;font-size:.86em;padding:10px 22px;min-height:44px;border:1px solid var(--blue);
   background:var(--blue);color:#fff;border-radius:6px;cursor:pointer}
 body.present .guidebox li{font-size:1em}
 body.present .guidebox .gaim{font-size:1.05em}

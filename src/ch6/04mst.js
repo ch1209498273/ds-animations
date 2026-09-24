@@ -48,6 +48,7 @@
     id: 'mst', ch: 6, name: '最小生成树：Prim / Kruskal',
     aim: '最小生成树两种贪心：**Prim 从点长叶子、Kruskal 捡最短边**，最后权值和相同',
     note: '教材 6.6 图的应用（最小生成树：Prim / Kruskal）',
+    keywords: '最小生成树 Prim 普里姆 Kruskal 克鲁斯卡尔 贪心 选边 权值和 并查集判环 无向连通图 顶点集U 代价最小',
     guide: [
       'Prim：看右侧候选边表逐轮更新，每次把"离 U 最近"的点并入（绿色）',
       'Kruskal：按权升序逐条考察，接受不成环的边、丢弃成环的边（红色虚线）',

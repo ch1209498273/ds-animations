@@ -153,8 +153,14 @@ setTimeout(function () {
       drawerW: Math.round(c.querySelector('.ovbox').getBoundingClientRect().width),
       fitsViewport: c.querySelector('.ovbox').getBoundingClientRect().width <= w.innerWidth };
     var s = d.getElementById('ovSearch');
-    s.value = '哈夫'; s.dispatchEvent(new w.Event('input', { bubbles: true }));
-    o.afterSearch = vis();
+    function query(q) { s.value = q; s.dispatchEvent(new w.Event('input', { bubbles: true })); return vis(); }
+    o.afterSearch = query('哈夫');
+    /* A1 的真实用途：这些词名称/note 里都没有，只有 keywords 接得上；
+       空格分词求交也是这一步才用得上（"散列 冲突"两词交集 = 两个哈希动画） */
+    o.kwTranslit = query('迪杰斯特拉');
+    o.kwTwoWords = query('散列 冲突');
+    o.kwStackUnder = query('下溢');
+    o.kwNoHit = query('这个一定搜不到xyz');
     var pre = document.createElement('pre');
     pre.textContent = 'PROBE:' + JSON.stringify(o);
     document.body.appendChild(pre);
@@ -182,6 +188,10 @@ function measureCatalog(hash) {
     t('目录页: 默认不超 1.5 屏', o.screens <= 1.5, o.screens);
   t('目录页: 抽屉不超出视口宽度', o.fitsViewport === true, { drawerW: o.drawerW });
     t('目录页: 搜索能真正过滤（渲染后只剩 1 行）', o.afterSearch === 1, { before: o.visRows, after: o.afterSearch });
+    t('A1: 音译词「迪杰斯特拉」在浏览器里搜到 Dijkstra（只剩 1 行）', o.kwTranslit === 1, o.kwTranslit);
+    t('A1: 空格分词「散列 冲突」取交集只剩 2 行（两个哈希表动画）', o.kwTwoWords === 2, o.kwTwoWords);
+    t('A1: 术语「下溢」搜到顺序栈（只剩 1 行）', o.kwStackUnder === 1, o.kwStackUnder);
+    t('A1: 乱码查询收得到"没有匹配"（0 行）', o.kwNoHit === 0, o.kwNoHit);
   }
 }
 

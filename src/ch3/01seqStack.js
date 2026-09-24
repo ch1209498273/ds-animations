@@ -35,6 +35,7 @@
     id: 'seqStack', ch: 3, name: '顺序栈：进栈与出栈',
     aim: '栈为什么是**后进先出**：top 只在同一头动，进栈出栈都 O(1)',
     note: '教材 3.3 栈的表示和操作的实现（栈空/栈满判定、上溢/下溢）',
+    keywords: '栈 后进先出 LIFO 栈顶 top 进栈 push 出栈 pop 栈空 栈满 上溢 下溢 顺序存储 数组模拟 栈底',
     guide: [
       '场景①进栈：观察 *S.top++ 两步——先放元素、top 再加 1；栈满判定 top−base==stacksize',
       '场景②出栈：--S.top 后再取元素；栈空判定 top==base',

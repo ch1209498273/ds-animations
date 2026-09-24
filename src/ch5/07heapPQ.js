@@ -37,10 +37,11 @@
     id: 'heapPQ', ch: 5, name: '堆与优先队列：建堆、出入队与 Top-K',
     aim: '堆是**完全二叉树 + 父≥子**，所以建堆 O(n)、取顶 O(logn)，Top-K 只需留住 k 个',
     note: '408 大纲 四(四)3 堆及其应用（筛选建堆 O(n)、优先队列 O(log n)、Top-K 用容量 K 的小顶堆）',
+    keywords: '堆 小顶堆 大顶堆 建堆 筛选 siftup shiftdown 优先队列 出队 入队 Top-K 第K大 近似完全二叉树 数组表示',
     guide: [
       '堆是**用一维数组存的完全二叉树**——上一个是"二叉树的顺序存储"，堆就是它最实用的下场：靠 `i ↔ 2i/2i+1` 算父子，一个指针都不存',
       '大顶堆只保证"爹 ≥ 儿"，**兄弟之间不排序**。所以堆顶是全局最大，但第二名在哪不知道',
-      '建堆要**自下而上**筛：最后一个非叶结点是 ⌊n/2⌋。绝大多数结点在底层、只需下沉常数层，所以总代价是 O(n) 而不是 O(n log n)——这是 408 爱考的点',
+      '建堆要**自下而上**筛：最后一个非叶结点是 ⌊n/2⌋。绝大多数结点在底层、只需下沉常数层，所以总代价是 O(n) 而不是 O(n log n)——这是 408 爱考的点；场景切「错误演示」看只筛一层会漏掉什么',
       '出队 = 堆顶换到队尾、缩小堆、从根筛一次；入队 = 追加到队尾、沿 ⌊i/2⌋ 上浮。两者都只走树高 O(log n)',
       '求 Top-K 时**用小顶堆、容量固定为 K**：堆顶是这 K 个里最小的，来了更大的才换它。用大顶堆就得存下全部 n 个'
     ],
@@ -48,7 +49,8 @@
       {
         key: 'scene', label: '场景', type: 'select', options: [
           ['build', '建堆：自下而上筛选'], ['pq', '优先队列：出队与入队'],
-          ['topk', '求 Top-K：容量 K 的小顶堆']
+          ['topk', '求 Top-K：容量 K 的小顶堆'],
+          ['bad', '错误演示：建堆只筛一层就停']
         ], value: 'build'
       },
       { key: 'data', label: '关键字序列（4~12 个）', type: 'text', value: '49,38,65,97,76,13,27,49' },
@@ -71,9 +73,9 @@
           arr: null, n: 0, hl: {}, min: false, done: false, bars: null, rest: null
         }, snap || {}) });
       }
-      /* 大顶堆筛选：就地修改 a（下标 1 起），每步出一帧 */
-      function siftDown(a, s, m, isMin, emit, tag) {
-        var rc = a[s], changed = false;
+      /* 大顶堆筛选：就地修改 a（下标 1 起），每步出一帧。lim = 最多下沉几层（错误演示用） */
+      function siftDown(a, s, m, isMin, emit, tag, lim) {
+        var rc = a[s], changed = false, lv = 0;
         for (var j = 2 * s; j <= m; j *= 2) {
           var pick = j;
           if (j < m && (isMin ? a[j] > a[j + 1] : a[j] < a[j + 1])) pick = j + 1;
@@ -91,6 +93,11 @@
             ' 号位；继续从 ' + pick + ' 往下看。', { 正在筛: '孩子上浮到 ' + s },
             { arr: a.slice(), n: m, hl: { moved: pick, v: rc }, min: isMin });
           s = pick;
+          if (lim && ++lv >= lim) {
+            if (emit) F([5, 8], tag + '（错误演示）就在此刻**停手**：孩子 ' + a[s >> 1] + ' 是上浮了，可它原来那层下面还有孙子，一眼都没再看。',
+              { 正在筛: '只筛一层就停' }, { arr: a.slice(), n: m, hl: { moved: s, v: rc }, min: isMin });
+            break;
+          }
         }
         a[s] = rc;
         if (emit && changed) F([10], tag + ' 收尾：把 ' + rc + ' 放到 ' + s + ' 号位（它的位置是筛出来的，不是比出来的）。',
@@ -124,7 +131,35 @@
         return { code: CODE, frames: frames };
       }
 
-      /* ---------------- Top-K ---------------- */
+      /* ---------------- 错误演示：只筛一层就停 ---------------- */
+      if (scene === 'bad') {
+        var ab = [null].concat(src);
+        F([0, 1], '错误演示：建堆时"筛一层就停"。初始 ' + src.join(' ') + '（下标从 1 起）。',
+          { 结点数: src.length + ' 个' }, { arr: ab.slice(), n: src.length });
+        F([14, 15], '起点仍是 ⌊n/2⌋ = ' + Math.floor(src.length / 2) + '。毛病出在 HeapAdjust 里面：孩子上浮之后**不再往下看**——把 `for (j = 2*s; j <= m; j *= 2)` 少写成一轮，或者比较完孩子就 break。',
+          { 起点: 'i = ⌊' + src.length + '/2⌋ = ' + Math.floor(src.length / 2) },
+          { arr: ab.slice(), n: src.length, hl: { at: Math.floor(src.length / 2) } });
+        for (var ib = Math.floor(src.length / 2); ib >= 1; ib--) {
+          F([13, 14, 15], '筛第 ' + ib + ' 个结点（值 ' + ab[ib] + '）——这次只筛一层：',
+            { 当前筛: 'i = ' + ib, 堆内: ab.slice(1).join(' ') }, { arr: ab.slice(), n: src.length, hl: { at: ib } });
+          siftDown(ab, ib, src.length, false, true, '筛 ' + ib + ' 号（' + ab[ib] + '）：', 1);
+        }
+        var viol = [];
+        for (var qb = 1; qb <= src.length; qb++) {
+          if (2 * qb <= src.length && ab[qb] < ab[2 * qb]) viol.push('r[' + qb + ']=' + ab[qb] + ' < 左孩子 r[' + (2 * qb) + ']=' + ab[2 * qb]);
+          if (2 * qb + 1 <= src.length && ab[qb] < ab[2 * qb + 1]) viol.push('r[' + qb + ']=' + ab[qb] + ' < 右孩子 r[' + (2 * qb + 1) + ']=' + ab[2 * qb + 1]);
+        }
+        var ac = [null].concat(src);
+        for (var ic = Math.floor(src.length / 2); ic >= 1; ic--) siftDown(ac, ic, src.length, false, false, '');
+        F([7, 10], '✗ 跑完逐对检查父子：违反 ' + viol.length + ' 处。' + (viol.length ? viol.join('；') + '。' : '这批数据碰巧没违反（换教材序列 49,38,65,97,76,13,27,49 再看）。') +
+          '对照：同一批数按正确写法筛到底 → ' + ac.slice(1).join(' ') + '。漏下沉的要害是只把"孩子"提上来，**孙子还压在下面**。',
+          { 违反: viol.length + ' 处', 错误结果: ab.slice(1).join(' '), 正确结果: ac.slice(1).join(' ') },
+          { arr: ab.slice(), n: src.length });
+        F([5, 6], '★ 记结构原因：下沉要一路走到"落定"才停。每换一次孩子，就要拿**新孩子那一层**再比一次——教材那句 `j *= 2` 和 `s = j` 缺一不可。出队时从堆顶筛一次同理，所以这个 bug 会让建堆和出队一起错。',
+          { 违反: viol.length + ' 处', 正确结果: ac.slice(1).join(' ') }, { arr: ac.slice(), n: src.length, done: true });
+        return { code: CODE, frames: frames };
+      }
+
       if (scene === 'topk') {
         var hk = [null].concat(src.slice(0, K)), hn = K, dropped = [], feed = K;
         for (var i3 = Math.floor(hn / 2); i3 >= 1; i3--) siftDown(hk, i3, hn, true, false);

@@ -89,6 +89,16 @@
     8: { name: '第8章 排序', note: '八大内部排序' }
   };
 
+  /* ---------- 目录搜索的匹配串：名称/note 之外再吃模块自带的 keywords。
+     keywords 装的是学生嘴边那句话——"散列""迪杰斯特拉""逆波兰""牺牲一格"这类
+     教材小标题里不出现、但一定会打进去的词。
+     章 note（如"遍历、线索与哈夫曼树"）不能进来：它会给整章每一行都加上
+     "哈夫曼"这类词，搜一个词命中全章，精度反而不如不搜 ---------- */
+  DSC.searchKey = function (m) {
+    return ((m.disp || '') + ' ' + (m.name || '') + ' ' + (m.note || '') + ' ' + (m.aim || '') +
+      ' ' + (m.keywords || '') + ' 第' + m.ch + '章 ' + (CH[m.ch] ? CH[m.ch].name : '')).toLowerCase().replace(/\s+/g, ' ');
+  };
+
   /* ---------- 模块自动编号：按注册顺序显示 ①②③…，模块名无需手写圈号 ---------- */
   var CIRCLED = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺';
   var CIRC_RE = /^[①-⑳㉑-㉟㊱-㊺]+\s*/;
@@ -377,7 +387,9 @@
 
   function updateProgress() {
     $('pos').textContent = frames.length ? (idx + 1) + ' / ' + frames.length : '0 / 0';
-    $('pace').textContent = frames.length ? '⏱ ' + (frameHold(frames[idx]) / 1000).toFixed(1) + 's' + (isBeat(frames[idx]) ? ' · 节拍' : '') : '';
+    /* 秒数不展示：这一帧停多久由解说长度自动定，老师不关心也不可控，留着只是噪音；
+       只保留"这一帧是趟/轮边界"的节拍提示 */
+    $('pace').textContent = (frames.length && isBeat(frames[idx])) ? '· 节拍' : '';
     $('btnPrev').disabled = idx <= 0;
     $('btnNext').disabled = idx >= frames.length - 1;
     if (!$('mpCounter').classList.contains('warn')) {
@@ -494,16 +506,17 @@
     var g = $('guide');
     if (!cur) { g.hidden = true; return; }
     var has = cur.guide && cur.guide.length;
-    if (has && force) {
-      g.innerHTML = '<div class="gt">💡 使用引导 · ' + esc(cur.disp || cur.name) + '</div>' +
-        (cur.aim ? '<div class="gaim">' + md(cur.aim) + '</div>' : '') + '<ol>' +
+    /* 首次打开这个动画就把说明弹出来当"引子"：先让人知道这是干什么的，再边跑边看细节。
+       force 是点 ? 主动回看；两者都渲染成同一张浮层，看完点「开始演示」收掉 */
+    if (has && (force || !hinted[cur.id])) {
+      if (!force) hinted[cur.id] = 1;
+      g.innerHTML = '<div class="gt">📌 演示说明 · ' + esc(cur.disp || cur.name) + '</div>' +
+        (cur.aim ? '<div class="lead">一句话：' + md(cur.aim) + '</div>' : '') + '<ol>' +
         cur.guide.map(function (s) { return '<li>' + md(s) + '</li>'; }).join('') +
         '</ol><button id="btnGo">开始演示 ▶</button>';
       g.hidden = false;
     } else {
       g.hidden = true;
-      // 引导展开时会挤掉舞台高度，所以默认收起，只提示一次
-      if (has && !hinted[cur.id]) { hinted[cur.id] = 1; toast('本动画有使用引导 · 点 ? 查看'); }
     }
   }
   function toast(text, ms) {
@@ -568,14 +581,17 @@
   function setHint() {
     var b = document.body.classList;
     $('hintKeys').textContent = b.contains('present')
-      ? '放映中：← → 翻页 ｜ C 切换动画 ｜ 右下角 ⋯ 展开完整操作台 ｜ Esc 退出'
+      ? '放映中：← → 翻页 ｜ C 切换动画 ｜ 右下角 ⋯ 收起操作台 ｜ Esc 退出'
       : (b.contains('mp') ? '放映中：左右箭头翻页 ｜ 双指缩放 ｜ 双击放大 ｜ ✕ 退出'
         : '操作：← → 单步 ｜ 空格 播放/暂停 ｜ ☰ 打开目录');
   }
   function syncPresent() {
     var on = !!document.fullscreenElement && !document.body.classList.contains('mp');
     document.body.classList.toggle('present', on);
-    if (!on) document.body.classList.remove('present-more');
+    /* 进放映默认摊开完整操作台：投屏现场最常做的动作就是改数据、截图、复制链接，
+       原来默认收起、要先点 ⋯ 才找得到，等于课堂上没有这些功能 */
+    if (on) document.body.classList.add('present-more');
+    else document.body.classList.remove('present-more');
     $('btnPresent').classList.toggle('on', on);
     setHint();
   }
@@ -620,7 +636,7 @@
        改成"搜索 + 一行一条 + 按章手风琴"，默认只展开当前章 */
     var html = '<div class="ovbox"><div class="ovhead">' +
       '<div class="ovttl"><b>📚 全部动画目录</b><span class="ovcnt">' + DSC.mods.length + ' 个 · 8 章</span></div>' +
-      '<div class="ovbar"><input id="ovSearch" type="search" placeholder="搜名称 / 教材小节 / 章号" autocomplete="off">' +
+      '<div class="ovbar"><input id="ovSearch" type="search" placeholder="搜名称 / 关键词 / 教材小节 / 章号（空格分词，如「散列 冲突」）" autocomplete="off">' +
       '<button id="ovAll">全部展开</button><button id="ovClose" aria-label="关闭目录">✕</button></div></div>' +
       '<div class="ovlist">';
     chapters.forEach(function (c) {
@@ -630,8 +646,7 @@
         esc(CH[c] ? CH[c].name : ('第' + c + '章')) + '</b><i>' +
         esc(CH[c] ? CH[c].note : '') + '</i><em>' + ms.length + '</em></button><div class="ovrows">';
       ms.forEach(function (m) {
-        var key = ((m.disp || '') + ' ' + (m.name || '') + ' ' + (m.note || '') +
-          ' 第' + c + '章 ' + (CH[c] ? CH[c].name : '')).toLowerCase();
+        var key = DSC.searchKey(m);
         html += '<div class="ovrow' + (cur && m.id === cur.id ? ' cur' : '') + '" data-id="' + m.id +
           '" data-k="' + esc(key) + '" role="button" tabindex="0">' +
           '<span class="ovtxt"><span class="nm">' + esc(m.disp || m.name) + '</span>' +
@@ -648,12 +663,14 @@
     requestAnimationFrame(function () { ov.classList.add('in'); });   // 先进 DOM 再加类，抽屉才滑得动
 
     function applyFilter(q) {
-      q = (q || '').trim().toLowerCase();
+      /* 空格分词、逐词求交：学生搜「散列 冲突」「图 最短」这种两个词的组合，
+         比要求他一次打对一整串更现实 */
+      var toks = (q || '').toLowerCase().split(/\s+/).filter(function (x) { return x !== ''; });
       var any = false;
       Array.prototype.forEach.call(ov.querySelectorAll('.ovgrp'), function (g) {
         var hit = 0;
         Array.prototype.forEach.call(g.querySelectorAll('.ovrow'), function (r) {
-          var ok = !q || r.dataset.k.indexOf(q) >= 0;
+          var ok = !toks.length || toks.every(function (w) { return r.dataset.k.indexOf(w) >= 0; });
           r.hidden = !ok; if (ok) hit++;
         });
         g.hidden = hit === 0;

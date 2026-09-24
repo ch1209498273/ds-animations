@@ -33,27 +33,38 @@
     id: 'dijkstra', ch: 6, name: '最短路径：Dijkstra',
     aim: '每轮定下一个**离源点最近且已确定**的点，用它松弛邻居——所以处理不了负权',
     note: '教材 6.6 图的应用（单源最短路径）',
+    keywords: '最短路径 单源 迪杰斯特拉 贪心 dist path S集合 松弛 权值 不能处理负权 按长度递增',
     guide: [
       '每轮先在 V−S 中比较 D 值选最小者（消息里列出比较过程），其最短路径就此确定',
       '随后松弛该点的每条出弧：经它中转更短就更新 D 和 Path',
       '右侧表格：绿色=已确定（在 S 中），黄色=本步更新；绿边构成从源点出发的最短路径树（v1 不可达不在树中——注意它≠最小生成树）',
-      '注意：Dijkstra 不适用于带负权边的图'
+      '注意：Dijkstra 不适用于带负权边的图',
+      '勾"错误演示"：加一条 -60 的负权弧 v5→v2，看贪心怎样把更短的路径永久错过'
     ],
     inputs: [
-      { key: 'start', label: '源点 v0', type: 'select', options: [['0', 'v0'], ['1', 'v1'], ['2', 'v2'], ['3', 'v3'], ['4', 'v4'], ['5', 'v5']], value: '0' }
+      { key: 'start', label: '源点 v0', type: 'select', options: [['0', 'v0'], ['1', 'v1'], ['2', 'v2'], ['3', 'v3'], ['4', 'v4'], ['5', 'v5']], value: '0' },
+      { key: 'negW', label: '错误演示：加一条负权弧 v5→v2（-60）', type: 'checkbox', value: false }
     ],
     run: function (v) {
       var v0 = +v.start;
+      var negW = !!v.negW;
+      /* 负权演示用的反例：v2→v3→v5→v2 这条回路权重恰好是 0（50+10-60），
+         所以图里没有负环、真实最短路是良定义的——错只错在 Dijkstra 的贪心假设 */
+      var arcs = negW ? ARCS.concat([[5, 2, -60]]) : ARCS;
+      var adj = {};
+      for (var ai = 0; ai < N; ai++) adj[ai] = [];
+      arcs.forEach(function (a) { adj[a[0]].push([a[1], a[2]]); });
       var frames = [];
-      var S = {}, D = [], Path = [];
+      var S = {}, D = [], Path = [], settleRound = {};
       for (var w = 0; w < N; w++) {
         D[w] = Infinity; Path[w] = -1;
-        ARCS.forEach(function (a) { if (a[0] === v0 && a[1] === w) { D[w] = a[2]; Path[w] = v0; } });
+        arcs.forEach(function (a) { if (a[0] === v0 && a[1] === w) { D[w] = a[2]; Path[w] = v0; } });
       }
       D[v0] = 0;
       function snap(o) {
         o = o || {};
         o.S = Object.keys(S).map(Number); o.D = D.slice(); o.Path = Path.slice();
+        o.arcs = arcs;
         o.hlEdge = o.hlEdge || null; o.hlV = o.hlV == null ? null : o.hlV;
         o.relaxCell = o.relaxCell || null; o.v0 = v0; o.N = N; o.done = !!o.done;
         o.treeEdges = [];
@@ -91,8 +102,9 @@
         }
         F(8, '第 ' + round + ' 轮：在 V−S 中比较 D 值——' + cmp.join('，') + '，最小的是 v' + k + '（D = ' + D[k] + '）→ 其最短路径就此确定（贪心：若经其他点中转必然 ≥ 它，不可能更短）。', dPanel({ 选中: 'v' + k, 比较: cmp.join('  ') }), snap({ hlV: k, hlEdge: Path[k] >= 0 ? [Path[k], k] : null }));
         S[k] = true;
+        settleRound[k] = round;
         F(9, 'v' + k + ' 并入 S。' + (Path[k] >= 0 ? '最短路径：' + pathStr(k) + '，长度 ' + D[k] + '。' : ''), dPanel(), snap({ hlV: k }));
-        ADJ[k].forEach(function (arc) {
+        adj[k].forEach(function (arc) {
           var t = arc[0], wgt = arc[1];
           if (!S[t]) {
             var nd = D[k] + wgt;
@@ -104,6 +116,11 @@
               F(10, '松弛：以 v' + k + ' 为中转需 ' + nd + ' ≥ 原 D[v' + t + '] = ' + D[t] + '，不更新。',
                 dPanel({ 检查: 'v' + k + ' → v' + t }), snap({ hlEdge: [k, t] }));
             }
+          } else if (negW && D[k] + wgt < D[t]) {
+            /* 负权真正的杀伤力就在这：更短的路径出现了，但终点已经并入 S，
+               第 11 行的 !S[w] 条件让算法连看都不看它一眼 */
+            F([11, 12], '⚠ 出事了：v' + t + ' 早在第 ' + settleRound[t] + ' 轮就被定死为 ' + D[t] + '，可现在经 v' + k + ' 走只要 ' + D[k] + ' + (' + wgt + ') = ' + (D[k] + wgt) + '。更短的路径明摆着，算法却因为 `!S[w]` 直接跳过——这条改进被永久错过。',
+              dPanel({ 错过: 'v' + t + ' 本可缩到 ' + (D[k] + wgt) }), snap({ hlEdge: [k, t], relaxCell: t }));
           }
         });
       }
@@ -117,14 +134,28 @@
       })() + '。贪心 + 松弛，时间 O(n²)。注意：Dijkstra 不适用于带负权边的图。',
         (function () { var p = {}; for (var t4 = 0; t4 < N; t4++) p['v' + t4 + ' 最短'] = D[t4] === Infinity ? '∞ 不可达' : (pathStr(t4) + ' ＝ ' + D[t4]); return p; })(),
         snap({ done: true }));
+      if (negW) {
+        /* 用 Bellman-Ford 式的逐轮松弛算出"真实答案"来对照——不是我说它错，
+           是把两个答案并排摆出来 */
+        var TD = [];
+        for (var t6 = 0; t6 < N; t6++) TD[t6] = Infinity;
+        TD[v0] = 0;
+        for (var it = 0; it < N - 1; it++) arcs.forEach(function (a) { if (TD[a[0]] < Infinity && TD[a[0]] + a[2] < TD[a[1]]) TD[a[1]] = TD[a[0]] + a[2]; });
+        var diffs = [];
+        for (var t7 = 0; t7 < N; t7++) if (TD[t7] !== D[t7]) diffs.push('v' + t7 + '：Dijkstra ' + (D[t7] === Infinity ? '∞' : D[t7]) + '，真实 ' + (TD[t7] === Infinity ? '∞' : TD[t7]));
+        F([11, 12], '✗ 负权下 Dijkstra 的答案是错的：' + (diffs.length ? diffs.join('；') : '这次碰巧全对（负权弧没影响任何结果）') +
+          '。根因是它的贪心假设——"边权非负，已确定的点不可能再被后来者改进"。有负权就得换 Bellman-Ford / SPFA；Floyd 本身能处理负权（只要没有负环）。本例回路 v2→v3→v5→v2 权重恰好为 0，没有负环，真实最短路是良定义的。',
+          (function () { var p = {}; for (var t8 = 0; t8 < N; t8++) p['v' + t8 + ' 算出/真实'] = (D[t8] === Infinity ? '∞' : D[t8]) + ' / ' + (TD[t8] === Infinity ? '∞' : TD[t8]); return p; })(),
+          snap({ bad: true }));
+      }
       return { code: CODE, frames: frames };
     },
     render: function (s) {
       var W = 980, H = 620, r = 26;
       var g = '';
       g += h.txt(430, 32, 'Dijkstra：求 v' + s.v0 + ' 到其余各顶点的最短路径', { size: 19, w: 600 });
-      // 有向弧
-      ARCS.forEach(function (a) {
+      // 有向弧（错误演示会多一条负权弧，所以按本帧的弧表画）
+      (s.arcs || ARCS).forEach(function (a) {
         var A = POS[a[0]], B = POS[a[1]];
         var dx = B[0] - A[0], dy = B[1] - A[1], L = Math.sqrt(dx * dx + dy * dy) || 1;
         var x1 = A[0] + dx / L * r, y1 = A[1] + dy / L * r, x2 = B[0] - dx / L * r, y2 = B[1] - dy / L * r;

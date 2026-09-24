@@ -74,6 +74,7 @@
     id: 'graphStore', ch: 6, name: '邻接多重表与十字链表',
     aim: '一条边只存一个结点、被两条链共享：**邻接多重表**管无向、**十字链表**管有向',
     note: '408 大纲 五(二)3 邻接多重表、十字链表（一条边/弧只存一个结点，被两条链共享）',
+    keywords: '邻接多重表 multilist 十字链表 orthogonal list 边结点 弧结点 头尾顶点 hlink tlink firstout firstin 共享 一条边只存一次',
     guide: [
       '邻接表把**一条边存两份**（两个端点各一份）。想给这条边打个"已访问"标记就得改两处——Kruskal 判边、Prim 更新都很别扭',
       '**邻接多重表**（无向图）：一条边只有**一个结点**，里面同时记 `v1/a1` 和 `v2/a2`。两个顶点的链各指到同一个结点，所以标记一次就够',
@@ -163,87 +164,128 @@
     },
 
     render: function (s) {
-      var W = 980, H = 560, g = '';
+      /* 画布按舞台比例（约 1.58）取 980×620，两张表铺满整个宽度；
+         指针线只画"这一帧真正在看的那几条"，长跨度的链从表的左右两侧绕出去。
+         原来所有指针一起画、全走直线，六条边就是十几条交叉线，演示时指不出哪条是哪条。 */
+      var W = 980, H = 620, g = '';
       var dir = s.way === 'ortho', st = s.st, nv = s.nv, m = s.E.length;
-      g += h.txt(W / 2, 28, (dir ? '十字链表（有向）' : '邻接多重表（无向）') + ' · 一条' +
-        (dir ? '弧' : '边') + '只有一个结点，被两条链共享', { size: 17, w: 600 });
-      g += h.txt(30, 50, '图例：橙=当前' + (dir ? '弧' : '边') + '及其两条链 蓝=当前顶点 灰=未涉及 ∧=空指针',
-        { size: 11.5, fill: C.muted, anchor: 'start' });
-      /* 顶点表 */
-      var vy = 84, vh = 30, vw = dir ? 132 : 96;
-      g += h.txt(30, vy - 10, dir ? '顶点表（表头两格）' : '顶点表', { size: 11.5, fill: C.muted, anchor: 'start' });
-      for (var i = 0; i < nv; i++) {
-        var y = vy + i * vh, on = s.hlV.indexOf(i) >= 0, pk = s.pick === i;
-        g += h.rect(30, y, 26, 24, { fill: pk ? C.blueBg : '#fff', stroke: pk ? C.blue : C.grey, sw: pk ? 2.4 : 1.3, rx: 4 });
-        g += h.txt(43, y + 17, String(i), { size: 13, w: 700 });
-        if (dir) {
-          g += h.rect(58, y, (vw - 26) / 2, 24, { fill: on ? C.amberBg : '#f8fafc', stroke: on ? C.amber : C.line, sw: on ? 2 : 1, rx: 3 });
-          g += h.txt(58 + (vw - 26) / 4, y + 17, 'in→' + (st.inHead[i] == null ? '∧' : st.inHead[i]), { size: 10.5, family: 'Consolas,monospace' });
-          g += h.rect(58 + (vw - 26) / 2, y, (vw - 26) / 2, 24, { fill: on ? C.amberBg : '#f8fafc', stroke: on ? C.amber : C.line, sw: on ? 2 : 1, rx: 3 });
-          g += h.txt(58 + 3 * (vw - 26) / 4, y + 17, 'out→' + (st.outHead[i] == null ? '∧' : st.outHead[i]), { size: 10.5, family: 'Consolas,monospace' });
-        } else {
-          g += h.rect(58, y, vw - 28, 24, { fill: on ? C.amberBg : '#f8fafc', stroke: on ? C.amber : C.line, sw: on ? 2 : 1, rx: 3 });
-          g += h.txt(58 + (vw - 28) / 2, y + 17, 'firstedge→' + (st.head[i] == null ? '∧' : st.head[i]),
-            { size: 10, family: 'Consolas,monospace' });
-        }
-      }
-      /* 边结点表 */
-      var ex = 250, ew = 118, eh = 34;
-      g += h.txt(ex, vy - 10, dir ? '弧结点表（tailvex, hlink, headvex, tlink）' : '边结点表（v1, a1, v2, a2）',
-        { size: 11.5, fill: C.muted, anchor: 'start' });
-      for (var k = 0; k < m; k++) {
-        var eb = st.ebox[k];
-        var col = k % 2, row = Math.floor(k / 2);
-        var x = ex + col * (ew + 46), y = vy + row * (eh + 26);
-        var on = s.hlE.indexOf(k) >= 0;
-        g += h.rect(x, y, ew, eh, { fill: on ? C.amberBg : '#fff', stroke: on ? C.amber : C.grey, sw: on ? 2.4 : 1.3, rx: 5 });
-        g += h.txt(x + 10, y + 13, '#' + k, { size: 9.5, fill: C.muted, anchor: 'start' });
-        if (dir) {
-          g += h.txt(x + ew / 2, y + 14, '<' + eb.tail + ',' + eb.head + '>', { size: 12, w: 700 });
-          g += h.txt(x + 14, y + 29, 'h→' + (eb.hlink == null ? '∧' : eb.hlink), { size: 9.5, fill: on ? C.amber : C.muted, anchor: 'start', family: 'Consolas,monospace' });
-          g += h.txt(x + ew - 14, y + 29, 't→' + (eb.tlink == null ? '∧' : eb.tlink), { size: 9.5, fill: on ? C.amber : C.muted, anchor: 'end', family: 'Consolas,monospace' });
-        } else {
-          g += h.txt(x + ew / 2, y + 14, '(' + eb.v1 + ',' + eb.v2 + ')', { size: 12, w: 700 });
-          g += h.txt(x + 14, y + 29, 'a1→' + (eb.a1 == null ? '∧' : eb.a1), { size: 9.5, fill: on ? C.amber : C.muted, anchor: 'start', family: 'Consolas,monospace' });
-          g += h.txt(x + ew - 14, y + 29, 'a2→' + (eb.a2 == null ? '∧' : eb.a2), { size: 9.5, fill: on ? C.amber : C.muted, anchor: 'end', family: 'Consolas,monospace' });
-        }
-      }
-      /* 链的连线：从顶点表头/边结点指向下一条边 */
-      function ecell(k) {
-        var col = k % 2, row = Math.floor(k / 2);
-        return [ex + col * (ew + 46), vy + row * (eh + 26)];
-      }
-      function link(x1, y1, to, fromField) {
-        if (to == null) return '';
-        var p = ecell(to);
-        var x2 = p[0] + (fromField === 'a1' || fromField === 'h' ? 20 : ew - 20), y2 = p[1] + (fromField ? 22 : eh / 2);
-        var on = s.hlE.indexOf(to) >= 0;
-        return h.arrow(x1, y1, x2, y2, { stroke: on ? C.amber : '#cfd8e3', sw: on ? 1.9 : 1.1, head: 6 });
-      }
+      var hot = {}, i, k;
+      s.hlE.forEach(function (x) { hot[x] = 1; });
+      g += h.txt(W / 2, 30, (dir ? '十字链表（有向图）' : '邻接多重表（无向图）') + ' · 一条' +
+        (dir ? '弧' : '边') + '只存一个结点，被两条链共享', { size: 19, w: 700 });
+      g += h.txt(34, 56, '图例：橙 = 这一帧正在看的' + (dir ? '弧' : '边') + '与它的链　蓝 = 正在观察的顶点　∧ = 空指针　灰 = 未涉及',
+        { size: 13, fill: C.muted, anchor: 'start' });
+      /* ---------- 顶点表 ---------- */
+      var vy = 96, rows = Math.max(nv, m, 1), vh = Math.min(46, Math.floor(300 / rows)), ch = 38;
+      var vx = 34, vwNum = 46, vwCell = 88;
+      g += h.txt(vx, vy - 14, dir ? '顶点表：每格两个表头指针' : '顶点表：每格一个表头指针',
+        { size: 14, fill: C.muted, anchor: 'start', w: 700 });
+      function rowY(q) { return vy + q * vh; }
       for (i = 0; i < nv; i++) {
-        var vy2 = vy + i * vh + 12;
+        var y = rowY(i), on = s.hlV.indexOf(i) >= 0, pkv = s.pick === i;
+        g += h.rect(vx, y, vwNum, ch, { fill: pkv ? C.blueBg : '#fff', stroke: pkv ? C.blue : C.grey, sw: pkv ? 2.6 : 1.4, rx: 5 });
+        g += h.txt(vx + vwNum / 2, y + 25, String(i), { size: 16, w: 700 });
         if (dir) {
-          g += link(58 + (vw - 26) / 2, vy2, st.inHead[i], null);
-          g += link(58 + vw - 16, vy2, st.outHead[i], null);
+          g += h.rect(vx + vwNum + 4, y, vwCell, ch, { fill: on ? C.amberBg : '#f8fafc', stroke: on ? C.amber : C.line, sw: on ? 2.2 : 1.2, rx: 4 });
+          g += h.txt(vx + vwNum + 4 + vwCell / 2, y + 25, 'firstin→' + (st.inHead[i] == null ? '∧' : st.inHead[i]), { size: 12, family: 'Consolas,monospace' });
+          g += h.rect(vx + vwNum + 4 + vwCell + 4, y, vwCell, ch, { fill: on ? C.amberBg : '#f8fafc', stroke: on ? C.amber : C.line, sw: on ? 2.2 : 1.2, rx: 4 });
+          g += h.txt(vx + vwNum + 4 + vwCell * 1.5 + 6, y + 25, 'firstout→' + (st.outHead[i] == null ? '∧' : st.outHead[i]), { size: 12, family: 'Consolas,monospace' });
         } else {
-          g += link(58 + vw - 28, vy2, st.head[i], null);
+          g += h.rect(vx + vwNum + 4, y, vwCell * 2 + 4, ch, { fill: on ? C.amberBg : '#f8fafc', stroke: on ? C.amber : C.line, sw: on ? 2.2 : 1.2, rx: 4 });
+          g += h.txt(vx + vwNum + 4 + (vwCell * 2 + 4) / 2, y + 25, 'firstedge→' + (st.head[i] == null ? '∧' : st.head[i]), { size: 12.5, family: 'Consolas,monospace' });
         }
       }
+      /* ---------- 弧（边）结点表：一行一个结点，四域并排 ---------- */
+      var ax = 352, aw = 142, gap = 4;
+      var cols = dir ? ['tailvex', 'hlink', 'headvex', 'tlink'] : ['v1', 'a1', 'v2', 'a2'];
+      g += h.txt(ax - 52, vy - 14, dir ? '弧结点表' : '边结点表', { size: 14, fill: C.muted, anchor: 'start', w: 700 });
+      cols.forEach(function (cn, ci) {
+        g += h.txt(ax + ci * (aw + gap) + aw / 2, vy - 2, cn, { size: 12.5, fill: C.muted, family: 'Consolas,monospace', w: 700 });
+      });
       for (k = 0; k < m; k++) {
-        var p0 = ecell(k), eb2 = st.ebox[k];
-        if (dir) {
-          g += link(p0[0] + 20, p0[1] + eh, eb2.hlink, 'h');
-          g += link(p0[0] + ew - 20, p0[1] + eh, eb2.tlink, 't');
-        } else {
-          g += link(p0[0] + 20, p0[1] + eh, eb2.a1, 'a1');
-          g += link(p0[0] + ew - 20, p0[1] + eh, eb2.a2, 'a2');
-        }
+        var eb = st.ebox[k], yy = rowY(k), on2 = hot[k] === 1;
+        g += h.txt(ax - 34, yy + 25, '#' + k, { size: 13.5, w: 700, fill: on2 ? C.amber : C.muted });
+        var vals = dir ? [eb.tail, eb.hlink == null ? '∧' : '#' + eb.hlink, eb.head, eb.tlink == null ? '∧' : '#' + eb.tlink]
+          : [eb.v1, eb.a1 == null ? '∧' : '#' + eb.a1, eb.v2, eb.a2 == null ? '∧' : '#' + eb.a2];
+        vals.forEach(function (v, ci) {
+          var isPtr = ci === 1 || ci === 3;
+          g += h.rect(ax + ci * (aw + gap), yy, aw, ch, {
+            fill: on2 && isPtr ? C.amberBg : '#fff', stroke: on2 ? C.amber : C.grey, sw: on2 ? 2.4 : 1.4, rx: 5
+          });
+          g += h.txt(ax + ci * (aw + gap) + aw / 2, yy + 25, String(v), {
+            size: isPtr ? 14.5 : 15.5, w: isPtr && !on2 ? 400 : 700,
+            fill: isPtr && !on2 ? C.muted : C.ink, family: isPtr ? 'Consolas,monospace' : undefined
+          });
+        });
       }
+      /* ---------- 指针线：只画本帧相关的，长跨度从左右两侧绕 ---------- */
+      var right = ax + 4 * (aw + gap) - gap;
+      function lane(from, to, side) {
+        if (to == null) return '';
+        var y1 = rowY(from) + ch + 2, y2 = rowY(to) + ch + 2;
+        var bx = side < 0 ? ax - 16 - 10 * Math.abs(to - from) : right + 16 + 10 * Math.abs(to - from);
+        bx = Math.max(300, Math.min(W - 12, bx));
+        var ex1 = side < 0 ? ax + 14 : right - 14;
+        return h.curve(ex1, y1, bx, (y1 + y2) / 2 + 14, ex1, y2, { stroke: C.amber, sw: 2.4, head: 8 });
+      }
+      function head(fromV, to, which) {
+        if (to == null) return '';
+        var y1 = rowY(fromV) + ch / 2 + 2;
+        var x1 = dir ? (which === 'in' ? vx + vwNum + 4 + vwCell / 2 : vx + vwNum + 4 + vwCell * 1.5 + 6)
+          : vx + vwNum + 4 + (vwCell * 2 + 4) / 2;
+        return h.curve(x1, y1, (x1 + ax + 16) / 2, (y1 + rowY(to) + ch / 2) / 2, ax + 16, rowY(to) + ch / 2,
+          { stroke: C.amber, sw: 2.4, head: 8 });
+      }
+      Object.keys(hot).forEach(function (x) {
+        var q = +x, eb2 = st.ebox[q];
+        if (dir) {
+          g += head(eb2.head, eb2.hlink, 'in'); g += head(eb2.tail, eb2.tlink, 'out');
+          g += lane(q, eb2.hlink, -1); g += lane(q, eb2.tlink, 1);
+        } else {
+          g += head(eb2.v1, eb2.a1, 'e'); g += head(eb2.v2, eb2.a2, 'e');
+          g += lane(q, eb2.a1, -1); g += lane(q, eb2.a2, 1);
+        }
+      });
+      /* 观察顶点的两条链整条画出来——这是本模块的落点 */
+      var pk = s.pick;
+      [[dir ? (st.outChain[pk] || []) : (st.chains[pk][1] || []), dir ? 'out' : 1],
+       [dir ? (st.inChain[pk] || []) : (st.chains[pk][2] || []), dir ? 'in' : 2]].forEach(function (cd) {
+        var arr = cd[0], which = cd[1];
+        arr.forEach(function (q, qi) {
+          var nx = qi + 1 < arr.length ? arr[qi + 1] : null;
+          if (nx != null) g += lane(q, nx, dir ? (which === 'out' ? 1 : -1) : (which === 1 ? -1 : 1));
+          if (qi === 0) g += head(pk, q, which);
+        });
+      });
+      /* ---------- 底部：顺链走一遍，把"链"读成一行 ---------- */
+      var by = vy + rows * vh + 26;
+      g += h.txt(34, by, dir ? '顺链走一遍 ' + pk + ' 号顶点：行看是出边链、列看是入边链' :
+        '顺链走一遍 ' + pk + ' 号顶点：a1 与 a2 两条道合起来就是它的全部邻点', { size: 14.5, w: 700, anchor: 'start' });
+      var defs = dir
+        ? [['firstout', st.outChain[pk] || [], '出度 ' + (st.outChain[pk] || []).length],
+           ['firstin ', st.inChain[pk] || [], '入度 ' + (st.inChain[pk] || []).length]]
+        : [['沿 a1 走 ', st.chains[pk][1] || [], ''],
+           ['沿 a2 走 ', st.chains[pk][2] || [], '度 ' + ((st.chains[pk][1] || []).length + (st.chains[pk][2] || []).length)]];
+      defs.forEach(function (cd, li) {
+        var y2 = by + 22 + li * 44, arr = cd[1], x2 = 232;
+        g += h.txt(34, y2 + 24, cd[0], { size: 13.5, fill: C.muted, anchor: 'start', family: 'Consolas,monospace' });
+        if (!arr.length) g += h.txt(x2, y2 + 24, '∧（空链）', { size: 14, fill: C.muted, anchor: 'start' });
+        arr.forEach(function (q, qi) {
+          var eb4 = st.ebox[q];
+          var txt = '#' + q + (dir ? ' <' + eb4.tail + ',' + eb4.head + '>' : ' (' + eb4.v1 + ',' + eb4.v2 + ')');
+          var wq = Math.min(20 + txt.length * 11, W - 170 - x2);
+          g += h.rect(x2, y2, wq, 34, { fill: hot[q] === 1 ? C.amberBg : '#f8fafc', stroke: hot[q] === 1 ? C.amber : C.line, sw: hot[q] === 1 ? 2.2 : 1.4, rx: 5 });
+          g += h.txt(x2 + wq / 2, y2 + 23, txt, { size: 14, family: 'Consolas,monospace' });
+          if (qi < arr.length - 1) g += h.txt(x2 + wq + 12, y2 + 23, '→', { size: 16, fill: C.amber });
+          x2 += wq + 24;
+        });
+        if (cd[2]) g += h.txt(W - 34, y2 + 24, cd[2], { size: 15.5, w: 800, fill: C.green, anchor: 'end' });
+      });
       var note = s.done
-        ? (dir ? '★ 十字链表：行看是出边链、列看是入边链，一条弧只存一个结点，代价是 2 个指针'
-          : '★ 邻接多重表：一条边只存一个结点、被两个顶点的链共享，所以给边打标记改一处就够')
-        : (dir ? '橙=刚挂上的那条弧：注意它同时被两个顶点的表头指到' : '橙=刚插入的那条边：同一个边结点同时被两个顶点的链指到——这就是"多重表"');
-      g += h.txt(W / 2, H - 18, note, { size: 12.5, fill: s.done ? C.green : C.muted, w: 600 });
+        ? (dir ? '★ 一条弧只存一个结点：它同时挂在尾点出边链与头点入边链上；代价是每条弧存 2 个指针'
+          : '★ 一条边只存一个结点：同一个边结点被两个端点的链共享，所以给边打标记改一处就够')
+        : (dir ? '橙 = 这一帧的弧：注意它被两个顶点的表头同时指到' : '橙 = 这一帧的边：同一个结点挂进两条链，这就是"多重表"');
+      g += h.txt(W / 2, H - 14, note, { size: 14, fill: s.done ? C.green : C.muted, w: 600 });
       return h.svg(W, H, g);
     }
   });

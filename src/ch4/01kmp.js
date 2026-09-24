@@ -52,15 +52,18 @@
     id: 'kmp', ch: 4, name: '模式匹配：BF 与 KMP',
     aim: 'KMP 快的原因：**next 数组记住已匹配部分的最长相等前后缀**，主串指针从不回溯',
     note: '教材 4.3 串的模式匹配（BF 回退对比 KMP 不回退、next 数组）',
+    keywords: '串 模式匹配 BF 暴力 回溯 指针i不回退 next数组 部分匹配值 前缀 后缀 最长公共前后缀 nextval 优化 定位',
     guide: [
       'BF（朴素）：失配时主串指针 i **回退**到本趟起点下一位、模式从头再来——浪费在重复比较',
       'KMP：失配时 **i 永不回退**，只有模式指针 j 滑到 next[j]——next 预先算好"失配后从模式的哪一位继续"',
       '动画分两阶段：先逐格算出 next，再同屏对照 BF / KMP 的比较次数',
-      '复杂度：BF 最坏 O(m×n)；KMP O(m+n)——主串越长、模式前缀重复越多，KMP 优势越大'
+      '复杂度：BF 最坏 O(m×n)；KMP O(m+n)——主串越长、模式前缀重复越多，KMP 优势越大',
+      '勾"错误演示"：把 next 整体左移一格，看 KMP 怎样把真正的匹配点直接滑过去'
     ],
     inputs: [
       { key: 's', label: '主串 S', type: 'text', value: DEF_S },
-      { key: 't', label: '模式 T', type: 'text', value: DEF_T }
+      { key: 't', label: '模式 T', type: 'text', value: DEF_T },
+      { key: 'errNext', label: '错误演示：next 错位一格', type: 'checkbox', value: false }
     ],
     run: function (v) {
       var S = String(v.s || DEF_S).replace(/\s+/g, ''), T = String(v.t || DEF_T).replace(/\s+/g, '');
@@ -75,7 +78,7 @@
         frames.push({
           line: Array.isArray(line) ? line : [line], msg: msg,
           panel: { 阶段: extra.phase || '—', 比较次数: extra.cmps != null ? extra.cmps + ' 次' : '—' },
-          snap: { S: S, T: T, nx: nx, phase: extra.phase || 'next', si: extra.si, ti: extra.ti, mark: mk }
+          snap: { S: S, T: T, nx: extra.nxArr || nx, phase: extra.phase || 'next', si: extra.si, ti: extra.ti, mark: mk }
         });
       }
 
@@ -112,6 +115,36 @@
       var kRes = j2 >= T.length ? '成功：匹配位置 = 主串第 ' + (i2 - T.length + 1) + ' 位' : '失败';
       F(21, 'KMP 结束：' + kRes + '，共比较 ' + kc + ' 次。', { phase: 'KMP', cmps: kc, si: i2, ti: j2 }, 'kmpdone');
       F(0, '对照结论：BF ' + bfc + ' 次 vs KMP ' + kc + ' 次。next 只需 O(n) 预处理一次；对同一模式的多次查找都可复用。主串越长、模式前缀重复越多，KMP 优势越大。', { phase: 'KMP', cmps: kc, mark: 'final' });
+      if (v.errNext) {
+        /* 错位一格有两种方向，后果完全不同——两种都实测过：
+           左移（少一位占位）→ 模式多滑一格，把真正的匹配点滑过去，查找失败；
+           右移（多一位占位）→ next[j] 会算出 0/负数，j 再也滑不动，死循环 */
+        var bad = [0];
+        for (var q = 1; q <= T.length; q++) bad.push(q < T.length ? nx[q + 1] : 0);
+        var diffj = 0;
+        /* 从第 2 位起找第一处不同：next[1]=0 是规定，不参与滑动，比较它没意义 */
+        for (var q2 = 2; q2 <= T.length; q2++) if (bad[q2] !== nx[q2] && !diffj) diffj = q2;
+        F(0, '错误演示：next 整体**左移一格**（把"最长相等前后缀长度"直接当 next、或者忘写 next[1]=0 都会得到它）。正确 [' + nx.slice(1).join(', ') + '] → 错位 [' + bad.slice(1).join(', ') + ']。', { phase: 'next', nxArr: bad, ti: diffj }, 'badnext');
+        F(0, '第一个不同的下标是 next[' + diffj + ']：正确值 ' + nx[diffj] + '，错位值 ' + bad[diffj] + '。失配时 j 会滑到' + (bad[diffj] > nx[diffj] ? '更靠后' : '更靠前') + '的位置——模式相对主串多滑了一格。', { phase: 'next', nxArr: bad, ti: diffj }, 'baddiff');
+        var i3 = 0, j3 = 0, bc = 0, guard = 0, shots = 0, stuck = false;
+        var stepF = function (msg, ti2, cmp2) {
+          if (shots >= 3) return;
+          shots++;
+          F(19, msg, { phase: 'KMP', si: i3, ti: ti2, cmps: cmp2, nxArr: bad });
+        };
+        while (i3 < S.length && j3 < T.length) {
+          if (++guard > 300) { stuck = true; break; }
+          bc++;
+          if (j3 === 0 || S[i3] === T[j3]) { i3++; j3++; continue; }
+          var nb = bad[j3 + 1] - 1;
+          stepF('按错位表：S[' + (i3 + 1) + ']=' + S[i3] + ' ≠ T[' + (j3 + 1) + ']=' + T[j3] + ' → j 滑到 bad next[' + (j3 + 1) + '] = ' + bad[j3 + 1] + '，即 T 的第 ' + (nb + 1) + ' 位；正确表这时应滑到 next[' + (j3 + 1) + '] = ' + nx[j3 + 1] + '（第 ' + nx[j3 + 1] + ' 位）。', j3, bc);
+          if (nb < 0) { stuck = true; break; }
+          j3 = nb;
+        }
+        var badRes = stuck ? '卡住：j 再也滑不动（死循环）' : (j3 >= T.length ? '成功：匹配位置 = 主串第 ' + (i3 - T.length + 1) + ' 位' : '失败：扫到主串末尾也没匹配上');
+        F(21, (stuck || j3 < T.length ? '✗ ' : '· ') + '用错位表跑完：' + badRes + '，比较 ' + bc + ' 次。对照正确表的结论——KMP 结束：' + kRes + '，共 ' + kc + ' 次。', { phase: 'KMP', cmps: bc, si: i3, ti: j3, nxArr: bad }, 'badrun');
+        F(8, '★ 结论：next 差一格，KMP 就从"更快"变成"错得离谱"。右移一格更糟：next[j] 会出现 0 甚至负数，j 原地不动直接死循环。背公式不如把表逐位核对一遍——用本动画阶段一的算法跑一次，对答案。', { phase: 'KMP', nxArr: bad }, 'badfinal');
+      }
       return { code: CODE_BF.concat(CODE_KMP), frames: frames };
     },
     render: function (s) {
@@ -159,7 +192,10 @@
       var tx0 = sx + align * scw;
       for (var k2 = 0; k2 < T.length; k2++) {
         var x2 = tx0 + k2 * scw;
+        /* 两头都要裁：模式挂在主串左外面、或者尾巴伸出主串末尾（错位演示会把 align 推到很大）
+           ——伸出去的那几格画出来就顶破画布了 */
         if (x2 < sx - scw) continue;
+        if (x2 + scw - 2 > sx + S.length * scw) continue;
         var isCmp2 = s.ti === k2;
         var f2 = '#fff', st2 = C.grey, sw2 = 1.4;
         if (isCmp2) { f2 = C.amberBg; st2 = C.amber; sw2 = 2.4; }
