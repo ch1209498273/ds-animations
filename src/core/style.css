@@ -95,50 +95,49 @@ table.panel td:first-child{color:var(--muted);width:36%}
 .hbtns button:hover,.hbtns button.on{background:rgba(255,255,255,.18)}
 /* 总目录：左侧滑出的深色抽屉。之前是居中的白色浮层 + 灰字小卡片，
    像弹出来一个后台表格——配色与层级整体换成页头那套深蓝主色 */
-#catalog{position:fixed;inset:0;background:rgba(8,20,40,.42);z-index:60;display:flex;justify-content:flex-start}
-#catalog .ovbox{width:min(440px,88vw);height:100%;background:#0f2c5c;display:flex;flex-direction:column;
-  box-shadow:0 0 44px rgba(6,18,38,.5);transform:translateX(-100%);transition:transform .18s ease-out}
+#catalog{position:fixed;inset:0;background:rgba(24,34,50,.36);z-index:60;display:flex;justify-content:flex-start}
+#catalog .ovbox{width:min(440px,88vw);height:100%;background:#f5f8fc;display:flex;flex-direction:column;
+  transform:translateX(-100%);transition:transform .18s ease;box-shadow:6px 0 28px rgba(24,38,60,.18)}
 #catalog.in .ovbox{transform:none}
-#catalog .ovhead{flex:none;padding:14px 16px 12px;background:#0c2449;border-bottom:1px solid #1d4378}
-#catalog .ovttl{display:flex;align-items:center;gap:8px;font-size:15px;color:#fff;margin-bottom:10px}
-#catalog .ovhead .ovcnt{margin-left:auto;color:#8fb0da;font-size:12px;font-weight:400}
+#catalog .ovhead{flex:none;padding:14px 16px 12px;background:#eaf1f9;border-bottom:1px solid #d6e0ec}
+#catalog .ovttl{display:flex;align-items:center;gap:8px;font-size:15px;color:#1e2f44;margin-bottom:10px}
+#catalog .ovhead .ovcnt{margin-left:auto;color:#5b6f88;font-size:12px;font-weight:400}
 #catalog .ovbar{display:flex;gap:6px}
-#catalog .ovhead input{flex:1;min-width:0;height:34px;border:1px solid #2c568f;border-radius:8px;
-  background:#123158;color:#eaf1fb;font-size:13px;padding:0 10px}
-#catalog .ovhead input::placeholder{color:#7f9dc4}
-#catalog .ovhead input:focus{outline:none;border-color:#5b9be0;background:#16396a}
-#catalog .ovhead button{height:34px;border:1px solid #2c568f;background:#16396a;border-radius:8px;
-  cursor:pointer;font-size:12px;color:#cfe0f5;white-space:nowrap;padding:0 10px}
-#catalog .ovhead button:hover{border-color:#5b9be0;color:#fff}
-#catalog .ovlist{flex:1;overflow-y:auto;padding:8px 0 20px}
-#catalog .ovgrp{margin:0 10px 6px;border-radius:10px;overflow:hidden;background:#123158}
-#catalog .ovch2{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:none;
-  padding:10px 12px;cursor:pointer;font-size:13.5px;color:#dbe8f8;font-weight:600}
-#catalog .ovch2:hover{background:#17406f}
-#catalog .ovgrp.open .ovch2{background:#17406f;color:#fff}
-#catalog .ovch2 .tri{display:inline-block;transition:transform .14s;color:#7f9dc4;font-size:11px;flex:none}
+#catalog .ovhead input{flex:1;min-width:0;height:34px;border:1px solid #c3d0e0;border-radius:8px;
+  background:#fff;color:#1e2f44;padding:0 10px;font:inherit;font-size:13px}
+#catalog .ovhead input::placeholder{color:#8497ad}
+#catalog .ovhead input:focus{outline:none;border-color:#2f6fbf;box-shadow:0 0 0 2px rgba(47,111,191,.14)}
+#catalog .ovhead button{height:34px;border:1px solid #c3d0e0;background:#fff;border-radius:8px;
+  color:#33506f;font:inherit;font-size:12.5px;padding:0 11px;cursor:pointer}
+#catalog .ovhead button:hover{border-color:#2f6fbf;color:#1d4ed8}
+#catalog .ovlist{flex:1;overflow-y:auto;padding:10px 0 20px}
+#catalog .ovgrp{margin:0 10px 7px;border-radius:10px;overflow:hidden;background:#fff;border:1px solid #dde6f0}
+#catalog .ovch2{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:#f2f7fd;
+  padding:9px 11px;cursor:pointer;color:#1e2f44;font:inherit;font-size:13.5px;font-weight:700}
+#catalog .ovch2:hover{background:#e7f0fa}
+#catalog .ovgrp.open .ovch2{background:#e0ecf9}
+#catalog .ovch2 .tri{display:inline-block;transition:transform .14s;color:#7f93aa;font-size:11px;flex:none}
 #catalog .ovgrp.open .ovch2 .tri{transform:rotate(90deg)}
-#catalog .ovch2 i{font-weight:400;color:#8fb0da;font-size:11.5px;font-style:normal;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#catalog .ovch2 em{margin-left:auto;font-style:normal;font-size:11px;color:#a9cdf2;
-  background:#1d4a80;border-radius:999px;padding:1px 8px;flex:none}
+#catalog .ovch2 i{font-weight:400;color:#5b6f88;font-size:11.5px;font-style:normal;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+#catalog .ovch2 em{margin-left:auto;font-style:normal;font-size:11px;color:#2d5686;background:#dfeaf7;
+  border-radius:999px;padding:1px 7px;flex:none}
 #catalog .ovrows{display:none}
-#catalog .ovgrp.open .ovrows{display:block;border-top:1px solid #1d4378}
+#catalog .ovgrp.open .ovrows{display:block;border-top:1px solid #e2eaf4}
 #catalog .ovrow{display:flex;align-items:center;gap:8px;padding:9px 12px;min-height:56px;cursor:pointer}
-/* 必须显式写：[hidden] 的 UA 默认样式会被上面的 display:flex 压掉，搜索时行就藏不起来 */
+#catalog .ovrow:hover{background:#eef4fb}
 #catalog .ovrow[hidden]{display:none}
-#catalog .ovrow+.ovrow{border-top:1px solid #17406f}
-#catalog .ovrow:hover{background:#1b4a80}
-#catalog .ovrow.cur{background:#1d5795;box-shadow:inset 3px 0 0 #60a5fa}
+#catalog .ovrow+.ovrow{border-top:1px solid #eaeff7}
+#catalog .ovrow.cur{background:#e1ecf8;box-shadow:inset 3px 0 0 #2f6fbf}
 #catalog .ovtxt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-#catalog .ovrow .nm{font-size:13.5px;color:#f0f6fd;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#catalog .ovrow .nt{font-size:11.5px;color:#93b2d6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#catalog .ovrow .nm{font-size:13.5px;color:#1e2f44;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#catalog .ovrow .nt{font-size:11.5px;color:#5b6f88;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #catalog .ovrow .ac{display:none;gap:4px;flex:none}
 #catalog .ovrow:hover .ac,#catalog.touch .ovrow .ac{display:flex}
-#catalog .ovrow .ac button{border:1px solid #2c568f;background:#0f2c5c;border-radius:6px;
-  padding:3px 9px;font-size:12.5px;cursor:pointer;color:#cfe0f5}
-#catalog .ovrow .ac button:hover{border-color:#5b9be0;color:#fff}
-#catalog #ovNone{margin:8px 12px;padding:14px;text-align:center;color:#93b2d6;font-size:12.5px}
+#catalog .ovrow .ac button{border:1px solid #c3d0e0;background:#fff;border-radius:6px;
+  color:#33506f;font-size:12px;padding:3px 6px;cursor:pointer}
+#catalog .ovrow .ac button:hover{border-color:#2f6fbf;color:#1d4ed8}
+#catalog #ovNone{margin:8px 12px;padding:14px;text-align:center;color:#5b6f88;font-size:12.5px}
 /* 二维码浮层 */
 #qrbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;border-radius:14px;
   padding:14px 18px;z-index:70;box-shadow:0 10px 40px rgba(15,28,50,.35)}

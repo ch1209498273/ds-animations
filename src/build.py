@@ -63,7 +63,7 @@ sort_common_min = terser(sort_common_src)
 css_min = min_css(css) + ':root{--ds-ck:"__FIXED__"}'
 
 tpl = (src / 'index.template.html').read_text(encoding='utf-8')
-VER = 'v3.5'
+VER = 'v3.6'
 NMOD = len(module_files)          # 对外文案里的动画数一律由实际模块数推出，不再手写
 stamp = VER + ' · 构建 ' + time.strftime('%Y-%m-%d %H:%M')
 RIGHTS = ('author=芦老师聊AI;work=数据结构互动课件;kind=原创算法动画课件;'
@@ -136,7 +136,6 @@ lp = ledger(html)
 print('built:', out, '({:,} chars，压缩前 {:,})'.format(len(html), raw), '｜', stamp)
 
 # ---------- 单动画分享页：a/<id>.html（引擎 + 该动画） ----------
-CIRCLED = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺'
 CIRC_RE = re.compile(r'^[①-⑳㉑-㉟㊱-㊺]+\s*')
 single_dir = root / 'gitee-pages' / 'a'
 single_dir.mkdir(exist_ok=True)
@@ -151,7 +150,7 @@ for i, p in enumerate(module_files):
     mid = re.search(r"DSC\.reg\(\{[\s\S]*?id: *'([^']+)'", code)
     m_id = mid.group(1) if mid else rel.stem
     nm = re.search(r"DSC\.reg\(\{[\s\S]*?name: *'([^']+)'", code)
-    disp = (CIRCLED[m_no - 1] if m_no <= len(CIRCLED) else str(m_no)) + ' ' + CIRC_RE.sub('', nm.group(1) if nm else rel.stem)
+    disp = str(m_no) + '. ' + CIRC_RE.sub('', nm.group(1) if nm else rel.stem)
     nt = re.search(r"DSC\.reg\(\{[\s\S]*?note: *'([^']+)'", code)
     m_note = nt.group(1) if nt else ''
 

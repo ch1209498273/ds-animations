@@ -116,13 +116,12 @@
   };
 
   /* ---------- 模块自动编号：按注册顺序显示 ①②③…，模块名无需手写圈号 ---------- */
-  var CIRCLED = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺';
   var CIRC_RE = /^[①-⑳㉑-㉟㊱-㊺]+\s*/;
   function autoNumber() {
     var fixed = window.DSC_SINGLE && window.DSC_SINGLE.no;   // 单页模式：使用全站编号
     DSC.mods.forEach(function (m, i) {
       var no = fixed || (i + 1);
-      m.disp = (CIRCLED[no - 1] || no + '.') + ' ' + m.name.replace(CIRC_RE, '');
+      m.disp = no + '. ' + m.name.replace(CIRC_RE, '');
     });
   }
 
