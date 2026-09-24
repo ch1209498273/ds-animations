@@ -33,7 +33,6 @@
   <section class="card">
     <div class="modtitle"><b id="modname"></b><span id="modnote2" class="modnote"></span><button id="mpExit" class="mponly">✕ 退出放映</button></div>
     <div class="modaim" id="modaim"></div>
-    <div id="guide" class="guidebox" hidden></div>
     <div id="stage"><div id="canvas"></div></div>
     <button id="mpPrev" class="mp-arrow prev" aria-label="上一步">‹</button>
     <button id="mpNext" class="mp-arrow next" aria-label="下一步">›</button>
@@ -69,7 +68,8 @@
       <span id="pace" class="pos" title="本帧建议停留时长，随解说字数自适应" aria-live="off"></span>
     </div>
   </section>
-  <aside class="side">
+  <aside class="side" id="side">
+    <aside id="guide" class="guidebox" hidden></aside>
     <div class="sidehead">教材伪代码（当前执行行高亮）</div>
     <div class="codebox"><pre id="code"></pre></div>
     <div class="sidehead">状态面板</div>

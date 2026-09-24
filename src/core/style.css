@@ -34,30 +34,29 @@ main .card{display:flex;flex-direction:column}
 /* 手机放映要"画面就是窗口"，标题下这行必须让位——它会把舞台压矮，
    画布等比缩得更小（堆排序最小字号会从 5px 掉到 4.9px） */
 body.mp .modaim{display:none}
-/* 使用引导：此前 .guidebox 一条样式都没有，浏览器默认的 <ol> 直接摊在页面上，
-   像一段没排版的正文，还把舞台挤掉三分之一——"引导效果太差"的直接原因就在这 */
-/* 引子卡：浮在舞台中央，不占布局高度——原来它挤在标题下面，展开就把画面顶掉三分之一，
-   于是默认收起，结果没人点，等于没有。现在打开动画先弹出来，看完点「开始演示」收掉 */
-.card{position:relative}
-.guidebox{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);z-index:24;
-  width:min(780px,88%);max-height:74%;overflow:auto;margin:0;padding:20px 26px 22px;
-  background:#fff;border:1px solid #bfdbfe;border-top:4px solid var(--blue);border-radius:14px;
-  box-shadow:0 26px 70px rgba(8,24,49,.34)}
-.guidebox:before{content:"";position:fixed;inset:0;background:rgba(8,20,40,.42);z-index:-1}
-.guidebox .gt{font-size:1.05em;font-weight:800;color:var(--ink)}
-.guidebox .lead{font-size:.86em;color:#1d4ed8;margin:4px 0 10px;font-weight:700}
-.guidebox .gaim{font-size:.88em;color:#1d4ed8;margin:2px 0 6px}
-.guidebox ol{margin:0;padding-left:1.4em}
-.guidebox li{font-size:.85em;line-height:1.65;color:#334155;margin:3px 0}
+/* 使用引导：默认收起，点「? 引导」才出来。出来时**顶掉右列的伪代码/状态面板**，
+   画面一格都不动。之前那张居中大浮层会把图整个盖住、还压暗全屏，
+   被使用者判为"太丑、看不清、盖住图片" */
+.guidebox{flex:1 1 auto;min-height:0;order:-1;margin:0;overflow:auto;
+  background:#fff;border:1px solid var(--line);border-radius:10px;padding:13px 15px 16px}
+.side.guide-on > *:not(.guidebox){display:none}
+.guidebox .gt{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;
+  font-size:15.5px;font-weight:800;color:var(--ink);margin-bottom:8px}
+.guidebox .lead{font-size:14.5px;line-height:1.75;color:#1d4ed8;font-weight:700;margin:0 0 10px;
+  padding:8px 10px;background:#eff6ff;border-left:3px solid var(--blue);border-radius:0 6px 6px 0}
+.guidebox ol{margin:0;padding-left:1.3em}
+.guidebox li{font-size:14.5px;line-height:1.9;color:#1f2933;margin:8px 0}
 .guidebox li b{color:var(--ink)}
-.guidebox code{font-family:Consolas,Menlo,monospace;font-size:.95em;background:#e2e8f0;padding:0 3px;border-radius:3px}
-.guidebox #btnGo{margin-top:12px;font:inherit;font-size:.86em;padding:10px 22px;min-height:44px;border:1px solid var(--blue);
-  background:var(--blue);color:#fff;border-radius:6px;cursor:pointer}
-body.present .guidebox li{font-size:1em}
-body.present .guidebox .gaim{font-size:1.05em}
+.guidebox code{font-family:Consolas,Menlo,monospace;font-size:.94em;background:#e2e8f0;padding:1px 4px;border-radius:3px}
+.guidebox #btnGuideX{flex:none;font:inherit;font-size:12.5px;line-height:1;padding:5px 9px;min-width:32px;
+  border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:6px;cursor:pointer}
+.guidebox #btnGuideX:hover{border-color:var(--blue);color:var(--blue)}
+body.present .guidebox li{font-size:16.5px}
+body.present .guidebox .lead,body.present .guidebox .gt{font-size:17px}
+body.mp .guidebox{display:none}
 /* 舞台：#stage 是滚动容器，#canvas 由 JS 按 viewBox 比例与缩放档位定尺寸。
    子元素用 margin:auto 居中——若用 justify-content:center，放大后左侧/上侧内容会滚不到 */
-#stage{flex:1;min-height:0;overflow:auto;display:flex;padding:4px;cursor:grab}
+#stage{flex:1;min-height:0;min-width:0;overflow:auto;display:flex;padding:4px;cursor:grab}
 #stage.panning{cursor:grabbing;user-select:none}
 #canvas{margin:auto;flex:none}
 #canvas svg{width:100%;height:100%;display:block}

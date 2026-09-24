@@ -195,6 +195,62 @@ function measureCatalog(hash) {
   }
 }
 
+/* 引导层卡口：使用者明确要求三件事——默认收起、别盖住画面、字要看得清。
+   三条都能量，就都钉住；浮层/弹窗这种东西最容易在下一次改版里悄悄飘回去。 */
+const GUIDE = `
+setTimeout(function () {
+  var d = f.contentDocument, w = f.contentWindow;
+  function snap() {
+    var g = d.getElementById('guide'), st = d.getElementById('stage');
+    var rs = st.getBoundingClientRect();
+    var li = d.querySelector('.guidebox li');
+    var o = { hidden: g.hidden, stageW: Math.round(rs.width), stageH: Math.round(rs.height),
+      fs: li ? parseFloat(w.getComputedStyle(li).fontSize) : 0 };
+    if (!g.hidden) {
+      var rg = g.getBoundingClientRect();
+      o.guideW = Math.round(rg.width);
+      o.overlap = !(rg.right < rs.left + 2 || rg.left > rs.right - 2 ||
+        rg.bottom < rs.top + 2 || rg.top > rs.bottom - 2);
+    }
+    return o;
+  }
+  var c = snap();
+  d.getElementById('btnGuide').click();
+  setTimeout(function () {
+    var pre = document.createElement('pre');
+    pre.textContent = 'PROBE:' + JSON.stringify({ closed: c, open: snap() });
+    document.body.appendChild(pre);
+  }, 400);
+}, 1600);
+`;
+
+function measureGuide() {
+  const html = '<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#888}iframe{border:0;background:#fff}</style></head><body>' +
+    '<iframe id="f" src="m.html#m=huffman" style="width:1360px;height:840px"></iframe>' +
+    '<script>var f=document.getElementById("f");' + GUIDE + '<\/script></body></html>';
+  const hp = path.join(tmp, 'guide.html');
+  fs.writeFileSync(hp, html, 'utf8');
+  const r = cp.spawnSync(edge, ['--headless=new', '--disable-gpu', '--user-data-dir=' + PROFILE,
+    '--allow-file-access-from-files', '--hide-scrollbars', '--window-size=1400,900',
+    '--virtual-time-budget=12000', '--dump-dom', 'file:///' + hp.replace(/\\/g, '/')],
+  { encoding: 'utf8', timeout: 90000 });
+  const m = /PROBE:(\{[^<]*)/.exec(r.stdout || '');
+  return m ? JSON.parse(m[1]) : null;
+}
+
+{
+  const o = measureGuide();
+  if (!o) t('引导: 量测成功', false, '探针无输出');
+  else {
+    t('引导: 打开动画时默认收起（不弹卡）', o.closed.hidden === true, o.closed);
+    t('引导: 点「? 引导」能展开', o.open.hidden === false && o.open.guideW > 200, o.open);
+    t('引导: 展开后画面一格未动（舞台宽高不变）',
+      o.open.stageW === o.closed.stageW && o.open.stageH === o.closed.stageH, [o.closed, o.open]);
+    t('引导: 展开后与画面零重叠', o.open.overlap === false, o.open);
+    t('引导: 正文字号 ≥14px（投屏看得清）', o.open.fs >= 14, o.open.fs);
+  }
+}
+
 /* 全模块出帧卡口（端到端）：逐个切到每个模块，量"浏览器里到底画出了没有"。
    v3.1 的邻接多重表在 Node 里 run() 出 9 帧、断言全绿，浏览器里却是一片空白——
    因为引擎的 values() 会把输入里的 < > 剥掉，默认边表 "0>1 0>2" 变成 "01 02" 直接抛错。

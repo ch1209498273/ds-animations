@@ -341,7 +341,7 @@
     $('modname').textContent = m.disp || m.name;
     $('modnote2').textContent = m.note || '';
     $('modaim').innerHTML = m.aim ? md(m.aim) : '';
-    renderGuide(false);
+    renderGuide();
     build();
   }
 
@@ -478,14 +478,9 @@
     }
     $('seek').addEventListener('input', onSeek);
     $('seek').addEventListener('change', onSeek);
-    $('btnGuide').onclick = function () {
-      var g = $('guide');
-      if (!g.hidden) { g.hidden = true; return; }   // 已显示 → 再点收起
-      if (!(cur && cur.guide && cur.guide.length)) { toast('本动画没有使用引导'); return; }
-      renderGuide(true);
-    };
+    $('btnGuide').onclick = toggleGuide;
     $('guide').addEventListener('click', function (e) {
-      if (e.target.id === 'btnGo') { $('guide').hidden = true; }
+      if (e.target.id === 'btnGuideX') toggleGuide();
     });
     $('btnShot').onclick = exportFrame;
     $('btnLink').onclick = copyLink;
@@ -517,23 +512,24 @@
       }
     } catch (e) {}
   }
-  var hinted = {};
-  function renderGuide(force) {
-    var g = $('guide');
-    if (!cur) { g.hidden = true; return; }
-    var has = cur.guide && cur.guide.length;
-    /* 首次打开这个动画就把说明弹出来当"引子"：先让人知道这是干什么的，再边跑边看细节。
-       force 是点 ? 主动回看；两者都渲染成同一张浮层，看完点「开始演示」收掉 */
-    if (has && (force || !hinted[cur.id])) {
-      if (!force) hinted[cur.id] = 1;
-      g.innerHTML = '<div class="gt">📌 演示说明 · ' + esc(cur.disp || cur.name) + '</div>' +
-        (cur.aim ? '<div class="lead">一句话：' + md(cur.aim) + '</div>' : '') + '<ol>' +
-        cur.guide.map(function (s) { return '<li>' + md(s) + '</li>'; }).join('') +
-        '</ol><button id="btnGo">开始演示 ▶</button>';
-      g.hidden = false;
-    } else {
-      g.hidden = true;
-    }
+  var gopen = false;
+  /* 引导默认收起：它现在是画面右侧的一栏（不是浮层），打开只是把画面挤窄一点。
+     之前"打开动画就浮一大卡 + 压暗全屏"被使用者判为"太丑、看不清、盖住图片" */
+  function renderGuide() {
+    var g = $('guide'), side = $('side');
+    var on = gopen && !!(cur && cur.guide && cur.guide.length);
+    if (side) side.classList.toggle('guide-on', on);
+    g.hidden = !on;
+    if (!on) return;
+    g.innerHTML = '<div class="gt"><span>📌 演示说明 · ' + esc(cur.disp || cur.name) + '</span>' +
+      '<button id="btnGuideX" title="收起引导（再点 ? 引导 也可以）">✕ 收起</button></div>' +
+      (cur.aim ? '<div class="lead">' + md(cur.aim) + '</div>' : '') + '<ol>' +
+      cur.guide.map(function (s) { return '<li>' + md(s) + '</li>'; }).join('') + '</ol>';
+  }
+  function toggleGuide() {
+    if (!(cur && cur.guide && cur.guide.length)) { toast('本动画没有使用引导'); return; }
+    gopen = !gopen;
+    renderGuide();
   }
   function toast(text, ms) {
     var t = document.getElementById('toast');
