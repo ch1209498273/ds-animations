@@ -7,14 +7,16 @@ html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);overflow:hidden;
   display:flex;flex-direction:column;
   font-family:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;}
-header.top{background:#0f2c5c;color:#fff;padding:8px 18px 6px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;flex:none}
-header.top h1{font-size:18px;margin:0;font-weight:600;white-space:nowrap}
-header.top .sub{font-size:11.5px;opacity:.78}
-header.top .ver{font-size:10.5px;opacity:.85;border:1px solid rgba(255,255,255,.35);padding:1px 9px;border-radius:10px;white-space:nowrap}
-nav.chapters{display:flex;gap:8px;background:#0f2c5c;padding:0 18px 9px;flex-wrap:wrap;flex:none}
-nav.chapters button{border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;
+/* 顶栏与章节条：原来是 #0f2c5c 饱和 navy 上压近纯白，和目录抽屉同一个毛病（白字发光）。改成浅底墨字，色温与目录抽屉一致。 */
+header.top{background:#fff;color:#1e2f44;border-bottom:1px solid #dde6f0;padding:8px 18px 6px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;flex:none}
+header.top h1{font-size:18px;margin:0;font-weight:700;color:#16283c;white-space:nowrap}
+header.top .sub{font-size:12px;color:#5b6f88}
+header.top .ver{font-size:10.5px;color:#4a6383;border:1px solid #c9d6e5;padding:1px 9px;border-radius:10px;white-space:nowrap}
+nav.chapters{display:flex;gap:8px;background:#fff;border-bottom:1px solid #e7edf5;padding:0 18px 9px;flex-wrap:wrap;flex:none}
+nav.chapters button{border:1px solid #c3d0e0;background:#f7fafd;color:#33506f;
   padding:4px 14px;border-radius:6px;font-size:13.5px;cursor:pointer}
-nav.chapters button.active{background:#fff;color:#0f2c5c;font-weight:600}
+nav.chapters button:hover{border-color:#2f6fbf;color:#14417a}
+nav.chapters button.active{background:#dce9f8;border-color:#2f6fbf;color:#14417a;font-weight:700}
 .modbar{display:flex;gap:8px;padding:8px 18px;background:#fff;border-bottom:1px solid var(--line);align-items:center;flex-wrap:wrap;flex:none}
 .modbar .pill{border:1px solid var(--line);background:#f8fafc;border-radius:999px;padding:5px 14px;font-size:13.5px;cursor:pointer;color:var(--ink)}
 .modbar .pill.active{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
@@ -90,10 +92,10 @@ table.panel td:first-child{color:var(--muted);width:36%}
 @keyframes pulse{50%{opacity:.45}}
 /* 头部功能按钮 */
 .hbtns{display:inline-flex;gap:6px;margin-left:auto}
-.hbtns button{border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;border-radius:6px;
+.hbtns button{border:1px solid #c3d0e0;background:#fff;color:#33506f;border-radius:6px;
   padding:3px 10px;font-size:12.5px;cursor:pointer;white-space:nowrap}
-.hbtns button:hover,.hbtns button.on{background:rgba(255,255,255,.18)}
-/* 总目录：左侧滑出的深色抽屉。之前是居中的白色浮层 + 灰字小卡片，
+.hbtns button:hover,.hbtns button.on{background:#eaf2fb;border-color:#2f6fbf;color:#14417a}
+/* 总目录：左侧滑出的浅色抽屉。v3.1 之前是居中的白色浮层 + 灰字小卡片，
    像弹出来一个后台表格——配色与层级整体换成页头那套深蓝主色 */
 #catalog{position:fixed;inset:0;background:rgba(24,34,50,.36);z-index:60;display:flex;justify-content:flex-start}
 #catalog .ovbox{width:min(440px,88vw);height:100%;background:#f5f8fc;display:flex;flex-direction:column;
@@ -149,8 +151,8 @@ footer.foot{flex:none;background:#f8fafc;border-top:1px solid var(--line);color:
 footer.foot b{color:#0f2c5c}
 /* 单动画分享页：隐藏章节/模块导航 */
 body.single nav.chapters, body.single .modbar{display:none}
-.hbtns .backlink{border:none;background:none;color:#9fc3f0;text-decoration:none;font-size:12.5px;padding:3px 6px}
-.hbtns .backlink:hover{color:#fff}
+.hbtns .backlink{border:none;background:none;color:#2f6fbf;text-decoration:none;font-size:12.5px;padding:3px 6px}
+.hbtns .backlink:hover{color:#14417a;text-decoration:underline}
 /* 投影模式：放大"内容"文字，同时把导航 chrome 压到最小 —— 舞台是 flex:1，
    chrome 每多占 1px 画面就小 1px，所以投影要省高度而不是放大导航条 */
 body.proj{font-size:17px}

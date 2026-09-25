@@ -1,9 +1,9 @@
 <div align="center">
   <img src="assets/banner.png" alt="《数据结构》互动课件" width="100%">
 
-  ![版本](https://img.shields.io/badge/版本-v3.6-2b6cb0) ![动画](https://img.shields.io/badge/算法动画-58个-2f855a) ![覆盖](https://img.shields.io/badge/覆盖-全部8章·对齐408考纲-c05621) ![测试](https://img.shields.io/badge/正确性断言-670项通过-553c9a) ![依赖](https://img.shields.io/badge/依赖-零·单文件-4a5568)
+  ![版本](https://img.shields.io/badge/版本-v3.7-2b6cb0) ![动画](https://img.shields.io/badge/算法动画-58个-2f855a) ![覆盖](https://img.shields.io/badge/覆盖-全部8章·对齐408考纲-c05621) ![测试](https://img.shields.io/badge/正确性断言-670项通过-553c9a) ![依赖](https://img.shields.io/badge/依赖-零·单文件-4a5568)
 
-  **[▶ 在线打开（点开就用）](https://ch1209498273.github.io/ds-animations/) ｜ [⬇ 下载单文件 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.6.zip)**
+  **[▶ 在线打开（点开就用）](https://ch1209498273.github.io/ds-animations/) ｜ [⬇ 下载单文件 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.7.zip)**
 
   © 2026 **芦老师聊AI** · 版权归芦老师聊AI所有，未经授权不得商用
 
@@ -65,7 +65,7 @@
 
 **方式一 · 在线用**：打开 [ch1209498273.github.io/ds-animations](https://ch1209498273.github.io/ds-animations/)，点开即用。
 
-**方式二 · 本地用（推荐课堂场景）**：[下载 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.6.zip)，解压双击 `数据结构互动课件.html`——不联网、不装任何环境，教室机也能跑。
+**方式二 · 本地用（推荐课堂场景）**：[下载 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.7.zip)，解压双击 `数据结构互动课件.html`——不联网、不装任何环境，教室机也能跑。
 
 **方式三 · 开发者**：
 
@@ -73,6 +73,7 @@
 git clone https://github.com/ch1209498273/ds-animations.git
 # 双击 index.html 即可使用；改源码后运行 python src/build.py 重新构建
 node tests/test.js   # 670 项正确性断言 + 75 项手机视口卡口
+node tests/uat.js    # 43 项全量功能实测：255 组输入 5654 帧 + 浏览器里真点 30 项 + 对外数字核对（需 Chrome）
 ```
 
 ## 架构与实现
@@ -105,7 +106,7 @@ node tests/test.js   # 670 项正确性断言 + 75 项手机视口卡口
 ## 常见问题
 
 **Q：github.io 打不开 / 很慢？**
-国内访问 GitHub Pages 不稳定。下载 zip（[仓库内直链](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.6.zip)），解压双击打开，体验完全一致。
+国内访问 GitHub Pages 不稳定。下载 zip（[仓库内直链](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.7.zip)），解压双击打开，体验完全一致。
 
 **Q：手机上能用吗？**
 能用，推荐 **⛶ 手机放映**（v2.6）：只留画面，左右缘 ‹ › 箭头翻页，画面严格铺满窗口不用拖动，竖屏进入自动转成横屏，右上角 ✕ 退出，`&mp=1` 深链可分享。
@@ -121,7 +122,7 @@ iframe 引用在线地址即可，目录页可一键复制任意动画的深链�
 
 - 发现演示错误、文字错误 → [提 Issue](../../issues/new?template=bug_report.md)
 - 想要新动画（红黑树、B 树删除、串的其他算法等）→ [动画许愿](../../issues/new?template=feature_request.md)
-- PR 欢迎：改完跑 `node tests/test.js` 保证 670 项全绿
+- PR 欢迎：改完跑 `node tests/test.js` 保证 670 项全绿；动到外壳交互再加跑 `node tests/uat.js`（43 项）
 
 ## 声明
 

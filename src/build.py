@@ -63,7 +63,7 @@ sort_common_min = terser(sort_common_src)
 css_min = min_css(css) + ':root{--ds-ck:"__FIXED__"}'
 
 tpl = (src / 'index.template.html').read_text(encoding='utf-8')
-VER = 'v3.6'
+VER = 'v3.7'
 NMOD = len(module_files)          # 对外文案里的动画数一律由实际模块数推出，不再手写
 stamp = VER + ' · 构建 ' + time.strftime('%Y-%m-%d %H:%M')
 RIGHTS = ('author=芦老师聊AI;work=数据结构互动课件;kind=原创算法动画课件;'
