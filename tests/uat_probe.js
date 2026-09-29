@@ -9,6 +9,9 @@
   function pos() { return el('pos').textContent.trim(); }
   function total() { var m = /(\d+)\s*\/\s*(\d+)/.exec(pos()); return m ? +m[2] : 0; }
   function key(k) { d.dispatchEvent(new w.KeyboardEvent('keydown', { key: k, bubbles: true })); }
+  /* 真键盘事件落在 document.activeElement 上，所以要指定 target 派发——
+     从 document 派发会让 e.target.closest('#catalog') 永远为假，测不出目录里的泄漏 */
+  function keyOn(node, k) { node.dispatchEvent(new w.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true })); }
   try {
     var f = document.getElementById('f');
     /* 每次轮询都重取 contentDocument：iframe 导航完成前拿到的是那个会被替换掉的空文档 */
@@ -80,6 +83,16 @@
     rec('点「重置」回到第 1 帧，且不改你输入的数据',
       parseInt(pos(), 10) === 1 && total() === tot1 && inp.value === '5,7,11', pos() + ' 帧数 ' + total());
 
+    /* 11b 「↺ 恢复默认数据」：回到开头只管帧，数据改乱了得有退路。
+       ★ 元素取不到时让这一条自己报红，别抛出去把后面整段带走 */
+    inp.value = '3,9,27'; inp.dispatchEvent(new w.Event('change', { bubbles: true })); await sleep(700);
+    var db = el('btnDefaults');
+    if (db) { db.click(); await sleep(800); }
+    rec('「恢复默认数据」把输入还原成教材默认值并从第 1 帧重演',
+      !!db && inp.value === old && total() === tot0 && parseInt(pos(), 10) === 1,
+      db ? '值=' + inp.value + '（默认 ' + old + '）帧数=' + total() + '（默认 ' + tot0 + '）pos=' + pos()
+         : '页面上没有 #btnDefaults');
+
     /* 12-13 非法输入 */
     inp.value = 'abc'; inp.dispatchEvent(new w.Event('change', { bubbles: true })); await sleep(700);
     var errTxt = (el('msg').textContent || '') + ' | ' + (el('pos').textContent || '');
@@ -121,6 +134,21 @@
     var nm0 = el('modname').textContent; one.click(); await sleep(1000);
     rec('目录：点一行真的切到那个动画', /哈夫曼/.test(el('modname').textContent) && el('modname').textContent !== nm0, el('modname').textContent);
 
+    /* 19b 目录的键盘可达性：行是 role="button" tabindex="0" 的 DIV，原来只绑了 click，
+       键盘用户 Tab 得上去却按不动；而浏览目录时按 ←→ 会翻后台动画的帧 */
+    el('btnCatalog').click(); await sleep(700);
+    var cat3 = el('catalog');
+    var rows3 = Array.prototype.filter.call(cat3.querySelectorAll('.ovrow'), function (r) { return r.offsetHeight > 0; });
+    var pick = rows3.filter(function (r) { return !r.classList.contains('cur'); })[0];
+    var nmBefore = el('modname').textContent, posBefore = pos();
+    if (pick) { pick.focus(); keyOn(pick, 'ArrowRight'); await sleep(400); }
+    rec('目录里按 ←→ 不会偷偷翻后台动画的帧', !!pick && pos() === posBefore,
+      pick ? posBefore + ' → ' + pos() : '目录里没有可聚焦的行');
+    if (pick) { keyOn(pick, 'Enter'); await sleep(1200); }
+    rec('目录行能用键盘选中（Enter 真的切了模块、抽屉也关了）',
+      !!pick && el('modname').textContent !== nmBefore && !el('catalog'),
+      nmBefore + ' → ' + el('modname').textContent);
+
     /* 20 二维码 */
     el('btnCatalog').click(); await sleep(700);
     var cat2 = el('catalog');
@@ -155,7 +183,19 @@
     rec('截图导出：产出 PNG 数据且文件名带帧号',
       !!cap && /^data:image\/png/.test(cap.href) && /第\d+帧/.test(cap.name || ''),
       cap ? (cap.href.slice(0, 16) + '… ' + cap.name) : '没触发下载');
+    /* 署名的位置也要钉住：原来 30px 粗体直接画在右下角、宽占画面 28%，
+       插进 PPT/试卷里比数据标签还抢眼。现在必须落在图形之外单独一条带里 */
+    var vbh = d.querySelector('#stage svg').viewBox.baseVal.height;
     w.HTMLAnchorElement.prototype.click = oc;
+    var dims = await new Promise(function (res) {
+      var im = new Image();
+      im.onload = function () { res([im.naturalWidth, im.naturalHeight]); };
+      im.onerror = function () { res(null); };
+      im.src = cap ? cap.href : '';
+    });
+    rec('截图导出：署名走图形外的单独一条带（画幅高出部分 ≥ 2% 画宽）',
+      !!dims && dims[1] >= vbh * 2 + Math.round(dims[0] * 0.02),
+      'PNG ' + (dims ? dims.join('×') : '读不出') + ' ｜ 画面 2× 高 ' + (vbh * 2));
 
     /* 23 运行时版权指纹 */
     var svg = d.querySelector('#canvas svg');
@@ -197,6 +237,31 @@
     var lastMsg = el('msg').textContent, lastSvg = d.querySelector('#canvas svg').textContent;
     rec('错误演示：末帧结论与"探测链/删除标记"读出真的画在页面上（不只是 Node 里对）',
       /★|结论/.test(lastMsg) && /删除标记|DELETED|探测链/.test(lastMsg + lastSvg), lastMsg.slice(0, 60));
+
+    /* 31-35 出错兜底：启动崩 = 挡屏面板；运行期出错 = 底部小条；
+       ResizeObserver 那种良性提示 = 什么都不该弹（第一版把它当致命错误弹了全屏面板） */
+    var cbox = el('crash'), bar = el('errbar');
+    function boom(msg) { w.eval('setTimeout(function(){throw new Error(' + JSON.stringify(msg) + ');},0);'); }
+    rec('一路走下来两级错误提示都藏着（没有静默未捕获异常）',
+      !!cbox && !!bar && cbox.hidden === true && bar.hidden === true,
+      'crash=' + (cbox ? cbox.hidden : '无') + ' errbar=' + (bar ? bar.hidden : '无'));
+    try { boom('ResizeObserver loop completed with undelivered notifications.'); }
+    catch (e5) { rec('能在课件窗口里制造未捕获异常', false, e5.message); }
+    await sleep(600);
+    rec('ResizeObserver 那种良性提示不惊动用户（面板和小条都不出现）',
+      !!cbox && !!bar && cbox.hidden === true && bar.hidden === true,
+      'crash=' + (cbox ? cbox.hidden : '无') + ' errbar=' + (bar ? bar.hidden : '无') +
+      ' msg=' + (el('errmsg') ? el('errmsg').textContent.slice(0, 30) : '无 #errmsg'));
+    boom('探针故意抛的真错'); await sleep(600);
+    rec('运行期真错只出底部小条：说清画面还能用、带错误原文，不弹挡屏面板',
+      !!bar && bar.hidden === false && /探针故意抛的真错/.test(el('errmsg').textContent) &&
+      /不受影响/.test(bar.textContent) && (!cbox || cbox.hidden === true),
+      bar ? 'errbar=' + bar.hidden + ' crash=' + (cbox ? cbox.hidden : '无') +
+            ' msg=' + el('errmsg').textContent.slice(0, 30) : '页面上没有 #errbar');
+    var ex = el('errbarx');
+    if (ex) { ex.click(); await sleep(250); }
+    rec('小条能关掉（关掉后同一页不再反复弹）', !!bar && !!ex && bar.hidden === true,
+      ex ? 'errbar=' + bar.hidden : '没有 #errbarx');
   } catch (e) {
     R.push({ n: '探针异常中断', ok: false, x: String(e && e.stack ? e.stack : e.message).replace(/\s+/g, ' ').slice(0, 300) });
   }

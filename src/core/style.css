@@ -315,3 +315,34 @@ body.mp #mpHintBar[hidden]{display:none}
   body.mp .card{position:fixed;top:0;left:100%;width:100vh;height:100vw;
     transform-origin:left top;transform:rotate(90deg);z-index:90}
 }
+
+/* ---------- 崩溃兜底 ----------
+   原来 init() 裸奔：任一模块出问题就是整页白屏、一句话都没有。
+   注意 #crash 一旦设了 display，必须自己补 [hidden] 规则——目录行的
+   display:flex 压掉 UA 默认 [hidden] 那个坑踩过一次。 */
+#crash{position:fixed;inset:0;z-index:120;background:rgba(14,19,39,.72);
+  display:flex;align-items:center;justify-content:center;padding:24px}
+#crash[hidden]{display:none}
+#crash .cbox{max-width:640px;background:#fff;border-radius:14px;padding:22px 26px;
+  box-shadow:0 24px 60px rgba(0,0,0,.35);font-size:15px;line-height:1.75;color:#1e2f44}
+#crash .ct{display:block;font-size:18px;margin-bottom:10px}
+#crash p{margin:0 0 10px}
+#crash .cerr{font-family:Consolas,Menlo,monospace;font-size:14px;background:#fdeceb;
+  border:1px solid #ef7b7b;color:#8c2b22;border-radius:8px;padding:8px 11px;word-break:break-all}
+#crash button{border:1px solid var(--line);background:#f5f8fc;color:#1e2f44;border-radius:8px;
+  padding:8px 14px;font-size:14px;cursor:pointer;min-height:44px}
+
+/* ---------- 运行期错误小条：不挡画面，也不夸大 ----------
+   贴底通栏，只压住纯展示的版权行。第一版放在左下角，正好盖住
+   「⟲ 回到开头 / ↺ 恢复默认数据」这一排——出错后最该点的按钮被挡住了。
+   设了 position 也要自己补 [hidden] 规则（目录行 display:flex 压掉 UA 默认的坑踩过） */
+#errbar{position:fixed;left:0;right:0;bottom:0;z-index:110;display:flex;flex-wrap:wrap;
+  align-items:center;gap:4px 10px;background:#fffdf5;border-top:1px solid #f5d48f;
+  border-left:4px solid #e9b96b;padding:7px 14px;font-size:14px;line-height:1.5;color:#5a4a22;
+  box-shadow:0 -6px 22px rgba(0,0,0,.12)}
+#errbar[hidden]{display:none}
+#errbar b{color:#8c6b1f}
+#errbar #errmsg{font-family:Consolas,Menlo,monospace;font-size:13px;color:#8c2b22;word-break:break-all}
+#errbar .ehint{color:#8a7a52;font-size:12.5px}
+#errbar button{margin-left:auto;border:1px solid var(--line);background:#fff;color:#5a4a22;
+  border-radius:6px;padding:2px 9px;font-size:13px;cursor:pointer;min-height:28px}

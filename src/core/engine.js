@@ -222,8 +222,18 @@
       } catch (e) {}
     }
     // 舞台尺寸会因窗口缩放、投影/放映切换、引导展开、滚动条出现而改变，
-    // 逐一补调用容易漏，直接观察容器本身
-    if (window.ResizeObserver) { new ResizeObserver(function () { fitCanvas(); }).observe($('stage')); }
+    // 逐一补调用容易漏，直接观察容器本身。
+    // ★ 必须推到下一帧：fitCanvas() 会改 #canvas 的像素尺寸，在观察回调里同步改布局，
+    //   Chrome 会抛 "ResizeObserver loop completed with undelivered notifications"
+    //   ——它只是"这轮通知没投递完"的提示，画面完全正常，却会被 window.onerror 接成致命错误。
+    if (window.ResizeObserver) {
+      var ro = new ResizeObserver(function () {
+        if (ro._q) return;
+        ro._q = 1;
+        requestAnimationFrame(function () { ro._q = 0; fitCanvas(); });
+      });
+      ro.observe($('stage'));
+    }
     else { window.addEventListener('resize', fitCanvas); }
   }
 
@@ -474,8 +484,24 @@
   }
   function reset() { stop(); idx = 0; draw(); }
 
+  /* 「⟲ 回到开头」只管帧，不动数据——所以数据被改乱了没有退路。
+     模块声明里的 sp.value 从来没被写过（改的都是 DOM 上的值），它就是教材默认值。 */
+  function restoreDefaults() {
+    if (!(cur && cur.inputs && cur.inputs.length)) { toast('本动画没有可改的数据'); return; }
+    var n = 0;
+    cur.inputs.forEach(function (sp) {
+      var c = $('inp_' + sp.key); if (!c) return;
+      if (sp.type === 'checkbox') { if (c.checked !== !!sp.value) { c.checked = !!sp.value; n++; } }
+      else if (c.value !== String(sp.value)) { c.value = String(sp.value); n++; }
+    });
+    build();
+    toast(n ? '已把 ' + n + ' 项输入还原成教材默认值，从第 1 帧重演'
+            : '输入本来就是默认值，已回到第 1 帧');
+  }
+
   function bindControls() {
     $('btnReset').onclick = reset;
+    $('btnDefaults').onclick = restoreDefaults;
     $('btnPrev').onclick = back;
     $('btnNext').onclick = function () { stop(); step(); };
     $('btnPlay').onclick = play;
@@ -569,16 +595,19 @@
     var img = new Image();
     img.onload = function () {
       var vb = svg.viewBox.baseVal;
+      var cw = (vb.width || 980) * 2, ch = (vb.height || 470) * 2;
+      /* 署名单独一条带，绝不压在图形上；再按"脚注"而不是"水印"来做：
+         字号只有画宽的 1/150、中性灰、靠左下——深蓝粗体会和图里的蓝柱子抢 */
+      var band = Math.max(28, Math.round(cw * 0.022)), fpx = Math.max(12, Math.round(cw / 150));
       var canvas = document.createElement('canvas');
-      canvas.width = (vb.width || 980) * 2; canvas.height = (vb.height || 470) * 2;
+      canvas.width = cw; canvas.height = ch + band;
       var ctx = canvas.getContext('2d');
       ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = 'rgba(15,44,92,0.6)';
-      ctx.font = 'bold 30px "Microsoft YaHei",sans-serif';
-      ctx.textAlign = 'right';
-      ctx.fillText('© 芦老师聊AI · 数据结构互动课件', canvas.width - 36, canvas.height - 26);
+      ctx.drawImage(img, 0, 0, cw, ch);
+      ctx.fillStyle = 'rgba(112,122,138,.62)';
+      ctx.font = fpx + 'px "Microsoft YaHei",sans-serif';
       ctx.textAlign = 'left';
+      ctx.fillText('© 芦老师聊AI · 数据结构互动课件', Math.round(band * 0.55), ch + Math.round(band * 0.68));
       var a = document.createElement('a');
       var name = (cur ? (cur.disp || cur.name).replace(CIRC_RE, '') : '帧');
       a.download = '数据结构-' + name + '-第' + (idx + 1) + '帧.png';
@@ -620,8 +649,8 @@
     var b = document.body.classList;
     $('hintKeys').textContent = b.contains('present')
       ? '放映中：← → 翻页 ｜ C 切换动画 ｜ 右下角 ⋯ 收起操作台 ｜ Esc 退出'
-      : (b.contains('mp') ? '放映中：左右箭头翻页 ｜ 双指缩放 ｜ 双击放大 ｜ ✕ 退出'
-        : '操作：← → 单步 ｜ 空格 播放/暂停 ｜ ☰ 打开目录');
+      : (b.contains('mp') ? '放映中：左右箭头翻页 ｜ 双指缩放 ｜ 双击放大 ｜ 点「✕ 退出放映」离开'
+        : '键盘 ← → 单步 ｜ 空格 播放/暂停 ｜ 点右上角「☰ 目录」浏览全部动画');
   }
   function syncPresent() {
     var on = !!document.fullscreenElement && !document.body.classList.contains('mp');
@@ -766,14 +795,25 @@
       if (head) { head.parentNode.classList.toggle('open'); return; }
       var row = e.target.closest ? e.target.closest('.ovrow') : null;
       if (!row) return;
+      activate(row, e.target.dataset && e.target.dataset.act);
+    });
+    /* 目录行是 role="button" tabindex="0" 的 DIV：能被 Tab 聚焦，但原来只绑了 click，
+       键盘用户按 Enter/Space 什么都不会发生。这里补上，并顺手挡住空格冒泡到全局 play()。 */
+    function activate(row, act) {
       var m = DSC.mods.filter(function (x) { return x.id === row.dataset.id; })[0];
       if (!m) return;
-      var act = e.target.dataset && e.target.dataset.act;
       if (act === 'qr') { showQR(m); return; }
       if (act === 'copy') { copyMod(m); return; }
       closeOverlays();
       if (window.DSC_SINGLE) { location.href = moduleURL(m); return; }
       location.hash = '#m=' + m.id;        // hashchange 监听统一处理
+    }
+    ov.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var row = e.target.closest ? e.target.closest('.ovrow') : null;
+      if (!row) return;
+      e.preventDefault();
+      activate(row);
     });
     if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
       // 触屏没有 hover，操作按钮要一直看得见
@@ -790,6 +830,9 @@
     var t = e.target.tagName;
     if (/INPUT|SELECT|TEXTAREA/.test(t)) return;
     if (e.key === 'Escape') { closeOverlays(); return; }
+    /* 焦点在目录抽屉里时，全部快捷键让路——原来目录行不在上面那道白名单里，
+       浏览目录时按 ←→ 会偷偷翻后台动画的帧 */
+    if (e.target.closest && e.target.closest('#catalog')) return;
     if (e.key === 'ArrowRight') { stop(); step(); }
     else if (e.key === 'ArrowLeft') { stop(); back(); }
     else if (e.key === ' ') {
@@ -805,8 +848,40 @@
              (document.body.classList.contains('present') || document.body.classList.contains('mp'))) { openCatalog(); }
   }
 
+  /* ---------- 出错兜底：原来 init() 裸奔，任一模块出问题就是整页白屏、一句话都没有 ----------
+     分两级：启动就崩 = 挡屏面板（那时除了提示确实什么也没有）；跑起来之后才出的错 =
+     底部小条，并说清"已经显示的画面不受影响"。运行期错误也弹全屏面板，等于用一个
+     吓人的假故障盖住一个还能用的页面——第一版就犯了这个毛病。 */
+  var booted = false;
+  /* 浏览器自己发的"这轮尺寸通知没投递完"：画面完全正常，不该惊动老师 */
+  var BENIGN = /ResizeObserver loop/i;
+  function errText(err) { return String((err && err.message) || err || '未知错误'); }
+  function fatal(err) {
+    var box = $('crash');
+    if (!box || fatal._off) return;
+    var x = $('crashx');
+    if (x && !x._b) { x._b = 1; x.onclick = function () { fatal._off = true; box.hidden = true; }; }
+    $('crashmsg').textContent = errText(err);
+    box.hidden = false;
+  }
+  function softFail(err) {
+    var msg = errText(err);
+    if (BENIGN.test(msg) || softFail._off) return;
+    var bar = $('errbar');
+    if (!bar) { fatal(err); return; }
+    var x = $('errbarx');
+    if (x && !x._b) { x._b = 1; x.onclick = function () { softFail._off = true; bar.hidden = true; }; }
+    $('errmsg').textContent = msg;
+    bar.hidden = false;
+  }
+
   if (typeof document !== 'undefined') {
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-    else init();
+    window.addEventListener('error', function (e) {
+      var err = e.error || e.message;
+      if (booted) softFail(err); else fatal(err);
+    });
+    var boot = function () { try { init(); booted = true; } catch (e) { fatal(e); } };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+    else boot();
   }
 })();

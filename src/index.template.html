@@ -19,7 +19,7 @@
 <body>
 <header class="top">
   <h1>《数据结构》互动课件</h1>
-  <span class="sub">教材：《数据结构（C语言版）第3版》（严蔚敏 · 李冬梅 · 吴伟民） ｜ <span id="hintKeys">操作：← → 单步 ｜ 空格 播放/暂停 ｜ ☰ 打开目录</span></span>
+  <span class="sub">教材：《数据结构（C语言版）第3版》（严蔚敏 · 李冬梅 · 吴伟民） ｜ <span id="hintKeys">键盘 ← → 单步 ｜ 空格 播放/暂停 ｜ 点右上角「☰ 目录」浏览全部动画</span></span>
   <span class="hbtns">
     <button id="btnCatalog" title="按章节浏览全部动画，一键直达或复制链接">☰ 目录</button>
     <button id="btnProj" title="投影模式：放大画面文字、收起导航条，适合课堂投屏">🖥 投影</button>
@@ -42,6 +42,7 @@
     <div class="controls">
       <div id="inputs" class="inputs hideable"></div>
       <button id="btnReset" class="hideable" title="回到第 1 帧重新演一遍；你输入的数据保持不变（要换数据直接改上面的输入框）">⟲ 回到开头</button>
+      <button id="btnDefaults" class="hideable" title="把这一页的输入全部还原成教材默认值，并从第 1 帧重演——数据改乱了点这个">↺ 恢复默认数据</button>
       <button id="btnPrev">◀ 上一步</button>
       <button id="btnNext">下一步 ▶</button>
       <button id="btnPlay">▶ 自动播放</button>
@@ -85,6 +86,24 @@
 //__MODULES__
 </script>
 <footer class="foot">© 2026 <b>芦老师聊AI</b> · 版权归芦老师聊AI所有，未经授权不得商用 ｜ 数据结构互动课件 · 免费用于课堂教学与个人学习</footer>
+<!-- 崩溃兜底：原来 init() 没有 try/catch、也没装 window.onerror，
+     任一模块出问题就是整页白屏、一句话都没有 -->
+<div id="crash" hidden role="alert">
+  <div class="cbox">
+    <b class="ct">页面出了个错误，课件没能正常显示</b>
+    <p class="cerr" id="crashmsg"></p>
+    <p>可以按顺序试试：① 确认 zip 是<b>完整解压</b>后打开的（不要在压缩软件里直接双击）；
+    ② 换较新版本的 Chrome 或 Edge；③ 直接用在线版
+    <b>ch1209498273.github.io/ds-animations</b>，内容与离线文件完全一致。</p>
+    <button id="crashx" type="button">✕ 关闭提示</button>
+  </div>
+</div>
+<!-- 运行期错误的轻量提示：不挡画面、说清"还能用"，且不会被 ResizeObserver 那种良性提示触发 -->
+<div id="errbar" hidden role="status">
+  <button id="errbarx" type="button" title="关掉这条提示，本次浏览不再重复弹">✕</button>
+  <b>页面出了一点小错误</b><span id="errmsg"></span>
+  <span class="ehint">已显示的画面不受影响，刷新即恢复；持续不对劲就用在线版 ch1209498273.github.io/ds-animations</span>
+</div>
 <span id="toast" hidden style="position:fixed;right:18px;bottom:18px;background:#0f2c5c;color:#fff;padding:9px 16px;border-radius:8px;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:99"></span>
 </body>
 </html>
