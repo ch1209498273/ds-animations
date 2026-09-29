@@ -83,7 +83,13 @@
     /* 12-13 非法输入 */
     inp.value = 'abc'; inp.dispatchEvent(new w.Event('change', { bubbles: true })); await sleep(700);
     var errTxt = (el('msg').textContent || '') + ' | ' + (el('pos').textContent || '');
-    rec('非法输入给出可见的「输入有误」，画面不是一片空白', /有误|不合法|请输入/.test(errTxt), errTxt.slice(0, 70));
+    rec('非法输入给出可见的「输入有误」', /有误|不合法|请输入/.test(errTxt), errTxt.slice(0, 70));
+    /* 原来这条名字里写着"画面不是一片空白"，实际只查了红字在不在——画布确实被擦空了。
+       断言必须看画面：上一帧的正确结果要还挂着，错误态要有标记。 */
+    rec('非法输入不擦画面：上一帧还在、错误态标红并说明怎么办',
+      !!d.querySelector('#canvas svg') && el('msg').classList.contains('err') && /上一次/.test(el('msg').textContent),
+      'svg=' + !!d.querySelector('#canvas svg') + ' cls=' + el('msg').className +
+      ' pos=' + el('pos').textContent);
     inp.value = old; inp.dispatchEvent(new w.Event('change', { bubbles: true })); await sleep(700);
     rec('改回合法值后画面自己恢复（错误态不会卡住）', /^\d+ \/ \d+$/.test(pos()) && total() > 10, pos());
 
@@ -127,6 +133,20 @@
     var prompted = false; w.prompt = function () { prompted = true; return ''; };
     var err = null; try { el('btnLink').click(); await sleep(400); } catch (e2) { err = e2.message; }
     rec('复制链接：剪贴板不可用时给出可粘贴框且不报错', !err && (prompted || !!el('toast')), 'prompt=' + prompted);
+
+    /* 21b 本机双击打开（file://）时 location.origin 是 "null"，原来拼出来的是
+       nulla/rbt.html —— 链接和二维码一起废，而"下载 zip 双击"是对外宣传的拿法之一 */
+    var captured = null;
+    try {
+      Object.defineProperty(w.navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: function (u) { captured = u; return Promise.resolve(); } }
+      });
+    } catch (e3) { rec('复制链接：能给剪贴板打桩以观察生成的地址', false, e3.message); }
+    el('btnLink').click(); await sleep(400);
+    rec('file:// 下「🔗 链接」生成的也是能用的 http(s) 深链（含模块与帧号）',
+      /^https?:\/\//.test(captured || '') && /#m=[\w]+&f=\d+/.test(captured || ''),
+      'protocol=' + d.location.protocol + ' → ' + (captured || '没抓到'));
 
     /* 22 截图导出 */
     var cap = null, oc = w.HTMLAnchorElement.prototype.click;

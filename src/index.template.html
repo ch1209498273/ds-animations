@@ -31,11 +31,12 @@
 <div class="modbar" id="modbar"></div>
 <main>
   <section class="card">
-    <div class="modtitle"><b id="modname"></b><span id="modnote2" class="modnote"></span><button id="mpExit" class="mponly">✕ 退出放映</button></div>
+    <div class="modtitle"><b id="modname"></b><span id="modnote2" class="modnote"></span><button id="mpPanel" class="mponly" title="显示/隐藏状态面板（浮在画面右上，不挡画布主体）">▤ 面板</button><button id="mpFit" class="mponly" title="把画面缩放回适配窗口">⤢ 适配</button><button id="mpExit" class="mponly">✕ 退出放映</button></div>
     <div class="modaim" id="modaim"></div>
     <div id="stage"><div id="canvas"></div></div>
     <button id="mpPrev" class="mp-arrow prev" aria-label="上一步">‹</button>
     <button id="mpNext" class="mp-arrow next" aria-label="下一步">›</button>
+    <div id="mpPane"></div>
     <div id="mpBar"><div id="mpMsg"></div><span id="mpCounter"></span></div>
     <div id="mpHintBar" hidden>↕ 画面比屏幕高，上下拖动可看其余部分</div>
     <div class="controls">

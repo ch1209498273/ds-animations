@@ -127,6 +127,7 @@
 
   /* ---------- 状态 ---------- */
   var cur = null, frames = [], code = [], idx = 0, timer = null, speed = 1, playing = false;
+  var shown = null;         // 画布上现在这份画面属于哪个模块（报错时决定留不留）
   var zoom = 1, ZMIN = 1, ZMAX = 6, ZK = 1.25;
 
   /* ---------- 舞台缩放：画布按 viewBox 比例适配，再乘缩放档位，超出部分由 #stage 滚动 ---------- */
@@ -357,19 +358,30 @@
     stop();
     var res;
     try { res = cur.run(values()); }
-    catch (err) {
-      $('msg').innerHTML = '<b>输入有误：</b>' + esc(err.message);
-      $('canvas').innerHTML = ''; $('code').innerHTML = ''; $('panel').innerHTML = '';
-      frames = []; idx = 0; updateProgress(); return;
-    }
+    catch (err) { showErr(err.message); return; }
     frames = res.frames; code = res.code; idx = 0;
     draw();
+  }
+
+  /* 报错不再擦掉画面：打错一个字符就失去参照物，和 v3.1 那次"594 全绿却一片白"
+     是同一个观感。留着上一次的正确结果，只把解说条换成红字。
+     如果画面上是别的模块（本模块第一次就跑不起来），那必须擦——留着更误导。 */
+  function showErr(text) {
+    var m = $('msg'), mine = shown === (cur && cur.id);
+    m.className = 'msg err';
+    m.innerHTML = '<b>输入有误：</b>' + esc(text) +
+      (mine ? '<span class="ehint">画面还是上一次的结果，把输入改对了会自动重演。</span>' : '');
+    $('mpMsg').innerHTML = m.innerHTML;
+    if (mine) return;
+    $('canvas').innerHTML = ''; $('code').innerHTML = ''; $('panel').innerHTML = '';
+    frames = []; idx = 0; updateProgress();
   }
 
   function draw() {
     var f = frames[idx];
     if (!f) { $('canvas').innerHTML = ''; $('code').innerHTML = ''; $('panel').innerHTML = ''; $('msg').innerHTML = ''; $('mpMsg').innerHTML = ''; updateProgress(); return; }
     $('canvas').innerHTML = cur.render(f.snap);
+    shown = cur.id;
     fitCanvas();
     var lines = code.map(function (t, i) {
       var on = f.line && f.line.indexOf(i) >= 0;
@@ -385,9 +397,15 @@
       else if (hr.bottom > brect.bottom - 4) cbox.scrollTop += (hr.bottom - (brect.bottom - 4));
     }
     var p = f.panel || {}, keysArr = Object.keys(p);
-    $('panel').innerHTML = keysArr.map(function (k) {
+    var panelHTML = keysArr.map(function (k) {
       return '<tr><td>' + esc(k) + '</td><td>' + md(p[k]) + '</td></tr>';
     }).join('');
+    $('panel').innerHTML = panelHTML;
+    /* 手机放映时右栏整块是隐藏的，面板里的数字（比较次数、堆高、关键路径的
+       ve/vl）就没地方看了——同步一份进浮层，点「▤ 面板」才盖出来，默认不挡画面 */
+    var mp = $('mpPane');
+    if (mp) mp.innerHTML = keysArr.length ? '<table class="panel">' + panelHTML + '</table>' : '';
+    $('msg').className = 'msg';
     $('msg').innerHTML = md(f.msg || '');
     $('mpMsg').innerHTML = $('msg').innerHTML;
     updateProgress();
@@ -488,6 +506,14 @@
     $('mpPrev').onclick = function () { stop(); if (idx <= 0) { mpHint('已是第一步'); return; } back(); };
     $('mpNext').onclick = function () { stop(); if (idx >= frames.length - 1) { mpHint('已到最后一步'); return; } step(); };
     $('mpExit').onclick = toggleMp;
+    /* 放映态原来把 .controls 整条藏了，于是「⤢ 适配」和倍速一起消失：
+       双击放大到 2.5× 后进放映，画面就停在放大态没有按钮能还原 */
+    $('mpFit').onclick = function () { setZoom(1); toast('已恢复适配窗口'); };
+    $('mpPanel').onclick = function () {
+      var on = document.body.classList.toggle('mpPanel');
+      $('mpPanel').classList.toggle('on', on);
+      toast(on ? '状态面板浮在右上角，再点一次收起' : '已收起状态面板');
+    };
     if (isPhoneUI()) $('btnPresent').textContent = '⛶ 放映（横屏更清）';
     $('btnMore').onclick = function () {
       var on = document.body.classList.toggle('present-more');
@@ -564,9 +590,10 @@
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
   }
   function copyLink() {
-    var url = cur ? (moduleURL(cur) + '#f=' + idx) : location.href;
-    function ok() { toast('已复制该动画单页链接（含当前帧）'); }
-    function fail() { window.prompt('全选并复制本页链接（Ctrl+C）：', url); }
+    var url = cur ? (moduleURL(cur) + frameSuffix(cur, idx)) : location.href;
+    function ok() { toast(isLocal() ? '本机是本地文件，已复制它的线上对应地址（含当前帧）'
+                                    : '已复制该动画单页链接（含当前帧）'); }
+    function fail() { window.prompt('全选并复制：', url); }
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(ok, fail);
     else fail();
   }
@@ -612,6 +639,7 @@
   }
   function toggleMp() {
     var on = !document.body.classList.contains('mp');
+    setZoom(1);                     // 进出放映都回到适配，不带着上一次的缩放去铺满屏幕
     document.body.classList.toggle('mp', on);
     $('btnPresent').classList.toggle('on', on);
     setHint();
@@ -633,10 +661,23 @@
     mpHint._h = setTimeout(function () { p.classList.remove('warn'); updateProgress(); }, 1000);
   }
   /* ---------- 总目录：按章分组全景，一键直达 / 复制深链接 ---------- */
+  /* 本机双击打开（file://）时，原来生成的是"你这台机器上的绝对路径"
+     （实测 file:///C:/Users/…/a/huffman.html#f=0）——发给别人是死链，手机扫码更扫不到，
+     而"下载 zip 双击"正是对外宣传的拿法之一。这时改指线上站点的深链：
+     主站认 #m=<id>&f=<n>，扫出来就是同一个动画同一帧。
+     ★ 判定写成函数：engine.js 也会被 Node 侧测试直接 eval，那里没有 location。 */
+  function isLocal() { return location.protocol === 'file:'; }
+  function siteBase() {
+    var om = document.querySelector('meta[property="og:url"]');
+    return om && om.content ? om.content : location.href.replace(/[#?].*$/, '');
+  }
   function moduleURL(m) {
+    if (isLocal()) return siteBase().replace(/#.*$/, '') + '#m=' + m.id;
     var dir = location.pathname.replace(/[^/]*$/, '');   // 当前目录（主站或 a/）
     return location.origin + dir + (document.body.classList.contains('single') ? '' : 'a/') + m.id + '.html';
   }
+  /* 单页用 #f=，主站深链要把模块和帧放在同一个 hash 里 */
+  function frameSuffix(m, i) { return isLocal() ? '&f=' + i : '#f=' + i; }
   function openCatalog() {
     if (document.getElementById('catalog')) return;
     var chapters = [];

@@ -65,6 +65,18 @@ setTimeout(function () {
       var e = d.getElementById(id);
       o.mpEls[id] = e ? [Math.round(e.getBoundingClientRect().width), Math.round(e.getBoundingClientRect().height)] : null;
     });
+    /* P0④ 放映态原来把右栏整块藏了，面板里的数字没地方看；.controls 一藏，
+       「⤢ 适配」和倍速也一起消失，双击放大后就再也回不去 */
+    var pb = d.getElementById('mpPanel'), pp = d.getElementById('mpPane');
+    if (pb) { var rp = pb.getBoundingClientRect(); o.mpPanelBtn = [Math.round(rp.width), Math.round(rp.height)]; pb.click(); }
+    if (pp) { var rr = pp.getBoundingClientRect();
+      o.mpPane = { box: [Math.round(rr.width), Math.round(rr.height)], rows: pp.querySelectorAll('tr').length,
+        inside: rr.left >= 0 && rr.right <= w.innerWidth + 1 && rr.top >= 0 && rr.bottom <= w.innerHeight + 1 };
+      /* 面板占右上角的话，翻页箭头必须跟着让开——否则"开着面板就翻不了页" */
+      var nx = d.getElementById('mpNext'), nr = nx ? nx.getBoundingClientRect() : null;
+      o.mpArrowClearsPane = !!nr && !(rr.right > nr.left + 1 && rr.left < nr.right - 1 &&
+                                      rr.bottom > nr.top + 1 && rr.top < nr.bottom - 1);
+      if (pb) pb.click(); }
   }
   /* 代码框：伪代码比框高时（手机 170px 只装得下约 9 行），高亮行必须被滚进可视区。
      这一步要翻到后面的帧才量得到，所以放在所有量测之后 */
@@ -78,6 +90,14 @@ setTimeout(function () {
       o.codeHiVisible = r2.top >= rb.top - 1 && r2.bottom <= rb.bottom + 1;
       o.codeHi = [Math.round(r2.top), Math.round(r2.bottom), Math.round(rb.top), Math.round(rb.bottom)];
     }
+  }
+  /* P0④ 的最后一半：放映态里点「⤢ 适配」必须真能把缩放拉回来。
+     先连点两下放大（按钮虽被 .controls 藏着，程序点击照样生效），再点适配 */
+  if (d.body.classList.contains('mp')) {
+    var lv = d.getElementById('zoomLv'), zf = d.getElementById('mpFit'), zi = d.getElementById('btnZoomIn');
+    if (lv && zi) { zi.click(); zi.click(); o.zoomInFl = lv.textContent; }
+    if (zf) zf.click();
+    o.zoomFitResult = lv ? lv.textContent : null;
   }
   var pre = document.createElement('pre');
   pre.textContent = 'PROBE:' + JSON.stringify(o);
@@ -135,6 +155,13 @@ VIEWS.forEach(function (v) {
   const flat = o.mpEls && Object.keys(o.mpEls).filter(k => !o.mpEls[k] || o.mpEls[k][0] < 8 || o.mpEls[k][1] < 8);
   t('手机放映 ' + v[0] + ': 箭头/解说条/帧号/退出 都已布局', flat && flat.length === 0,
     { els: o.mpEls, counter: o.mpCounterText });
+  /* P0④：放映态原来没有这两个入口 */
+  t('手机放映 ' + v[0] + ': 「▤ 面板」够大、点开有内容且不越出屏幕',
+    !!o.mpPanelBtn && o.mpPanelBtn[1] >= 44 && !!o.mpPane && o.mpPane.rows > 0 && o.mpPane.inside &&
+    o.mpArrowClearsPane === true,
+    { btn: o.mpPanelBtn, pane: o.mpPane, arrowClears: o.mpArrowClearsPane });
+  t('手机放映 ' + v[0] + ': 「⤢ 适配」能把放大的画面拉回 100%',
+    o.zoomInFl === '156%' && o.zoomFitResult === '100%', { before: o.zoomInFl, after: o.zoomFitResult });
 });
 
 /* 目录页（手机竖屏）：卡片网格时代要滑 6.6 屏，改成"搜索 + 紧凑行 + 手风琴"后
