@@ -23,24 +23,24 @@
 
   var PRESETS = {
     text: {
-      label: '教材图 6.19（默认）', edges: EDGES, pos: POS, n: 6,
+      label: '① 教材图 6.19（默认，6 点 10 边）', edges: EDGES, pos: POS, n: 6,
       teach: '第 1 张·基准：教材图 6.19，6 个顶点 10 条边。这张图上 Prim 与 Kruskal 会选出**同一棵树、总权值 15**——先看熟"两种贪心怎么各走各的、最后却撞在一起"。'
     },
     tie: {
-      label: '并列权：最小生成树不唯一', edges: TIE_EDGES, pos: TIE_POS, n: 4,
+      label: '② 并列权：最小生成树不唯一（4 点 5 边）', edges: TIE_EDGES, pos: TIE_POS, n: 4,
       teach: '第 2 张·树不唯一：4 个点 5 条边，三条权 2 的边并列。这张图上 **Prim 选 {v1—v2, v1—v3, v3—v4}，Kruskal 选 {v1—v2, v3—v4, v2—v3}——边集不同，总权值都是 4**。"最小生成树是唯一的吗"，答案就在这张图里。'
     },
     tree: {
-      label: '稀疏图：边数已经等于 n−1', edges: TREE_EDGES, pos: TREE_POS, n: 5,
+      label: '③ 稀疏图：边数已等于 n−1（5 点 4 边）', edges: TREE_EDGES, pos: TREE_POS, n: 5,
       teach: '第 3 张·没得选：5 个顶点正好 4 条边，图本身就是一棵树。所以 Kruskal **一条边都不丢**、Prim 每轮也只有一条候选——生成树存在的前提是连通，而连通图最少就要 n−1 条边。'
     },
     k5: {
-      label: '稠密图：完全图 K5（10 条边）', edges: K5_EDGES, pos: K5_POS, n: 5,
+      label: '④ 稠密图：完全图 K5（5 点 10 边）', edges: K5_EDGES, pos: K5_POS, n: 5,
       teach: '第 4 张·稠密：完全图 K5，5 个点两两相连共 10 条边。这里**最短的几条边互相成环**，Kruskal 必须一边捡一边扔——' +
         '"不成环才要"这条规则在上一张稀疏图上一次都不触发，在这张图上扔掉了 v2—v3 和 v2—v4 两条。'
     },
     tiny: {
-      label: '4 点小图（第一遍引入用）', edges: TINY_EDGES, pos: TIE_POS, n: 4,
+      label: '⑤ 4 点小图（第一遍引入用）', edges: TINY_EDGES, pos: TIE_POS, n: 4,
       teach: '第 5 张·一屏走完：4 个点 5 条边，帧数只有教材图的一半。第一次讲最小生成树、或者时间只剩三分钟，用这张。'
     }
   };
@@ -93,13 +93,7 @@
     inputs: [
       { key: 'method', label: '算法', type: 'select', options: [['prim', 'Prim（逐点并入，从v1出发）'], ['kruskal', 'Kruskal（按权选边，避环）']], value: 'prim' },
       {
-        key: 'graph', label: '图', type: 'select', options: [
-          ['text', '① 教材图 6.19（默认，6 点 10 边）'],
-          ['tie', '② 并列权：最小生成树不唯一（4 点 5 边）'],
-          ['tree', '③ 稀疏图：边数已等于 n−1（5 点 4 边）'],
-          ['k5', '④ 稠密图：完全图 K5（5 点 10 边）'],
-          ['tiny', '⑤ 4 点小图（第一遍引入用）']
-        ], value: 'text'
+        key: 'graph', label: '图', type: 'select', options: ['text', 'tie', 'tree', 'k5', 'tiny'].map(function (k) { return [k, PRESETS[k].label]; }), value: 'text'
       }
     ],
     run: function (v) {

@@ -834,6 +834,93 @@ console.log('— 第6章 关键路径 —');
   const expect = [[0, 1, 3, 6], [9, 0, 2, 5], [7, 8, 0, 3], [4, 5, 7, 0]];
   t('Floyd 最终 D 矩阵（手算逐格核对）', JSON.stringify(s.D) === JSON.stringify(expect), s.D);
   t('更新帧含最终路径 0→1→2→3', !!r.frames.find(fr => (fr.msg || '').indexOf('0→1→2→3') >= 0));
+
+  /* 四张预置图 + 一个循环顺序开关。对拍用的"真实答案"在这里独立算，不借模块里的 solve */
+  const KEYS = ['text', 'neg', 'cyc', 'disc'];
+  const run = (g, o) => M.floyd.run({ graph: g, order: o || 'outer' });
+  const safe = fn => { try { return !!fn(); } catch (e) { return false; } };
+  const bfAll = (N, arcs) => {
+    const out = [];
+    for (let src = 0; src < N; src++) {
+      const d = new Array(N).fill(Infinity); d[src] = 0;
+      for (let it = 0; it < N - 1; it++) arcs.forEach(a => { if (d[a[0]] < Infinity && d[a[0]] + a[2] < d[a[1]]) d[a[1]] = d[a[0]] + a[2]; });
+      out.push(d);
+    }
+    return out;
+  };
+  const TEXT_ARCS_PIN = [[0, 1, 1], [1, 2, 2], [2, 3, 3], [3, 0, 4], [0, 3, 7]];
+  t('预置图: 默认档就是教材那 5 条弧、还是 4 个点（字面值钉死，不许悄悄加弧）',
+    JSON.stringify(last(run('text')).arcs) === JSON.stringify(TEXT_ARCS_PIN) && last(run('text')).N === 4,
+    last(run('text')).arcs);
+  t('预置图: 四张都在下拉里，标签互不重复、编号 1~4 齐全',
+    safe(() => {
+      const inp = M.floyd.inputs.filter(x => x.key === 'graph')[0];
+      return JSON.stringify(inp.options.map(o => o[0])) === JSON.stringify(KEYS) &&
+        new Set(inp.options.map(o => o[1])).size === 4 &&
+        [1, 2, 3, 4].every(n => inp.options.some(o => o[1].indexOf('①②③④'[n - 1]) === 0));
+    }), null);
+  t('预置图: 每张图首帧都先说清"这张要回答什么问题"（并报名用哪张图、哪种写法）',
+    KEYS.every(k => safe(() => {
+      const f = run(k).frames[0];
+      return /^第 [1-4] 张·/.test(f.msg) && f.msg.length > 40 &&
+        f.panel['图'] === M.floyd.inputs[0].options.filter(o => o[0] === k)[0][1] &&
+        f.panel['循环顺序'] === 'k 在最外层（教材写法）';
+    })), KEYS.map(k => safe(() => run(k).frames[0].panel['图'])));
+  t('预置图: 三张无负环的图，D 与独立 Bellman-Ford 逐格一致',
+    ['text', 'neg', 'disc'].every(k => safe(() => {
+      const sn = last(run(k));
+      return JSON.stringify(sn.D) === JSON.stringify(bfAll(sn.N, sn.arcs));
+    })), KEYS.map(k => safe(() => { const sn = last(run(k)); return { D: sn.D, BF: bfAll(sn.N, sn.arcs) }; })));
+  /* 全套最有价值的一条：和 Dijkstra 第⑤档同一张图，两个算法给出两个答案 */
+  t('预置图: ②负权图与 Dijkstra⑤ 对照——Dijkstra 把 v0→v2 定死在 10，Floyd 算出 0',
+    safe(() => last(run('neg')).D[0][2] === 0 &&
+      last(M.dijkstra.run({ start: '0', graph: 'neg' })).D[2] === 10),
+    safe(() => ({ floyd_v0v2: last(run('neg')).D[0][2] })));
+  t('预置图: ③负环那张由算法自己报出来（对角线变负），末帧不说"完成"',
+    safe(() => {
+      const sn = last(run('cyc')), f = lastFrame(run('cyc'));
+      return sn.negCyc === true && sn.D[2][2] < 0 && sn.D[5][5] < 0 &&
+        /✗/.test(f.msg) && /负环/.test(f.msg) && !/Floyd 完成/.test(f.msg);
+    }), safe(() => { const sn = last(run('cyc')); return { diag: sn.D.map((r, i) => r[i]), negCyc: sn.negCyc }; }));
+  t('预置图: ④不连通那张 ∞ 一路保持 ∞，末帧把"到不了"和"没算到"分开说',
+    safe(() => {
+      const rs = run('disc'), sn = last(rs), f = lastFrame(rs);
+      return sn.D[0][3] === Infinity && sn.D[3][0] === Infinity && sn.D[1][0] === Infinity &&
+        rs.frames.every(fr => fr.snap.D[0][3] === Infinity) &&
+        /个 ∞，那是"到不了"，不是"没算到"/.test(f.msg);
+    }), safe(() => last(run('disc')).D));
+  /* 循环顺序开关：错误写法必须真的算错，而且要说清错在哪一格 */
+  t('预置图: 错误写法（k 挪到最内层）在教材图上真的算错，并点出 D[1][0]',
+    safe(() => {
+      const f = lastFrame(run('text', 'inner'));
+      return /✗/.test(f.msg) && /D\[v1\]\[v0\] 该是 9，却停在 ∞/.test(f.msg) &&
+        /k 必须在最外层/.test(f.msg) && last(run('text', 'inner')).D[1][0] === Infinity;
+    }), safe(() => lastFrame(run('text', 'inner')).msg.slice(0, 90)));
+  t('预置图: 错误写法没有改变默认档的结果（不勾这个开关，一切照旧）',
+    safe(() => JSON.stringify(last(run('text')).D) === JSON.stringify(expect) &&
+      JSON.stringify(last(run('text', 'outer')).D) === JSON.stringify(expect)), null);
+  t('预置图: ④上两种写法结果恰好相同——错误档要如实说"这次没看出差别"',
+    safe(() => {
+      const f = lastFrame(run('disc', 'inner'));
+      return /恰好相同/.test(f.msg) && JSON.stringify(last(run('disc', 'inner')).D) === JSON.stringify(last(run('disc')).D);
+    }), safe(() => lastFrame(run('disc', 'inner')).msg.slice(0, 60)));
+  t('预置图: 弧表与坐标按帧走（6 点的两张图不吃 4 点图的数据）',
+    safe(() => KEYS.every(k => { const sn = last(run(k)); return sn.arcs.length === run(k).frames[0].snap.arcs.length; }) &&
+      last(run('neg')).N === 6 && Object.keys(last(run('neg')).pos).length === 6 &&
+      last(run('text')).N === 4),
+    KEYS.map(k => safe(() => [last(run(k)).N, last(run(k)).arcs.length])));
+  t('预置图: 6 点时 D 矩阵格宽自动收窄，不顶出 980 画布',
+    safe(() => {
+      const w6 = +/x="737" y="120" width="(\d+)"/.exec(M.floyd.render(last(run('neg'))))[1];
+      const w4 = +/x="756" y="120" width="(\d+)"/.exec(M.floyd.render(last(run('text'))))[1];
+      return w4 === 53 && w6 === 34 && 737 + 6 * 37 - 3 < 980;
+    }), safe(() => M.floyd.render(last(run('neg'))).slice(0, 0)));
+  /* 这条是"真的看了画面"才发现的：末帧的 k 是 -1，标题会一路退回"初始化 D 矩阵" */
+  t('预置图: 末帧画布标题写的是"跑完"，不是"初始化"',
+    KEYS.every(k => safe(() => {
+      const svg = M.floyd.render(last(run(k)));
+      return /跑完 \d+ 轮之后的 D 矩阵/.test(svg) && !/初始化 D 矩阵/.test(svg);
+    })) && /初始化 D 矩阵/.test(M.floyd.render(run('text').frames[1].snap)), null);
 }
 
 console.log('— 第3章 括号匹配 —');
@@ -854,12 +941,76 @@ console.log('— 第3章 括号匹配 —');
 
 console.log('— 第6章 拓扑排序 —');
 {
+  const KEYS = ['text', 'chain', 'cyc', 'loose'];
+  const run = (g, m) => M.topo.run({ graph: g, mode: m || 'ok' });
+  const safe = fn => { try { return !!fn(); } catch (e) { return false; } };
   const r = M.topo.run({});
-  t('拓扑序列 C1,C4,C0,C3,C2,C5（教材栈算法）', JSON.stringify(last(r).out) === JSON.stringify([1, 4, 0, 3, 2, 5]), last(r).out);
+  t('拓扑序列 C2,C5,C1,C4,C3,C6（教材栈算法）', JSON.stringify(last(r).out) === JSON.stringify([1, 4, 0, 3, 2, 5]), last(r).out);
   t('全部 6 个顶点输出（无回路）', last(r).out.length === 6 && last(r).done === true);
-  const rc = M.topo.run({ cycle: true });
-  t('加入回路: C1 入度不再为 0，仅输出 C0、C2', JSON.stringify(last(rc).out) === JSON.stringify([0, 2]), last(rc).out);
-  t('加入回路: 判定存在回路、排序失败', !!rc.frames.find(f => (f.msg || '').indexOf('存在回路') >= 0));
+  const rc = run('cyc');
+  t('③有回路: 只输出 C1、C3，其余 4 个入度永远降不到 0', JSON.stringify(last(rc).out) === JSON.stringify([0, 2]), last(rc).out);
+  t('③有回路: 判定存在回路、排序失败，并报出"合法序列 0 个"',
+    /存在回路/.test(lastFrame(rc).msg) && /合法拓扑序列是 0 个/.test(lastFrame(rc).msg), lastFrame(rc).msg.slice(0, 80));
+
+  /* 独立穷举 6! 个数：模块里写的"合法序列个数"必须与它一致，否则就是编出来的宣传 */
+  const ARCS_PIN = {
+    text: [[0, 2], [0, 3], [1, 3], [1, 4], [2, 5], [4, 5]],
+    chain: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]],
+    cyc: [[0, 2], [0, 3], [1, 3], [1, 4], [2, 5], [4, 5], [5, 1]],
+    loose: [[0, 1], [1, 2], [2, 3]]
+  };
+  const ordersOf = arcs => {
+    let cnt = 0; const used = new Array(6).fill(false), p = [];
+    const ok = q => arcs.every(a => q.indexOf(a[0]) < q.indexOf(a[1]));
+    (function rec() {
+      if (p.length === 6) { if (ok(p)) cnt++; return; }
+      for (let i = 0; i < 6; i++) if (!used[i]) { used[i] = true; p.push(i); rec(); p.pop(); used[i] = false; }
+    })();
+    return cnt;
+  };
+  t('预置图: 四张的弧表都是字面值钉死的（不许悄悄加约束）',
+    KEYS.every(k => JSON.stringify(last(run(k)).arcs) === JSON.stringify(ARCS_PIN[k])),
+    KEYS.map(k => last(run(k)).arcs.length));
+  t('预置图: 四张都在下拉里，标签互不重复、编号 1~4 齐全',
+    safe(() => {
+      const inp = M.topo.inputs.filter(x => x.key === 'graph')[0];
+      return JSON.stringify(inp.options.map(o => o[0])) === JSON.stringify(KEYS) &&
+        new Set(inp.options.map(o => o[1])).size === 4 &&
+        [1, 2, 3, 4].every(n => inp.options.some(o => o[1].indexOf('①②③④'[n - 1]) === 0));
+    }), null);
+  t('预置图: 每张图首帧都先说清"这张要回答什么问题"（并报名用哪张图、哪种写法）',
+    KEYS.every(k => safe(() => {
+      const f = run(k).frames[0];
+      return /^第 [1-4] 张·/.test(f.msg) && f.msg.length > 40 &&
+        f.panel['图'] === M.topo.inputs[0].options.filter(o => o[0] === k)[0][1] &&
+        f.panel['写法'] === '正常（弹点 + 删弧）';
+    })), KEYS.map(k => safe(() => run(k).frames[0].msg.slice(0, 12))));
+  t('预置图: 每档末帧报的"合法序列个数"与穷举 720 种排列的结果一致（22/1/0/30）',
+    KEYS.every(k => safe(() => {
+      const n = ordersOf(ARCS_PIN[k]), f = lastFrame(run(k));
+      return n === ({ text: 22, chain: 1, cyc: 0, loose: 30 })[k] &&
+        (f.panel['合法序列总数'] === n + ' 个' || /合法拓扑序列是 ' + n + ' 个|一共有 ' + n + ' 个|唯一的/.test(f.msg));
+    })), KEYS.map(k => [k, ordersOf(ARCS_PIN[k]), lastFrame(run(k)).panel['合法序列总数']]));
+  t('预置图: ②那条链每一步栈里都恰好只有一个候选（所以序列必然唯一）',
+    safe(() => run('chain').frames.every(f => !f.snap.stack || f.snap.stack.length <= 1) &&
+      run('text').frames.some(f => f.snap.stack.length > 1)),
+    safe(() => run('chain').frames.map(f => f.snap.stack.length).join(',')));
+  t('预置图: ④那张一开始就有三个入度为 0 的自由点',
+    safe(() => Math.max.apply(null, run('loose').frames.map(f => f.snap.stack.length)) >= 3 &&
+      last(run('loose')).out.length === 6), safe(() => run('loose').frames.map(f => f.snap.stack.length).join(',')));
+  t('预置图: 错误写法（只弹点不删弧）在无环图上也"排不完"，并明说这不是有环',
+    KEYS.filter(k => k !== 'cyc').every(k => safe(() => {
+      const f = lastFrame(run(k, 'nodelete'));
+      return /✗/.test(f.msg) && /根本没有环/.test(f.msg) && /前提是删弧做对了/.test(f.msg) &&
+        last(run(k, 'nodelete')).out.length < 6;
+    })), KEYS.map(k => safe(() => [k, last(run(k, 'nodelete')).out.length, lastFrame(run(k, 'nodelete')).msg.slice(0, 30)])));
+  t('预置图: 错误写法不碰正常档——默认档逐帧与改造前同一序列',
+    safe(() => JSON.stringify(last(run('text', 'ok')).out) === JSON.stringify([1, 4, 0, 3, 2, 5]) &&
+      JSON.stringify(last(run('text')).out) === JSON.stringify(last(M.topo.run({})).out)), null);
+  t('预置图: 坐标按帧走（链那张的 C6 在 x=650，基准图里没有这个位置）',
+    safe(() => M.topo.render(last(run('chain'))).indexOf('cx="650"') >= 0 &&
+      M.topo.render(last(run('text'))).indexOf('cx="650"') < 0 &&
+      M.topo.render(last(run('loose'))).indexOf('cx="240"') >= 0), null);
 }
 
 console.log('— 第6章 图的基本概念 —');
@@ -1874,8 +2025,12 @@ const CASES = {
     treeConvert: [{}],
     threads: [{ data: 'GDA##FE###MH##Z##', phase: 'build' }, { data: 'GDA##FE###MH##Z##', phase: 'walk' }, { data: 'GDA##FE###MH##Z##', phase: 'all' }],
     critical: [{}],
-    topo: [{}, { cycle: true }],
-    floyd: [{}],
+    topo: [{ graph: 'text' }, { graph: 'chain' }, { graph: 'cyc' }, { graph: 'loose' },
+      { graph: 'text', mode: 'nodelete' }, { graph: 'chain', mode: 'nodelete' },
+      { graph: 'cyc', mode: 'nodelete' }, { graph: 'loose', mode: 'nodelete' }],
+    floyd: [{ graph: 'text' }, { graph: 'neg' }, { graph: 'cyc' }, { graph: 'disc' },
+      { graph: 'text', order: 'inner' }, { graph: 'neg', order: 'inner' },
+      { graph: 'cyc', order: 'inner' }, { graph: 'disc', order: 'inner' }],
     rbt: [
       { seq: '10,85,40,5,70,80,60,30,20,90', find: 60 },
       { seq: '1,2,3,4,5,6,7,8', find: 1 },
@@ -2011,6 +2166,41 @@ console.log('— 渲染烟测（每帧 render 不抛异常） —');
     });
   }
   t('用例表: 每一项都真的对得上输入项与选项值（没有跑不到的死用例）', dead.length === 0, dead.slice(0, 6));
+}
+
+/* 预置图模块的公共约定：凡是带「图」下拉的模块，首帧必须先说清这张图答什么问题、
+   并报名用的是哪一张。mst / Dijkstra / Floyd / topo 四个都守这条，新增第五个也必须守。 */
+{
+  const bad = [];
+  DSC.mods.forEach(m => {
+    const gi = (m.inputs || []).filter(x => x.key === 'graph' && x.type === 'select')[0];
+    if (!gi) return;
+    const def = {};
+    (m.inputs || []).forEach(s => { def[s.key] = s.type === 'checkbox' ? !!s.value : s.value; });
+    const sigs = new Set();
+    gi.options.forEach(o => {
+      let r;
+      try { r = m.run(Object.assign({}, def, { graph: o[0] })); } catch (e) { bad.push(m.id + '.' + o[0] + ' 跑不出来 ' + e.message); return; }
+      const f = r.frames[0];
+      if (!/^第 \d+ 张·/.test(String(f.msg))) bad.push(m.id + '.' + o[0] + ' 首帧没说"第几张·答什么问题" → ' + String(f.msg).slice(0, 22));
+      if (f.panel['图'] !== o[1]) bad.push(m.id + '.' + o[0] + ' 首帧报名与下拉标签不符 → ' + JSON.stringify(f.panel['图']));
+      const sn = r.frames[r.frames.length - 1].snap;
+      sigs.add(JSON.stringify(sn.arcs || sn.E || null));
+    });
+    if (gi.options.length > 1 && sigs.size < 2) bad.push(m.id + ' 各档的边表是同一份数据（差异没落到数据层）');
+  });
+  t('预置图约定: 带「图」下拉的模块，每张图首帧都报名并说清答什么', bad.length === 0, bad.slice(0, 6));
+}
+
+/* 标签不是写说明的地方：手机上 .inp 是一整行 nowrap，一条 28 全角的句子会把整格顶出视口
+   （graphBasic 的边表标签原先就是 28.3 全角）。上限 20 全角 ≈ 282px，剩下的宽度留给控件。 */
+{
+  const units = t2 => [...String(t2)].reduce((a, c) => a + (/[\x00-\xff]/.test(c) ? 0.52 : 1), 0);
+  const long = [];
+  DSC.mods.forEach(m => (m.inputs || []).forEach(s => {
+    if (units(s.label) > 20) long.push(m.id + '.' + s.key + ' = ' + units(s.label).toFixed(1) + ' 全角「' + s.label + '」');
+  }));
+  t('全部模块: 输入项标签不写整句话（≤20 全角）', long.length === 0, long.slice(0, 4));
 }
 
 console.log('— 代码行高亮：下标必须合法，且指到正在执行的那条语句 —');

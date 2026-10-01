@@ -74,7 +74,7 @@
         ], value: 'qpop'
       },
       { key: 'seq', label: '元素序列（逗号分隔，1~6 个）', type: 'text', value: 'A,B,C,D,E' },
-      { key: 'badRear', label: '出队不写"最后一个结点"特判（演示 rear 悬空）', type: 'checkbox', value: false }
+      { key: 'badRear', label: '错误演示：漏掉 rear 特判', type: 'checkbox', value: false }
     ],
 
     run: function (v) {
