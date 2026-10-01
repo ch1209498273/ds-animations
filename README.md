@@ -1,9 +1,9 @@
 <div align="center">
   <img src="assets/banner.png" alt="《数据结构》互动课件" width="100%">
 
-  ![版本](https://img.shields.io/badge/版本-v3.11-2b6cb0) ![动画](https://img.shields.io/badge/算法动画-59个-2f855a) ![覆盖](https://img.shields.io/badge/覆盖-全部8章·对齐408考纲-c05621) ![测试](https://img.shields.io/badge/正确性断言-715项通过-553c9a) ![依赖](https://img.shields.io/badge/依赖-零·单文件-4a5568)
+  ![版本](https://img.shields.io/badge/版本-v3.12-2b6cb0) ![动画](https://img.shields.io/badge/算法动画-59个-2f855a) ![覆盖](https://img.shields.io/badge/覆盖-全部8章·对齐408考纲-c05621) ![测试](https://img.shields.io/badge/正确性断言-732项通过-553c9a) ![依赖](https://img.shields.io/badge/依赖-零·单文件-4a5568)
 
-  **[▶ 在线打开（点开就用）](https://ch1209498273.github.io/ds-animations/) ｜ [⬇ 下载单文件 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.11.zip)**
+  **[▶ 在线打开（点开就用）](https://ch1209498273.github.io/ds-animations/) ｜ [⬇ 下载单文件 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.12.zip)**
 
   © 2026 **芦老师聊AI** · 版权归芦老师聊AI所有，未经授权不得商用
 
@@ -55,7 +55,7 @@
 **第3章 栈和队列**：顺序栈 · 链栈与链队列（rear 的"最后一个结点"特判） · 递归调用栈·汉诺塔 · 假溢出与循环队列（四方案） · 括号匹配 · 表达式求值（双栈法） · **中缀转后缀与后缀求值** · 数制转换 · 迷宫求解
 **第4章 串和数组**：模式匹配 BF/KMP（next 数组） · 矩阵压缩存储（对称映射 + 快速转置） · **广义表**（三域结点、表头/表尾/长度/深度）
 **第5章 树和二叉树**：**树的三种存储结构**（双亲/孩子/孩子兄弟） · **二叉树的顺序存储与主要特性** · 四种遍历 · 中序线索二叉树 · 树/森林与二叉树转换 · 哈夫曼树与编码/译码 · **优先队列与堆**（建堆下沉、动态插入、Top-K） · 并查集（按大小合并 + 路径压缩）
-**第6章 图**：**图的基本概念**（无向度/握手定理、有向入出度、连通分量、强连通分量，四场景可自定义边表） · **邻接多重表与十字链表** · DFS/BFS · **Prim/Kruskal 最小生成树**（五张预置图各答一个问题：并列权时树不唯一、稀疏图零丢弃、K5 必须判环） · Dijkstra · Floyd · 拓扑排序（含回路检测） · 关键路径
+**第6章 图**：**图的基本概念**（无向度/握手定理、有向入出度、连通分量、强连通分量，四场景可自定义边表） · **邻接多重表与十字链表** · DFS/BFS · **Prim/Kruskal 最小生成树**（五张预置图各答一个问题：并列权时树不唯一、稀疏图零丢弃、K5 必须判环） · **Dijkstra**（同样五张图：并列最短路只记一条、同一个点的 D 被改三次、非连通留两个 ∞、负权反例） · Floyd · 拓扑排序（含回路检测） · 关键路径
 **第7章 查找**：顺序/折半查找（判定树 + ASL） · 分块查找 · 二叉排序树 · AVL 四种旋转 · **B 树与 B+ 树**（插入分裂、查找路径、**删除的借位与合并**、B+ 叶子链表） · 哈希·线性探测 · 哈希·链地址 · **红黑树**（插入 + 五条性质逐帧重算）
 **第8章 排序**：直接插入（含折半） · 希尔 · 冒泡 · 快速 · 直接选择 · 堆排序 · 归并 · 基数 · **计数排序与桶排序**（不比大小的线性时间排序） · **外部排序**（归并段生成、置换-选择、⌈log_k m⌉ 趟） · 八大排序总览对比（本章收尾）
 
@@ -65,15 +65,15 @@
 
 **方式一 · 在线用**：打开 [ch1209498273.github.io/ds-animations](https://ch1209498273.github.io/ds-animations/)，点开即用。
 
-**方式二 · 本地用（推荐课堂场景）**：[下载 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.11.zip)，解压双击 `数据结构互动课件.html`——不联网、不装任何环境，教室机也能跑。
+**方式二 · 本地用（推荐课堂场景）**：[下载 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.12.zip)，解压双击 `数据结构互动课件.html`——不联网、不装任何环境，教室机也能跑。
 
 **方式三 · 开发者**：
 
 ```bash
 git clone https://github.com/ch1209498273/ds-animations.git
 # 双击 index.html 即可使用；改源码后运行 python src/build.py 重新构建
-node tests/test.js   # 715 项正确性断言 + 85 项手机视口卡口
-node tests/uat.js    # 53 项全量功能实测：265 组输入、约 5770 帧（排序模块带随机数据，逐次略有出入） + 浏览器里真点 42 项 + 对外数字核对（需 Chrome）
+node tests/test.js   # 732 项正确性断言 + 100 项手机视口卡口
+node tests/uat.js    # 53 项全量功能实测：269 组输入、约 5840 帧（排序模块带随机数据，逐次略有出入） + 浏览器里真点 42 项 + 对外数字核对（需 Chrome）
 ```
 
 ## 架构与实现
@@ -89,7 +89,7 @@ node tests/uat.js    # 53 项全量功能实测：265 组输入、约 5770 帧�
 
 ## 正确性保障
 
-`tests/test.js` 内置 **715 项断言**（外加 85 项手机视口/放映实测）（GitHub Actions 每次推送自动执行），与教材/PPT 例题逐一对拍，例如：
+`tests/test.js` 内置 **732 项断言**（外加 100 项手机视口/放映实测）（GitHub Actions 每次推送自动执行），与教材/PPT 例题逐一对拍，例如：
 
 - 排序：教材例 `{49,38,65,97,76,13,27,49*}` 每一趟结果（插入/希尔/冒泡/快排/选择/堆/归并逐趟对拍），基数排序三趟收集结果与教材一致
 - 查找：折半判定树路径 `6→3→4`；哈希线性探测终表与教材一致、ASL=1.80；链地址 ASL=1.50
@@ -106,7 +106,7 @@ node tests/uat.js    # 53 项全量功能实测：265 组输入、约 5770 帧�
 ## 常见问题
 
 **Q：github.io 打不开 / 很慢？**
-国内访问 GitHub Pages 不稳定。下载 zip（[仓库内直链](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.11.zip)），解压双击打开，体验完全一致。
+国内访问 GitHub Pages 不稳定。下载 zip（[仓库内直链](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.12.zip)），解压双击打开，体验完全一致。
 
 **Q：手机上能用吗？**
 能用，推荐 **⛶ 手机放映**（v2.6）：只留画面，左右缘 ‹ › 箭头翻页，画面严格铺满窗口不用拖动，竖屏进入自动转成横屏，右上角 ✕ 退出，`&mp=1` 深链可分享。
@@ -122,7 +122,7 @@ iframe 引用在线地址即可，目录页可一键复制任意动画的深链�
 
 - 发现演示错误、文字错误 → [提 Issue](../../issues/new?template=bug_report.md)
 - 想要新动画（红黑树、B 树删除、串的其他算法等）→ [动画许愿](../../issues/new?template=feature_request.md)
-- PR 欢迎：改完跑 `node tests/test.js` 保证 715 项全绿；动到外壳交互再加跑 `node tests/uat.js`（53 项）
+- PR 欢迎：改完跑 `node tests/test.js` 保证 732 项全绿；动到外壳交互再加跑 `node tests/uat.js`（53 项）
 
 ## 声明
 

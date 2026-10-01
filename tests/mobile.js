@@ -24,15 +24,48 @@ if (!fs.existsSync(dist)) { console.log('  (跳过: 无 dist 构建产物，手�
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'dscmob-'));
 fs.copyFileSync(dist, path.join(tmp, 'm.html'));
 
-/* 量测用独立的临时 --user-data-dir，跑完随 tmp 一起删；绝不碰真实浏览器配置 */
-const PROFILE = path.join(tmp, 'chrome-profile');
+/* 配置档固定复用、跑完不删。每次新建 profile 起 Chrome 会在本机留一条 4625 失败登录，
+   攒够 10 次就锁本机账户（2026-09-27 用 Windows Security 日志与调用时间线对齐证实；
+   2026-10-01 实测复用同一目录起 7 次，4625 归零）。这是独立的临时目录，不碰真实浏览器配置。
+   与 uat.js 各用一个目录，是为了两个脚本同时跑时不抢同一个 Chrome 实例。 */
+const PROFILE = path.join(os.tmpdir(), 'dsc-profile-mobile');
+if (!fs.existsSync(PROFILE)) fs.mkdirSync(PROFILE, { recursive: true });
+const NOOUT = '探针无输出（配置档可能被占用：删掉 ' + PROFILE + ' 再试）';
 
-const PROBE = `
+/* 越界判定：可点元素的右缘出了视口，就意味着下拉箭头被裁掉。
+   注意要放过"本来就横向滚动"的那一排——章节条与模块条在手机上就是 overflow-x:auto 的横条，
+   里面的药丸超出视口是设计，不是缺陷。
+   容差 2px：graphBasic 的边表标签是一句 30 字的话，nowrap 下整格 391.4px，
+   只贴边 1.4px、箭头无碍；真出问题的量级是 dsConcepts 那种 412px（箭头整个没了）。 */
+const OFFFN = `
+function offcheck(d, w) {
+  function inScroller(e) {
+    for (var p = e.parentElement; p; p = p.parentElement) {
+      var cs = w.getComputedStyle(p);
+      if (/(auto|scroll)/.test(cs.overflowX) && p.scrollWidth > p.clientWidth + 1) return true;
+    }
+    return false;
+  }
+  var off = [];
+  d.querySelectorAll('button,a,select,input,[role=button]').forEach(function (e) {
+    var r = e.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) return;
+    if (r.right > w.innerWidth + 2 || r.left < -2) {
+      if (inScroller(e)) return;
+      off.push((e.id || e.className || e.tagName) + '→' + Math.round(r.right) + '>' + w.innerWidth);
+    }
+  });
+  return off;
+}
+`;
+
+const PROBE = OFFFN + `
 setTimeout(function () {
   var d = f.contentDocument, w = f.contentWindow, o = {};
   var de = d.documentElement;
   o.vw = w.innerWidth; o.vh = w.innerHeight;
   o.hOverflow = de.scrollWidth - de.clientWidth;
+  o.off = offcheck(d, w); o.offCount = o.off.length; o.offSample = o.off.slice(0, 3);
   var st = d.getElementById('stage');
   if (st) { var r = st.getBoundingClientRect(); o.stage = [Math.round(r.width), Math.round(r.height)]; }
   var cv = d.getElementById('canvas');
@@ -130,9 +163,10 @@ const VIEWS = [['目录页', ''], ['堆排序', '#m=heapSort'], ['顺序表', '#
   ['广义表', '#m=glist'], ['链表三道题', '#m=linkProblems']];
 VIEWS.forEach(function (v) {
   const o = measure(v[1]);
-  if (!o) { t('手机视口 ' + v[0] + ': 量测成功', false, '探针无输出'); return; }
+  if (!o) { t('手机视口 ' + v[0] + ': 量测成功', false, NOOUT); return; }
   t('手机视口 ' + v[0] + ': 无横向溢出', o.hOverflow === 0, o.hOverflow);
   t('手机视口 ' + v[0] + ': 可点元素全部 ≥44px', o.smallCount === 0, o.smallSample);
+  t('手机视口 ' + v[0] + ': 没有可点元素越出视口（下拉箭头不被裁）', o.offCount === 0, o.offSample);
   t('手机视口 ' + v[0] + ': 舞台高度 ≥45% 视口', o.stage && o.stage[1] >= Math.round(o.vh * 0.45), o.stage);
   t('手机视口 ' + v[0] + ': 页头 ≤100px', o.header <= 100, o.header);
   if (o.codeOverflow !== undefined) {
@@ -147,11 +181,12 @@ VIEWS.forEach(function (v) {
 [['堆排序', '#m=heapSort&mp=1'], ['循环队列', '#m=circQueue&mp=1'], ['Dijkstra', '#m=dijkstra&mp=1'],
   ['B+ 树', '#m=btree&mp=1'], ['链表三道题', '#m=linkProblems&mp=1']].forEach(function (v) {
   const o = measure(v[1], 844, 390);
-  if (!o) { t('手机放映 ' + v[0] + ': 量测成功', false, '探针无输出'); return; }
+  if (!o) { t('手机放映 ' + v[0] + ': 量测成功', false, NOOUT); return; }
   t('手机放映 ' + v[0] + ': 画布完整落在窗口内（不需拖动）', o.canvasFits === true, { fits: o.canvasFits, stage: o.stage });
   t('手机放映 ' + v[0] + ': 画布最小字号 ≥5px', o.effMinPx >= 5, o.effMinPx);
   t('手机放映 ' + v[0] + ': 无横向溢出', o.hOverflow === 0, o.hOverflow);
   t('手机放映 ' + v[0] + ': 可点元素 ≥44px', o.smallCount === 0, o.smallSample);
+  t('手机放映 ' + v[0] + ': 没有可点元素越出视口（下拉箭头不被裁）', o.offCount === 0, o.offSample);
   const flat = o.mpEls && Object.keys(o.mpEls).filter(k => !o.mpEls[k] || o.mpEls[k][0] < 8 || o.mpEls[k][1] < 8);
   t('手机放映 ' + v[0] + ': 箭头/解说条/帧号/退出 都已布局', flat && flat.length === 0,
     { els: o.mpEls, counter: o.mpCounterText });
@@ -210,7 +245,7 @@ function measureCatalog(hash) {
 
 {
   const o = measureCatalog('#m=heapSort');
-  if (!o) t('目录页: 量测成功', false, '探针无输出');
+  if (!o) t('目录页: 量测成功', false, NOOUT);
   else {
     t('目录页: 默认不超 1.5 屏', o.screens <= 1.5, o.screens);
   t('目录页: 抽屉不超出视口宽度', o.fitsViewport === true, { drawerW: o.drawerW });
@@ -267,7 +302,7 @@ function measureGuide() {
 
 {
   const o = measureGuide();
-  if (!o) t('引导: 量测成功', false, '探针无输出');
+  if (!o) t('引导: 量测成功', false, NOOUT);
   else {
     t('引导: 打开动画时默认收起（不弹卡）', o.closed.hidden === true, o.closed);
     t('引导: 点「? 引导」能展开', o.open.hidden === false && o.open.guideW > 200, o.open);
@@ -327,11 +362,66 @@ function sweepAll() {
 
 {
   const o = sweepAll();
-  if (!o) t('全模块出帧: 量测成功', false, '探针无输出');
+  if (!o) t('全模块出帧: 量测成功', false, NOOUT);
   else {
     t('全模块出帧: 每个模块都走了一遍', o.n === o.total, { n: o.n, total: o.total });
     t('全模块出帧: 默认输入下都有帧、画布都有 svg、且不报输入有误', o.bad.length === 0, o.bad);
     t('全模块出帧: 每个模块标题下都有一句常驻的"在讲什么"', (o.noAim || []).length === 0, o.noAim);
+  }
+}
+
+/* 全模块手机屏走查：一次启动把 59 个模块逐个切到 390px 视口里量一遍。
+   为什么必须"全模块"而不是挑几个：dsConcepts 与 radixSort 的下拉把整格撑到 391/384px、
+   右缘到了 412/405px，而 body/.card 的 overflow:hidden 把溢出裁掉了——
+   于是"整页无横向溢出"这条恒真，看不见的是下拉箭头被切掉，
+   而这两个模块恰好都不在早先那 7 个竖屏样本里。 */
+const SWEEP_PHONE = OFFFN + `
+setTimeout(function () {
+  var w = f.contentWindow, d = f.contentDocument;
+  var ids = w.DSC.mods.map(function (m) { return m.id; });
+  var off = [], wide = [], n = 0;
+  function step(i) {
+    if (i >= ids.length) {
+      var el = document.createElement('pre'); el.id = 'out';
+      el.textContent = 'PROBE:' + JSON.stringify({ n: n, total: ids.length, off: off, wide: wide });
+      document.body.appendChild(el);
+      return;
+    }
+    w.location.hash = '#m=' + ids[i];
+    setTimeout(function () {
+      n++;
+      var de = d.documentElement, ho = de.scrollWidth - de.clientWidth;
+      if (ho > 0) wide.push(ids[i] + ' 整页横向溢出 ' + ho + 'px');
+      var o = offcheck(d, w);
+      if (o.length) off.push(ids[i] + ' | ' + o.slice(0, 2).join(' , '));
+      step(i + 1);
+    }, 200);
+  }
+  step(0);
+}, 1800);
+`;
+
+function sweepPhone() {
+  const html = '<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0}iframe{border:0;width:390px;height:844px}</style></head><body>' +
+    '<iframe id="f" src="m.html"></iframe>' +
+    '<script>var f=document.getElementById("f");' + SWEEP_PHONE + '<\/script></body></html>';
+  const hp = path.join(tmp, 'phone.html');
+  fs.writeFileSync(hp, html, 'utf8');
+  const r = cp.spawnSync(edge, ['--headless=new', '--disable-gpu', '--user-data-dir=' + PROFILE,
+    '--allow-file-access-from-files', '--hide-scrollbars', '--window-size=500,900',
+    '--virtual-time-budget=45000', '--dump-dom', 'file:///' + hp.replace(/\\/g, '/')],
+  { encoding: 'utf8', timeout: 180000 });
+  const m = /PROBE:(\{[^<]*)/.exec(r.stdout || '');
+  return m ? JSON.parse(m[1]) : null;
+}
+
+{
+  const o = sweepPhone();
+  if (!o) t('全模块手机屏: 量测成功', false, NOOUT);
+  else {
+    t('全模块手机屏: 每个模块都切了一遍', o.n === o.total, { n: o.n, total: o.total });
+    t('全模块手机屏: 没有模块把整页撑出横向溢出', o.wide.length === 0, o.wide);
+    t('全模块手机屏: 没有模块的可点元素越出 390px 视口', o.off.length === 0, o.off);
   }
 }
 

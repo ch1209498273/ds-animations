@@ -68,6 +68,12 @@ else {
   fs.copyFileSync(dist, path.join(tmp, 'u.html'));
   const PROBE = fs.readFileSync(path.join(__dirname, 'uat_probe.js'), 'utf8');
 
+  /* 配置档固定复用、跑完不删：每次新建 profile 起 Chrome 会在本机留一条 4625 失败登录，
+     攒够 10 次锁本机账户（2026-09-27 日志证实）。与 mobile.js 分开一个目录，
+     避免两个脚本同时跑时抢同一个 Chrome 实例。 */
+  const PROFILE = path.join(os.tmpdir(), 'dsc-profile-uat');
+  if (!fs.existsSync(PROFILE)) fs.mkdirSync(PROFILE, { recursive: true });
+
   const html = '<!doctype html><html><head><meta charset="utf-8">' +
     '<style>html,body{margin:0;background:#888}iframe{border:0;background:#fff}</style></head><body>' +
     '<iframe id="f" src="u.html" style="width:1360px;height:840px"></iframe>' +
@@ -75,11 +81,11 @@ else {
   const hp = path.join(tmp, 'uat.html');
   fs.writeFileSync(hp, html, 'utf8');
   const r = cp.spawnSync(CHROME, ['--headless=new', '--disable-gpu', '--no-sandbox',
-    '--user-data-dir=' + path.join(tmp, 'profile'), '--allow-file-access-from-files',
+    '--user-data-dir=' + PROFILE, '--allow-file-access-from-files',
     '--hide-scrollbars', '--window-size=1400,900', '--virtual-time-budget=90000',
     '--dump-dom', 'file:///' + hp.replace(/\\/g, '/')], { encoding: 'utf8', timeout: 180000 });
   const m = /UAT:(\[[\s\S]*?\])<\/pre>/.exec(r.stdout || '');
-  if (!m) { t('B: 探针跑完并交回结果', false, '无输出（Chrome 可能超时）'); }
+  if (!m) { t('B: 探针跑完并交回结果', false, '无输出（Chrome 可能超时；或配置档被占用，删掉 ' + PROFILE + ' 再试）'); }
   else {
     const rows = JSON.parse(m[1]);
     t('B: 探针全程未中断（无「探针异常中断」）', !rows.some(x => x.n === '探针异常中断'), rows.filter(x => x.n === '探针异常中断').map(x => x.x));
@@ -96,7 +102,7 @@ console.log('\n— C 对外数字一致性 —');
   const rel = rd('gitee-pages/src/build.py');
   const ver = (rel.match(/VER = '([^']+)'/) || [])[1] || '?';
   t('C: README 版本徽标与 build.py 的 VER 一致', readme.includes('版本-' + ver) && readme.includes('ds-animations-' + ver + '.zip'), { ver: ver });
-  t('C: README 声明的断言数与实跑一致（715 + 85）', /715 项正确性断言 \+ 85 项手机视口卡口/.test(readme));
+  t('C: README 声明的断言数与实跑一致（732 + 100）', /732 项正确性断言 \+ 100 项手机视口卡口/.test(readme));
   t('C: README 动画数是 59（不是历史值 58）', /算法动画-59个/.test(readme) && /## 59 个动画目录/.test(readme));
   t('C: 使用说明的版本号跟上了', guide.includes(ver) && guide.includes('共 59 个交互动画'), ver);
   t('C: zip 里的版权页版本号跟上了', notice.includes(ver) && notice.includes('59 个动画'), ver);

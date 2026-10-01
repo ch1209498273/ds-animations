@@ -1,13 +1,44 @@
 /* 动画10：Dijkstra 单源最短路径（教材经典数据：6顶点，v0出发 D=[0,∞,10,50,30,60]） */
 (function () {
   var DSC = window.DSC, h = DSC.h, C = DSC.C;
+  /* 五张预置图一律 6 个顶点（0~5）：源点下拉是静态的，改某张图的点数会让"源点 v5"失效 */
   var N = 6;
-  var ARCS = [[0, 2, 10], [0, 4, 30], [0, 5, 100], [1, 2, 5], [2, 3, 50], [3, 5, 10], [4, 3, 20], [4, 5, 60]];
-  var POS = { 0: [90, 300], 1: [280, 105], 2: [280, 495], 4: [470, 105], 3: [470, 495], 5: [615, 300] };
-  var ADJ = {};
-  for (var i = 0; i < N; i++) ADJ[i] = [];
-  ARCS.forEach(function (a) { ADJ[a[0]].push([a[1], a[2]]); });
-  Object.keys(ADJ).forEach(function (k) { ADJ[k].sort(function (a, b) { return a[0] - b[0]; }); });
+  var TEXT_ARCS = [[0, 2, 10], [0, 4, 30], [0, 5, 100], [1, 2, 5], [2, 3, 50], [3, 5, 10], [4, 3, 20], [4, 5, 60]];
+  var TEXT_POS = { 0: [90, 300], 1: [280, 105], 2: [280, 495], 4: [470, 105], 3: [470, 495], 5: [615, 300] };
+  var TIE_ARCS = [[0, 1, 2], [1, 4, 4], [0, 2, 3], [2, 4, 3], [0, 3, 5], [3, 4, 1], [4, 5, 2]];
+  var TIE_POS = { 0: [90, 300], 1: [280, 110], 3: [280, 300], 2: [280, 490], 4: [470, 300], 5: [615, 300] };
+  var RELAX_ARCS = [[0, 1, 5], [0, 2, 9], [0, 4, 11], [1, 3, 12], [2, 3, 4], [4, 3, 1], [3, 5, 3]];
+  var RELAX_POS = { 0: [110, 300], 1: [300, 130], 2: [300, 470], 4: [480, 470], 3: [480, 130], 5: [640, 300] };
+  var ISLAND_ARCS = [[0, 1, 4], [1, 3, 6], [3, 5, 2], [2, 4, 5], [4, 1, 3]];
+  var ISLAND_POS = { 0: [110, 160], 1: [300, 160], 3: [490, 160], 5: [630, 160], 2: [300, 430], 4: [490, 430] };
+
+  var PRESETS = {
+    text: {
+      label: '① 教材图（基准，8 条弧）', arcs: TEXT_ARCS, pos: TEXT_POS,
+      teach: '第 1 张·基准：教材那张 6 顶点 8 弧的有向网。这一张只看一件事——**每轮在 V−S 里挑 D 最小的点定死**，再用它松弛出弧。注意 v1 从 v0 走不到，D 恒为 ∞。'
+    },
+    tie: {
+      label: '② 并列最短路：距离唯一、路径不唯一', arcs: TIE_ARCS, pos: TIE_POS,
+      teach: '第 2 张·路径不唯一：v0 到 v4 有三条路可走——经 v1 是 2+4，经 v2 是 3+3，经 v3 是 5+1，**三条都等于 6**。' +
+        '距离只有一个答案，可松弛用的是严格小于 `nd < D[w]`，后面两条并列的都会被"不更新"挡下，Path 里只留得下第一条；' +
+        'v5 只能经 v4 走，于是也跟着不唯一。问"最短路径是哪条"，其实是在问一条不止一条的路。'
+    },
+    relax: {
+      label: '③ 反复松弛：D 会变，定死之后不再变', arcs: RELAX_ARCS, pos: RELAX_POS,
+      teach: '第 3 张·为什么 D 会改：盯住 v3 那一格。它先被 v1 松弛成 17，再被 v2 松弛成 13，最后被 v4 松弛成 12——**同一个点的 D 一共改了三次**。' +
+        '可一旦某个点并入 S（变绿），它的 D 就再也不动：这就是 Dijkstra 的贪心假设。'
+    },
+    island: {
+      label: '④ 非连通：两个点永远走不到', arcs: ISLAND_ARCS, pos: ISLAND_POS,
+      teach: '第 4 张·图不连通会怎样：v2 和 v4 从源点根本到不了（进去的弧只有它们彼此之间那一条）。算法**不会崩**，' +
+        '只是跑完 S 填不满 6 个点、D 表里留着两个 ∞，还会提前收场。"最短路径"这个说法只对可达的点成立。'
+    },
+    neg: {
+      label: '⑤ 错误演示：加一条负权弧 v5→v2（−60）', arcs: TEXT_ARCS.concat([[5, 2, -60]]), pos: TEXT_POS,
+      teach: '第 5 张·负权反例：还是教材那张图，只多一条 v5→v2 的 **−60**。' +
+        '注意回路 v2→v3→v5→v2 的权值和恰好是 0（50+10−60），**图里没有负环、真实最短路是存在的**——错只错在"先定死就不再改"这条贪心假设。'
+    }
+  };
 
   var CODE = [
     'void ShortestPath_DIJ(AMGraph G, int v0) {',
@@ -37,20 +68,27 @@
     guide: [
       '每轮先在 V−S 中比较 D 值选最小者（消息里列出比较过程），其最短路径就此确定',
       '随后松弛该点的每条出弧：经它中转更短就更新 D 和 Path',
-      '右侧表格：绿色=已确定（在 S 中），黄色=本步更新；绿边构成从源点出发的最短路径树（v1 不可达不在树中——注意它≠最小生成树）',
-      '注意：Dijkstra 不适用于带负权边的图',
-      '勾"错误演示"：加一条 -60 的负权弧 v5→v2，看贪心怎样把更短的路径永久错过'
+      '右侧表格：绿色=已确定（在 S 中），黄色=本步更新；绿边构成从源点出发的最短路径树',
+      '「图」下拉五张预置图各答一个问题：①基准 ②并列最短路（距离唯一、路径不唯一）③同一个点的 D 被改三次 ④非连通（两个点永远 ∞）',
+      '⑤是错误演示：加一条 −60 的负权弧，看贪心怎样把更短的路径永久错过——注意图里没有负环，真实最短路是存在的'
     ],
     inputs: [
       { key: 'start', label: '源点 v0', type: 'select', options: [['0', 'v0'], ['1', 'v1'], ['2', 'v2'], ['3', 'v3'], ['4', 'v4'], ['5', 'v5']], value: '0' },
-      { key: 'negW', label: '错误演示：加一条负权弧 v5→v2（-60）', type: 'checkbox', value: false }
+      { key: 'graph', label: '图', type: 'select', options: [
+        ['text', PRESETS.text.label], ['tie', PRESETS.tie.label], ['relax', PRESETS.relax.label],
+        ['island', PRESETS.island.label], ['neg', PRESETS.neg.label]
+      ], value: 'text' }
     ],
     run: function (v) {
       var v0 = +v.start;
-      var negW = !!v.negW;
+      var pre = PRESETS[v.graph] || PRESETS.text;
+      /* 弧表与坐标都换成本次运行的局部量：切了图就不能再吃上一张的数据 */
+      var ARCS = pre.arcs.map(function (a) { return a.slice(); });
+      var POS = pre.pos;
+      var negW = v.graph === 'neg';
       /* 负权演示用的反例：v2→v3→v5→v2 这条回路权重恰好是 0（50+10-60），
          所以图里没有负环、真实最短路是良定义的——错只错在 Dijkstra 的贪心假设 */
-      var arcs = negW ? ARCS.concat([[5, 2, -60]]) : ARCS;
+      var arcs = ARCS;
       var adj = {};
       for (var ai = 0; ai < N; ai++) adj[ai] = [];
       arcs.forEach(function (a) { adj[a[0]].push([a[1], a[2]]); });
@@ -66,7 +104,7 @@
         o.S = Object.keys(S).map(Number); o.D = D.slice(); o.Path = Path.slice();
         o.arcs = arcs;
         o.hlEdge = o.hlEdge || null; o.hlV = o.hlV == null ? null : o.hlV;
-        o.relaxCell = o.relaxCell || null; o.v0 = v0; o.N = N; o.done = !!o.done;
+        o.relaxCell = o.relaxCell || null; o.v0 = v0; o.N = N; o.done = !!o.done; o.pos = POS;
         o.treeEdges = [];
         for (var t = 0; t < N; t++) if (Path[t] >= 0 && S[t]) o.treeEdges.push([Path[t], t]);
         return o;
@@ -87,6 +125,8 @@
         return 'v' + seq.join(' → v');
       }
 
+      /* 首帧先说清这张图答什么问题（mst 那轮定的规矩），再进算法初始化 */
+      F([0], pre.teach, { 图: pre.label, 源点: 'v' + v0, 顶点数: N + ' 个', 弧数: arcs.length + ' 条' }, snap({}));
       F([2, 3, 4], '初始化：源点 v' + v0 + '。D[v] = v0 到 v 的直达弧权（无弧记 ∞），Path[v] 记录前驱。', dPanel(), snap({}));
       S[v0] = true;
       F(6, 'S[v0] = true：源点并入 S，D[v0] = 0。S 中的顶点 = 已确定最短路径的顶点。', dPanel(), snap({ hlV: v0 }));
@@ -152,10 +192,11 @@
     },
     render: function (s) {
       var W = 980, H = 620, r = 26;
+      var POS = s.pos;                       /* 画面只认这一帧的这张图 */
       var g = '';
       g += h.txt(430, 32, 'Dijkstra：求 v' + s.v0 + ' 到其余各顶点的最短路径', { size: 19, w: 600 });
-      // 有向弧（错误演示会多一条负权弧，所以按本帧的弧表画）
-      (s.arcs || ARCS).forEach(function (a) {
+      // 有向弧（负权那一档多一条弧，所以按本帧的弧表画）
+      (s.arcs || []).forEach(function (a) {
         var A = POS[a[0]], B = POS[a[1]];
         var dx = B[0] - A[0], dy = B[1] - A[1], L = Math.sqrt(dx * dx + dy * dy) || 1;
         var x1 = A[0] + dx / L * r, y1 = A[1] + dy / L * r, x2 = B[0] - dx / L * r, y2 = B[1] - dy / L * r;

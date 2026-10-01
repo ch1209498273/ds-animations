@@ -646,6 +646,9 @@ console.log('— 第6章 最小生成树：五张预置图（每张答一个问�
 
 console.log('— 第6章 Dijkstra —');
 {
+  const KEYS = ['text', 'tie', 'relax', 'island', 'neg'];
+  const run = (g, st) => M.dijkstra.run({ start: String(st == null ? 0 : st), graph: g });
+  const safe = fn => { try { return !!fn(); } catch (e) { return false; } };
   const r = M.dijkstra.run({ start: '0' });
   const s = last(r);
   const INF = Infinity;
@@ -655,19 +658,123 @@ console.log('— 第6章 Dijkstra —');
   const r2 = M.dijkstra.run({ start: '1' });
   const s2 = last(r2);
   t('源点 v1: D=[∞,0,5,55,∞,65] (v0,v4不可达)', JSON.stringify(s2.D.map(x => x === INF ? '∞' : x)) === JSON.stringify(['∞', 0, 5, 55, '∞', 65]), s2.D);
-  /* B2 错误演示：加一条 -60 的负权弧 v5→v2。回路 v2→v3→v5→v2 权重恰好 50+10-60=0，
+
+  /* 五张预置图：每张只回答一个问题。对拍用的"真实答案"在这里独立写一遍 Bellman-Ford，
+     不借模块里的任何代码——否则等于拿模块自己的实现验它自己 */
+  const bf = (arcs, v0) => {
+    const D = new Array(6).fill(INF);
+    D[v0] = 0;
+    for (let it = 0; it < 5; it++) arcs.forEach(a => { if (D[a[0]] < INF && D[a[0]] + a[2] < D[a[1]]) D[a[1]] = D[a[0]] + a[2]; });
+    return D;
+  };
+  /* 按 Path 回溯：路径必须真的存在于弧表里，且权值和恰好等于 D */
+  const chainOK = snap => {
+    for (let x = 0; x < 6; x++) {
+      if (snap.D[x] === INF) { if (snap.Path[x] !== -1) return false; continue; }
+      if (x === snap.v0) continue;
+      let cur = x, sum = 0, guard = 0;
+      while (cur !== snap.v0) {
+        if (++guard > 6 || snap.Path[cur] < 0) return false;
+        const p = snap.Path[cur];
+        const arc = snap.arcs.filter(a => a[0] === p && a[1] === cur)[0];
+        if (!arc) return false;
+        sum += arc[2]; cur = p;
+      }
+      if (sum !== snap.D[x]) return false;
+    }
+    return true;
+  };
+  const TEXT_ARCS_PIN = [[0, 2, 10], [0, 4, 30], [0, 5, 100], [1, 2, 5], [2, 3, 50], [3, 5, 10], [4, 3, 20], [4, 5, 60]];
+  t('预置图: 默认档就是教材那 8 条弧（字面值钉死，不许悄悄加弧）',
+    JSON.stringify(last(run('text')).arcs) === JSON.stringify(TEXT_ARCS_PIN), last(run('text')).arcs);
+  t('预置图: 五张都在下拉里，标签互不重复、编号 1~5 齐全',
+    safe(() => {
+      const inp = M.dijkstra.inputs.filter(x => x.key === 'graph')[0];
+      return JSON.stringify(inp.options.map(o => o[0])) === JSON.stringify(KEYS) &&
+        new Set(inp.options.map(o => o[1])).size === 5 &&
+        [1, 2, 3, 4, 5].every(n => inp.options.some(o => o[1].indexOf('①②③④⑤'[n - 1]) === 0));
+    }), null);
+  t('预置图: 每张图首帧都先说清"这张要回答什么问题"（并报名用哪张图）',
+    KEYS.every(k => safe(() => {
+      const f = run(k).frames[0];
+      return new RegExp('^第 [1-5] 张·').test(f.msg) && f.msg.length > 40 && f.panel['图'] === M.dijkstra.inputs[1].options.filter(o => o[0] === k)[0][1];
+    })), KEYS.map(k => safe(() => run(k).frames[0].msg.slice(0, 12))));
+  t('预置图: 五张图 × 六个源点都算出正确的最短路径表（与 Bellman-Ford 对拍，负权档除外）',
+    KEYS.filter(k => k !== 'neg').every(k => [0, 1, 2, 3, 4, 5].every(st => safe(() => {
+      const sn = last(run(k, st));
+      return JSON.stringify(sn.D) === JSON.stringify(bf(sn.arcs, st)) && chainOK(sn);
+    }))), KEYS.map(k => [k, safe(() => { const sn = last(run(k)); return { D: sn.D, 对拍: bf(sn.arcs, 0) }; })]));
+  t('预置图: 弧表与坐标按帧走（切了图就不吃上一张的数据）',
+    safe(() => [8, 7, 7, 5, 9].every((n, i) => last(run(KEYS[i])).arcs.length === n &&
+      run(KEYS[i]).frames[0].snap.arcs.length === n)),
+    KEYS.map(k => last(run(k)).arcs.length));
+  t('预置图: 并列最短路那张三条并列的路都到过画面，只有第一条被记下',
+    (() => {
+      const fs2 = run('tie').frames, sn = last(run('tie'));
+      const eq = fs2.filter(f => /为中转需 6 ≥ 原 D\[v4\] = 6，不更新/.test(f.msg)).map(f => +/以 v(\d+)/.exec(f.msg)[1]);
+      const hit = fs2.filter(f => /更新 D\[v4\] = 6/.test(f.msg)).map(f => +/以 v(\d+)/.exec(f.msg)[1]);
+      return sn.D[4] === 6 && sn.Path[4] === 1 && sn.D[3] === 5 &&
+        JSON.stringify(hit) === JSON.stringify([1]) && JSON.stringify(eq) === JSON.stringify([2, 3]);
+    })(),
+    (() => { const sn = last(run('tie')); return { D: sn.D, Path: sn.Path, 不更新: run('tie').frames.filter(f => /≥ 原 D\[v4\]/.test(f.msg)).map(f => f.msg.slice(0, 40)) }; })());
+  t('预置图: 反复松弛那张 v3 的 D 恰好被改三次（17→13→12），并入 S 之后就再也不动',
+    (() => {
+      const rs2 = run('relax'), fr = rs2.frames, sn = last(rs2);
+      const hits = fr.filter(f => f.snap.relaxCell === 3)
+        .map(f => +/更新 D\[v3\] = (\d+)/.exec(f.msg)[1]);
+      const settle = fr.findIndex(f => /v3 并入 S/.test(f.msg));
+      const after = fr.slice(settle + 1).filter(f => f.snap.relaxCell === 3).length;
+      return settle > 0 && JSON.stringify(hits) === JSON.stringify([17, 13, 12]) && after === 0 && sn.D[3] === 12;
+    })(),
+    (() => run('relax').frames.filter(f => f.snap.relaxCell === 3).map(f => f.msg.slice(0, 44)))());
+  t('预置图: 非连通那张不崩——两个点全程 ∞、S 只填满 4 个、并提前收场',
+    safe(() => {
+      const rs = run('island'), sn = last(rs);
+      return rs.frames.every(f => f.snap.D[2] === INF && f.snap.D[4] === INF) &&
+        sn.S.length === 4 && JSON.stringify(sn.D) === JSON.stringify([0, 4, INF, 10, INF, 12]) &&
+        rs.frames.some(f => /均为 ∞（从 v0 不可达），算法结束/.test(f.msg));
+    }), safe(() => { const sn = last(run('island')); return { D: sn.D, S: sn.S }; }));
+  KEYS.forEach(k => {
+    t(`预置图: ${k} 的顶点都在画布左半区且互不重叠（右侧状态表从 x=700 起）`,
+      safe(() => {
+        const p = last(run(k)).pos, arr = Object.keys(p).map(x => p[x]);
+        if (arr.length !== 6) return false;
+        for (let i = 0; i < 6; i++) {
+          if (arr[i][0] < 40 || arr[i][0] > 660 || arr[i][1] < 80 || arr[i][1] > 520) return false;
+          for (let j = i + 1; j < 6; j++) if (Math.hypot(arr[i][0] - arr[j][0], arr[i][1] - arr[j][1]) < 56) return false;
+        }
+        return true;
+      }), safe(() => last(run(k)).pos));
+  });
+  t('预置图: 渲染只认这一帧的图（非连通那张的画布里没有 y=300 这一排，教材那张有）',
+    safe(() => M.dijkstra.render(lastFrame(run('island')).snap).indexOf('cy="300"') < 0 &&
+      M.dijkstra.render(lastFrame(run('text')).snap).indexOf('cx="615"') >= 0 &&
+      M.dijkstra.render(lastFrame(run('relax')).snap).indexOf('cx="640"') >= 0), null);
+
+  /* B2 错误演示：⑤档在教材图上加一条 -60 的负权弧 v5→v2。回路 v2→v3→v5→v2 权重恰好 0，
      没有负环，真实最短路是良定义的——错只错在贪心把 v2 提前定死了 */
   {
-    const rn = M.dijkstra.run({ start: '0', negW: true });
+    const rn = run('neg', 0);
     const warn = rn.frames.find(f => /⚠ 出事了/.test(f.msg));
     t('Dijkstra负权: v5 并入时才发现 v2 能缩到 0，可 v2 第 1 轮就定了', !!warn && /第 1 轮就被定死为 10/.test(warn.msg) && /60 \+ \(-60\) = 0/.test(warn.msg), warn && warn.msg.slice(0, 50));
     const badF = rn.frames[rn.frames.length - 1];
     t('Dijkstra负权: 末帧对照 v2（Dijkstra 10，真实 0）', /✗/.test(badF.msg) && /v2：Dijkstra 10，真实 0/.test(badF.msg), badF.msg.slice(0, 70));
     t('Dijkstra负权: 贪心跑完的 D 与不带负权时完全一致（错在"没变"）', JSON.stringify(badF.snap.D) === JSON.stringify([0, INF, 10, 50, 30, 60]), badF.snap.D);
     t('Dijkstra负权: 面板并排给出算出/真实', badF.panel['v2 算出/真实'] === '10 / 0' && badF.panel['v5 算出/真实'] === '60 / 60', badF.panel);
-    const r1n = M.dijkstra.run({ start: '1', negW: true });
+    const r1n = run('neg', 1);
     t('Dijkstra负权: 源点 v1 时如实说"碰巧全对"', /碰巧全对/.test(r1n.frames[r1n.frames.length - 1].msg), r1n.frames[r1n.frames.length - 1].msg.slice(0, 60));
-    t('Dijkstra负权: 不勾时弧表仍是教材那 8 条', M.dijkstra.run({ start: '0' }).frames[0].snap.arcs.length === 8 && rn.frames[0].snap.arcs.length === 9);
+    t('Dijkstra负权: 只有这一档和 Bellman-Ford 对拍不上（差异恰好是 v2 一处）',
+      safe(() => {
+        const sn = last(r1n), d0 = bf(sn.arcs, 1);
+        const sn0 = last(run('neg', 0)), diff = [];
+        for (let x = 0; x < 6; x++) if (sn0.D[x] !== bf(sn0.arcs, 0)[x]) diff.push(x);
+        return JSON.stringify(sn.D) === JSON.stringify(d0) && JSON.stringify(diff) === JSON.stringify([2]);
+      }), safe(() => { const sn = last(run('neg', 0)); return { D: sn.D, 真实: bf(sn.arcs, 0) }; }));
+    t('Dijkstra负权: ①档弧表就是教材那 8 条，⑤档才是 9 条',
+      run('text').frames[0].snap.arcs.length === 8 && rn.frames[0].snap.arcs.length === 9);
+    t('Dijkstra负权: 旧的 negW 复选框已经并进「图」下拉，不再是一个独立开关',
+      !M.dijkstra.inputs.some(x => x.key === 'negW') && M.dijkstra.inputs.some(x => x.key === 'graph'),
+      M.dijkstra.inputs.map(x => x.key));
   }
 }
 
@@ -1361,9 +1468,11 @@ console.log('— v2.1 深度校验：排列不变量 / 随机数据 / 教材第�
   const bc2 = M.baseConvert.run({ n: 4096, base: '2' });
   t('数制转换: 4096 → 12 位二进制 1000000000000', /1000000000000/.test(bc2.frames[bc2.frames.length - 1].msg));
   t('数制转换: 最大栈深 12（12 位余数曾同时入栈）', bc2.frames.some(f => f.panel['栈深'] === '12'));
-  /* 迷宫左下入口有解 */
-  const mz2 = M.maze.run({ start: '8,1' });
-  t('迷宫: 从(8,1)出发同样找到出口', !!mz2.frames.find(f => f.snap.mark === 'found'));
+  /* 迷宫左下入口有解（选项值是 '8,2'——写成别的值模块会默默退回左上，这条就白测了） */
+  const mz2 = M.maze.run({ start: '8,2' });
+  t('迷宫: 从(8,2)出发同样找到出口 (1,8)', !!mz2.frames.find(f => f.snap.mark === 'found') &&
+    mz2.frames[0].snap.start.join(',') === '8,2' && mz2.frames[0].snap.end.join(',') === '1,8',
+    mz2.frames[0].snap.start);
   /* 多项式接续两个方向 */
   const pa2 = M.polyAdd.run({ a: '1,0 2,3', b: '4,1' });
   t('多项式相加: 指数交错合并 1+4x+2x³', JSON.stringify(pa2.frames[pa2.frames.length - 1].snap.R) === JSON.stringify([{ c: 1, e: 0 }, { c: 4, e: 1 }, { c: 2, e: 3 }]));
@@ -1723,8 +1832,11 @@ const CASES = {
       { graph: 'tree' }, { graph: 'tree', method: 'kruskal' },
       { graph: 'k5' }, { graph: 'k5', method: 'kruskal' },
       { graph: 'tiny' }, { graph: 'tiny', method: 'kruskal' }],
-    dijkstra: [{ start: '0' }, { start: '1' }, { start: '0', negW: true }, { start: '1', negW: true },
-      { start: '4', negW: true }, { start: '2', negW: true }, { start: '5', negW: true }],
+    dijkstra: [{ start: '0' }, { start: '1' }, { start: '3' }, { start: '5' },
+      { start: '0', graph: 'tie' }, { start: '1', graph: 'tie' },
+      { start: '0', graph: 'relax' }, { start: '5', graph: 'relax' },
+      { start: '0', graph: 'island' }, { start: '2', graph: 'island' },
+      { start: '0', graph: 'neg' }, { start: '1', graph: 'neg' }],
     quickSort: [{ preset: 'textbook', w: '', errPivot: true }, { preset: 'ordered', w: '', errPivot: true },
       { preset: 'reverse', w: '', errPivot: true }, { preset: 'nearly', w: '', errPivot: true }],
     hashLinear: [{ w: '19,14,23,1,68,20,84,27,55,11', errDel: true }, { w: '1,2,3', errDel: true },
@@ -1758,7 +1870,7 @@ const CASES = {
     dualList: [{ op: 'ins' }, { op: 'del' }, { op: 'cyc' }],
     polyAdd: [{ a: '7,0 3,1 9,8 5,17', b: '8,1 22,7 -9,8' }],
     baseConvert: [{ n: 1348, base: '8' }, { n: 255, base: '16' }],
-    maze: [{ start: '1,1' }, { start: '8,1' }],
+    maze: [{ start: '1,1' }, { start: '8,2' }],
     treeConvert: [{}],
     threads: [{ data: 'GDA##FE###MH##Z##', phase: 'build' }, { data: 'GDA##FE###MH##Z##', phase: 'walk' }, { data: 'GDA##FE###MH##Z##', phase: 'all' }],
     critical: [{}],
@@ -1876,6 +1988,29 @@ console.log('— 渲染烟测（每帧 render 不抛异常） —');
     });
   }
   t('全部模块全部帧渲染成功', ok, bad);
+}
+
+/* 用例表本身也得查：CASES 里的键写错、下拉值拼错，run() 只会默默按默认值跑，
+   于是这条用例永远不可能失败——mst 的 graph:'exam' 就是这么白测了一轮 */
+{
+  const dead = [];
+  for (const id in CASES) {
+    if (!M[id]) { dead.push(id + ' 用例表里根本没有这个模块'); continue; }
+    const inp = {};
+    (M[id].inputs || []).forEach(x => { inp[x.key] = x; });
+    CASES[id].forEach((c, ci) => {
+      Object.keys(c).forEach(k => {
+        const spec = inp[k];
+        if (!spec) { dead.push(id + ' 用例#' + (ci + 1) + ' 没有输入项 ' + k); return; }
+        if (spec.type === 'select') {
+          const opts = spec.options.map(o => String(o[0]));
+          if (opts.indexOf(String(c[k])) < 0) dead.push(id + ' 用例#' + (ci + 1) + ' ' + k + '="' + c[k] + '" 不在选项里（可选 ' + opts.join('/') + '）');
+        }
+        if (spec.type === 'checkbox' && typeof c[k] !== 'boolean') dead.push(id + ' 用例#' + (ci + 1) + ' ' + k + ' 不是布尔值');
+      });
+    });
+  }
+  t('用例表: 每一项都真的对得上输入项与选项值（没有跑不到的死用例）', dead.length === 0, dead.slice(0, 6));
 }
 
 console.log('— 代码行高亮：下标必须合法，且指到正在执行的那条语句 —');
