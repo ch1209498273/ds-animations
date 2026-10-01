@@ -96,10 +96,10 @@ console.log('\n— C 对外数字一致性 —');
   const rel = rd('gitee-pages/src/build.py');
   const ver = (rel.match(/VER = '([^']+)'/) || [])[1] || '?';
   t('C: README 版本徽标与 build.py 的 VER 一致', readme.includes('版本-' + ver) && readme.includes('ds-animations-' + ver + '.zip'), { ver: ver });
-  t('C: README 声明的断言数与实跑一致（670 + 85）', /670 项正确性断言 \+ 85 项手机视口卡口/.test(readme));
-  t('C: README 动画数是 58（不是历史值 56）', /算法动画-58个/.test(readme) && /## 58 个动画目录/.test(readme));
-  t('C: 使用说明的版本号跟上了', guide.includes(ver) && guide.includes('共 58 个交互动画'), ver);
-  t('C: zip 里的版权页版本号跟上了', notice.includes(ver) && notice.includes('58 个动画'), ver);
+  t('C: README 声明的断言数与实跑一致（697 + 85）', /697 项正确性断言 \+ 85 项手机视口卡口/.test(readme));
+  t('C: README 动画数是 59（不是历史值 58）', /算法动画-59个/.test(readme) && /## 59 个动画目录/.test(readme));
+  t('C: 使用说明的版本号跟上了', guide.includes(ver) && guide.includes('共 59 个交互动画'), ver);
+  t('C: zip 里的版权页版本号跟上了', notice.includes(ver) && notice.includes('59 个动画'), ver);
   t('C: 版权页写的文件名就是实际文件名（数据结构互动课件.html）', notice.includes('数据结构互动课件.html'));
   const zip = path.join(ROOT, 'gitee-pages', 'ds-animations-' + ver + '.zip');
   t('C: 发布仓库里有当前版本的 zip', fs.existsSync(zip), path.basename(zip));
@@ -107,7 +107,14 @@ console.log('\n— C 对外数字一致性 —');
   if (idx) {
     const z = cp.spawnSync('python', ['-c', 'import zipfile,sys;print(len(zipfile.ZipFile(sys.argv[1]).namelist()))', zip],
       { encoding: 'utf8' });
-    t('C: zip 条目数 = 主文件+58 分享页+2 个说明 = 61', (z.stdout || '').trim() === '61', (z.stdout || '').trim());
+    /* 条目数不许写死：写死就像当初硬编码 v3.6 那样，加一个动画就红一次、
+       而且改的人只会把数字改成"今天对的数"，闸门本身失去意义。
+       基准取发布仓库里 a/ 的实际页数——它由 build.py 按模块生成，所以这条真正在查的是
+       "zip 里装的单页数 = 该装的单页数"，多一页少一页都会红。 */
+    const pages = fs.readdirSync(path.join(ROOT, 'gitee-pages', 'a')).filter(f => /\.html$/.test(f)).length;
+    const want = String(pages + 3);   // 主文件 + 2 个说明 txt
+    t('C: zip 条目数 = 主文件 + a/ 单页 ' + pages + ' + 2 个说明 = ' + want,
+      (z.stdout || '').trim() === want, { 实际: (z.stdout || '').trim(), 应为: want, 单页目录实数: pages });
   }
 }
 

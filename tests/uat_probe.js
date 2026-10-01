@@ -123,7 +123,7 @@
     var cat = el('catalog'); var rows = cat.querySelectorAll('.ovrow');
     el('ovAll').click(); await sleep(400);
     var vis = Array.prototype.filter.call(rows, function (r) { return r.offsetHeight > 0; }).length;
-    rec('目录：能打开，全部展开后能看到 58 条', vis === 58, vis);
+    rec('目录：能打开，全部展开后能看到 59 条', vis === 59, vis);
     var s = el('ovSearch'); s.value = '散列 冲突'; s.dispatchEvent(new w.Event('input', { bubbles: true })); await sleep(350);
     var hit = Array.prototype.filter.call(rows, function (r) { return r.offsetHeight > 0; });
     rec('目录搜索：空格分词求交（「散列 冲突」命中 2 条）', hit.length === 2, hit.map(function (r) { return r.dataset.id; }).join(','));

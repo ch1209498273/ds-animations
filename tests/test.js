@@ -1292,7 +1292,7 @@ console.log('— v2.1 深度校验：排列不变量 / 随机数据 / 教材第�
   t('链表取值 i=1: 1 步即得', lo1 && lo1.snap.res === '第 1 个 = 25');
   /* 结构完整性：43 模块注册规范 */
   const all = DSC.mods;
-    t('结构: 模块总数 58（绪论新增空间复杂度与"怎么算时间复杂度"）', all.length === 58, all.length);
+    t('结构: 模块总数 59（绪论补齐 408 一(一) 基本概念）', all.length === 59, all.length);
   t('结构: 模块 id 无重复', new Set(all.map(m => m.id)).size === all.length);
   t('结构: 全部模块有非空使用引导', all.every(m => m.guide && m.guide.length >= 3));
   t('结构: 全部模块有非空教材标注（无本校 cp 编号）', all.every(m => (m.note || '').length >= 6 && m.note.indexOf('cp') < 0));
@@ -1630,6 +1630,7 @@ const CASES = {
       { s: 'abcabcabca', t: 'abcabca', errNext: true }, { s: 'aabaaaba', t: 'aabaaab', errNext: true }],
     bracket: [{ expr: '([()])' }, { expr: ')(' }, { expr: '([)]' }, { expr: '(()' }, { expr: 'a(b)c' }],
     expression: [{ expr: '3*(7-2)' }, { expr: '2+3*4' }, { expr: '5/(3-3)' }, { expr: '12*(3+4)' }],
+    dsConcepts: [{ scene: 'term' }, { scene: 'logic' }, { scene: 'store' }, { scene: 'adt' }],
     complexity: [{ nmax: 16 }, { nmax: 64 }],
     spaceComplexity: [{ scene: 'aux', n: 2 }, { scene: 'aux', n: 8 }, { scene: 'rec', n: 2 },
       { scene: 'rec', n: 8 }, { scene: 'rank', n: 6 }],
@@ -2315,11 +2316,111 @@ console.log('— 第1章 复杂度计算（新增：怎么算 + 空间复杂度�
   }
 }
 
+console.log('— 第1章 数据结构基本概念（新增：408 一(一)） —');
+{
+  const run = sc => M.dsConcepts.run({ scene: sc });
+  /* ① 术语层级：四级各点亮一次，"最小单位/基本单位"这两个词不许说反 */
+  const t1 = run('term');
+  const hls = t1.frames.map(f => f.snap.hl).filter(Boolean);
+  t('概念: 四级单位按 数据→对象→元素→项 各点亮一次',
+    JSON.stringify(hls) === JSON.stringify(['data', 'object', 'element', 'item']), hls);
+  const minF = t1.frames.find(f => f.panel['最小单位']);
+  t('概念: "最小单位=数据项、基本单位=数据元素"没写反',
+    minF && /^数据项/.test(minF.panel['最小单位']) && /^数据元素/.test(minF.panel['基本单位']),
+    minF && minF.panel);
+  const tbl = t1.frames[0].snap.tbl;
+  t('概念: 例表是 3 个数据元素 × 每元素 3 个数据项（3 行 9 格）',
+    tbl.length === 3 && tbl.every(r => r.length === 3), tbl);
+  {
+    const af = t1.frames.find(f => f.snap.hl === 'element');
+    const asvg = M.dsConcepts.render(af.snap);
+    t('概念: 讲数据元素那帧把三个别名真的画成了三块牌',
+      !!af.snap.alias && ['记录', '结点', '元素'].every(w => asvg.indexOf('>' + w + '</text>') >= 0));
+  }
+
+  /* ② 四种逻辑结构：断言的是"真的拿去画图的那份边表" */
+  const L = {};
+  ['set', 'linear', 'tree', 'graph'].forEach(k => { L[k] = run('logic').frames.find(f => f.snap.kind === k && f.snap.E).snap; });
+  const degOf = (E, n, side) => { const d = Array(n).fill(0); E.forEach(e => d[side ? e[1] : e[0]]++); return d; };
+  const connected = (E, n) => { const vis = new Set([0]), q = [0]; while (q.length) { const u = q.shift(); E.forEach(e => { const o = e[0] === u ? e[1] : e[1] === u ? e[0] : -1; if (o >= 0 && !vis.has(o)) { vis.add(o); q.push(o); } }); } return vis.size === n; };
+  t('概念: 集合结构一条边都没有', L.set.E.length === 0, L.set.E);
+  t('概念: 线性结构每个元素至多 1 前驱、至多 1 后继',
+    degOf(L.linear.E, 6, 0).every(d => d <= 1) && degOf(L.linear.E, 6, 1).every(d => d <= 1),
+    [degOf(L.linear.E, 6, 0), degOf(L.linear.E, 6, 1)]);
+  t('概念: 线性结构首尾各唯一（1 个无前驱、1 个无后继）',
+    degOf(L.linear.E, 6, 0).filter(d => d === 0).length === 1 && degOf(L.linear.E, 6, 1).filter(d => d === 0).length === 1);
+  t('概念: 树形结构除根以外恰有 1 个父、根 0 个',
+    (() => { const p = degOf(L.tree.E, 6, 1); return p.filter(x => x === 1).length === 5 && p.filter(x => x === 0).length === 1; })(),
+    degOf(L.tree.E, 6, 1));
+  t('概念: 树形结构有一对多的点（某元素 2 个孩子），线性结构没有',
+    Math.max.apply(null, degOf(L.tree.E, 6, 0)) === 2 && Math.max.apply(null, degOf(L.linear.E, 6, 0)) === 1);
+  t('概念: 树形连通且无环（6 点 5 边 + 连通）', L.tree.E.length === 5 && connected(L.tree.E, 6));
+  t('概念: 图状结构存在多对多（有元素 ≥3 个邻居）且成环',
+    (() => { const n = Array(6).fill(0); L.graph.E.forEach(e => { n[e[0]]++; n[e[1]]++; }); return Math.max.apply(null, n) >= 3 && L.graph.E.length > 5; })(),
+    L.graph.E.length);
+  t('概念: 边数不能用来分类——线性与树同为 5 条边但边表不同',
+    L.linear.E.length === L.tree.E.length && JSON.stringify(L.linear.E) !== JSON.stringify(L.tree.E));
+  /* 每种结构的点都必须在画布内、且两两不叠（圆半径 22） */
+  ['set', 'linear', 'tree', 'graph'].forEach(k => {
+    const p = L[k].pos, bad = [];
+    p.forEach(a => { if (a[0] < 30 || a[0] > 950 || a[1] < 60 || a[1] > 530) bad.push(a.join(',')); });
+    for (let i = 0; i < p.length; i++) for (let j = i + 1; j < p.length; j++)
+      if (Math.hypot(p[i][0] - p[j][0], p[i][1] - p[j][1]) < 46) bad.push(i + '×' + j);
+    t(`概念: ${k} 的 6 个顶点在画布内且互不重叠`, !bad.length, bad);
+  });
+
+  /* ③ 两种存储结构 */
+  const st = run('store');
+  const sq = st.frames.find(f => f.snap.mode === 'seq' && f.snap.hl === 2).snap;
+  t('概念: 顺序存储地址等差（c=16），画面写的就是数组里那个值',
+    sq.addr.slice(0, 6).every((a, i) => a === sq.addr[0] + i * 16), sq.addr);
+  const f2 = st.frames.find(f => f.snap.hl === 2);
+  t('概念: Loc(a3) 写的数就是地址表里那个数（独立重算，不是各写一遍）',
+    f2.panel['a3 的地址'] === '1000 + (3−1)×16 = ' + sq.addr[2] && sq.addr[2] === 1000 + 2 * 16,
+    [f2.panel['a3 的地址'], sq.addr[2]]);
+  const lk = st.frames.find(f => f.snap.mode === 'link' && !f.snap.relink).snap;
+  const byX = lk.lx.map((x, i) => [x, lk.laddr[i]]).sort((a, b) => a[0] - b[0]);
+  t('概念: 链式地址与画面左右同向（越靠右地址越大，内存模型自洽）',
+    byX.every((p, i) => i === 0 || p[1] > byX[i - 1][1]), byX.map(p => p.join(':')));
+  t('概念: 但按逻辑顺序 a1→a6 地址不是递增的（这才叫物理散落）',
+    lk.laddr.some((a, i) => i && a < lk.laddr[i - 1]), lk.laddr);
+  /* 插入那一帧：搬家的格子数 = 画出来的右移箭头数 */
+  const ins = st.frames.find(f => f.snap.mode === 'seq' && f.snap.ins).snap;
+  const arrows = (M.dsConcepts.render(ins).match(/y1="196"/g) || []).length;
+  t('概念: 顺序插入移动 4 格，且画面真的画了 4 个右移箭头',
+    ins.moves === 4 && arrows === 4, { moves: ins.moves, 箭头: arrows });
+  const rl = st.frames.find(f => f.snap.relink).snap;
+  /* 画面里的橙色箭头数量 = relink 清单长度，两边都必须数到 2 */
+  const amber = (svg => (svg.match(/<line[^>]*stroke="#d97706"/g) || []).length)(M.dsConcepts.render(rl));
+  t('概念: 链式插入只改 2 个指针，画面正好 2 条新增指针',
+    rl.relink.length === 2 && amber === 2, { relink: rl.relink, 条数: amber });
+  t('概念: 链式插入不搬到其他元素（被改的只有 a2、x、a3 三个结点）',
+    JSON.stringify(rl.relink.map(R => R.join('-')).sort()) === JSON.stringify(['1-6', '6-2']), rl.relink);
+
+  /* ④ ADT：声明层里不许出现实现词，实现层必须有——两条一起才不是空断言 */
+  const ad = run('adt');
+  const decl = ad.frames[0].snap.cards.map(c => c.t + c.ln.join('')).join('');
+  t('概念: ADT 正好三元组 D/S/P', ad.frames[0].snap.cards.map(c => c.k).join('') === 'DSP');
+  t('概念: 声明层通篇不提实现（数组/指针/地址/下标都不许出现）',
+    !/数组|指针|地址|下标|malloc|结构体/.test(decl), (decl.match(/数组|指针|地址|下标|malloc|结构体/g) || []));
+  t('概念: 对照成立——实现层确实写了数组与下标（上一条不是空断言）',
+    /数组/.test(ad.frames[0].snap.impl.join('')) && /下标/.test(ad.frames[0].snap.impl.join('')));
+  t('概念: 讲 D 的帧只点亮 D，讲 P 的帧只点亮 P',
+    ad.frames.filter(f => f.snap.hl === 'D' || f.snap.hl === 'P').every(f => f.snap.hl) &&
+    ad.frames.filter(f => f.snap.hl === 'all').length === 1);
+}
+
 console.log('\n— 手机视口（390×844，headless 浏览器实测） —');
 {
-  const r = require('child_process').spawnSync(process.execPath, [path.join(__dirname, 'mobile.js')], { encoding: 'utf8' });
-  process.stdout.write(r.stdout || '');
-  if ((r.stdout || '').indexOf('✗') >= 0 || r.status !== 0) fail++;
+  /* 本机起一次 Chrome 就会在 Security 日志记一条 4625，10 条锁账号（见 2026-09-27 结论）。
+     纯逻辑核对时用 DSC_NO_BROWSER=1 跳过这一段，别把它当成"回归通过"。 */
+  if (process.env.DSC_NO_BROWSER) {
+    console.log('  (跳过: DSC_NO_BROWSER=1，未起浏览器；手机视口 85 项未验)');
+  } else {
+    const r = require('child_process').spawnSync(process.execPath, [path.join(__dirname, 'mobile.js')], { encoding: 'utf8' });
+    process.stdout.write(r.stdout || '');
+    if ((r.stdout || '').indexOf('✗') >= 0 || r.status !== 0) fail++;
+  }
 }
 
 /* 版权指纹卡口：构建产物必须带署名元信息，且"文件自己的 SHA-256"要复算得回来。

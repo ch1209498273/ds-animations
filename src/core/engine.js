@@ -95,7 +95,7 @@
 
   /* ---------- 章节信息（对齐严蔚敏《数据结构（C语言版）》经典八章体系） ---------- */
   var CH = {
-    1: { name: '第1章 绪论', note: '算法与时间复杂度分析' },
+    1: { name: '第1章 绪论', note: '数据结构基本概念、算法与复杂度分析' },
     2: { name: '第2章 线性表', note: '顺序存储与链式存储' },
     3: { name: '第3章 栈和队列', note: '操作受限的线性表及其应用' },
     4: { name: '第4章 串和数组', note: '模式匹配与矩阵压缩存储' },
@@ -430,9 +430,9 @@
 
   function updateProgress() {
     $('pos').textContent = frames.length ? (idx + 1) + ' / ' + frames.length : '0 / 0';
-    /* 秒数不展示：这一帧停多久由解说长度自动定，老师不关心也不可控，留着只是噪音；
-       只保留"这一帧是趟/轮边界"的节拍提示 */
-    $('pace').textContent = (frames.length && isBeat(frames[idx])) ? '· 节拍' : '';
+    /* 这里原来还有一个「· 节拍」小标签：它只在趟/轮边界那几帧出现，翻页时忽长忽短，
+       把整条控制行推着走，而"这帧是个节拍"对讲课没有任何动作意义。去掉了。
+       节拍本身照旧生效——PageDown 按它跳、自动播放按它多停 1.2 秒。 */
     $('btnPrev').disabled = idx <= 0;
     $('btnNext').disabled = idx >= frames.length - 1;
     if (!$('mpCounter').classList.contains('warn')) {
