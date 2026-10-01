@@ -833,7 +833,7 @@ console.log('— 第6章 关键路径 —');
   const s = last(r);
   const expect = [[0, 1, 3, 6], [9, 0, 2, 5], [7, 8, 0, 3], [4, 5, 7, 0]];
   t('Floyd 最终 D 矩阵（手算逐格核对）', JSON.stringify(s.D) === JSON.stringify(expect), s.D);
-  t('更新帧含最终路径 0→1→2→3', !!r.frames.find(fr => (fr.msg || '').indexOf('0→1→2→3') >= 0));
+  t('更新帧含最终路径 v0→v1→v2→v3', !!r.frames.find(fr => (fr.msg || '').indexOf('v0→v1→v2→v3') >= 0));
 
   /* 四张预置图 + 一个循环顺序开关。对拍用的"真实答案"在这里独立算，不借模块里的 solve */
   const KEYS = ['text', 'neg', 'cyc', 'disc'];
@@ -2203,6 +2203,109 @@ console.log('— 渲染烟测（每帧 render 不抛异常） —');
   t('全部模块: 输入项标签不写整句话（≤20 全角）', long.length === 0, long.slice(0, 4));
 }
 
+/* 内容口径回归：这一组是为"2026-10-02 正确性核验"查出的那批问题补的。
+   要点是每条都从**数据**推出判据，而不是拿模块自己写的文案复读一遍——
+   核验之所以漏掉它们，正是因为老断言只验"算出来的值 == 手写的字符串"。 */
+{
+  const CN = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10 };
+  const bad = [];
+  /* ① 引导条里写"几张预置图"，就必须等于下拉的档数（mst 曾写"六张"而实际五张） */
+  DSC.mods.forEach(m => (m.guide || []).forEach((g, i) => {
+    const mm = /([一二三四五六七八九十]|\d+)\s*张预置图/.exec(String(g));
+    if (!mm) return;
+    const gi = (m.inputs || []).filter(x => x.key === 'graph')[0];
+    if (!gi) return;
+    const n = /^\d+$/.test(mm[1]) ? +mm[1] : CN[mm[1]];
+    if (n !== gi.options.length) bad.push('引导条档数不符 ' + m.id + '#' + (i + 1) + ' 写' + n + '实际' + gi.options.length);
+  }));
+  /* ② 描述有向图的可达性时不许用"非连通"——忽略方向后连通就不是不连通 */
+  {
+    const arcs = M.dijkstra.run({ start: '0', graph: 'island' }).frames[0].snap.arcs;
+    const par = {}; for (let i = 0; i < 6; i++) par[i] = i;
+    const find = a => { while (par[a] !== a) a = par[a]; return a; };
+    arcs.forEach(a => { const x = find(a[0]), y = find(a[1]); if (x !== y) par[x] = y; });
+    const weakly = new Set([0, 1, 2, 3, 4, 5].map(find)).size === 1;
+    const isl = M.dijkstra.inputs.filter(x => x.key === 'graph')[0].options.filter(o => o[0] === 'island')[0][1];
+    if (weakly && /非连通/.test(isl)) bad.push('dijkstra ④ 底图按无向看是连通的，标签却写"非连通"：' + isl);
+    if (!/走不到|不可达|非强连通/.test(isl)) bad.push('dijkstra ④ 标签没说明是"从源点走不到"：' + isl);
+  }
+  /* ③ 最短路径树只有覆盖全部顶点时才配叫生成树 */
+  {
+    ['text', 'island', 'tie'].forEach(g => {
+      const fr = M.dijkstra.run({ start: '0', graph: g }).frames.slice(-1)[0];
+      const svg = M.dijkstra.render(fr.snap), c = fr.snap.S.length, n = fr.snap.N;
+      const claim = /是一棵生成树/.test(svg);
+      if ((c === n) !== claim) bad.push('dijkstra ' + g + ' 覆盖 ' + c + '/' + n + ' 却' + (claim ? '声称是生成树' : '没说是生成树'));
+    });
+  }
+  /* ④ 首帧文案依赖源点选择：源点不是 v0 时必须自己承认 */
+  {
+    const f0 = M.dijkstra.run({ start: '0', graph: 'relax' }).frames[0].msg;
+    const f2 = M.dijkstra.run({ start: '2', graph: 'relax' }).frames[0].msg;
+    if (/现在源点是 v/.test(f0)) bad.push('dijkstra 源点就是 v0，不该带"文案按 v0 写"的提醒');
+    if (!/现在源点是 v2/.test(f2)) bad.push('dijkstra 源点改 v2 后首帧没提醒文案是按 v0 写的');
+  }
+  /* ⑤ 贪心那句必须带"边权非负"前提 */
+  if (!M.dijkstra.run({ start: '0', graph: 'text' }).frames.some(f => /贪心成立.*边权非负/.test(f.msg)))
+    bad.push('dijkstra 的贪心论证没写"边权非负"前提');
+  /* ⑥ floyd ④ 的出入度必须与文案一致（曾把"只进不出"写成"只能出去不能回来"） */
+  {
+    const r = M.floyd.run({ graph: 'disc' }), sn = r.frames.slice(-1)[0].snap, teach = r.frames[0].msg;
+    const deg = i => [sn.arcs.filter(a => a[1] === i).length, sn.arcs.filter(a => a[0] === i).length];
+    const [in2, out2] = deg(2), [in3, out3] = deg(3);
+    if (!(in2 === 2 && out2 === 0)) bad.push('floyd ④ v2 出入度不是 (2,0)：' + JSON.stringify(deg(2)));
+    if (/只能出去不能回来/.test(teach)) bad.push('floyd ④ 文案把 v2 的进出方向说反了');
+    if (!/只进不出/.test(teach)) bad.push('floyd ④ 文案没写 v2 是只进不出');
+    if (/会溢出/.test(teach)) bad.push('floyd ④ 又把"∞ 相加溢出"当成算法要求');
+    if (!(in3 === 0 && out3 === 0)) bad.push('floyd ④ v3 不是完全孤立：' + JSON.stringify(deg(3)));
+  }
+  /* ⑦ 负环档必须说清"无关点对仍正确"，而且这样的点对真的存在 */
+  {
+    const f = M.floyd.run({ graph: 'cyc' }).frames.slice(-1)[0], D = f.snap.D;
+    const unaffected = [];
+    for (let i = 0; i < f.snap.N; i++) for (let j = 0; j < f.snap.N; j++)
+      if (i !== j && D[i][j] < Infinity && D[i][i] === 0 && D[j][j] === 0) unaffected.push([i, j]);
+    if (!/与这个环无关的点对仍然是正确答案/.test(f.msg)) bad.push('floyd ③ 末帧没澄清"与环无关的点对仍正确"');
+    if (!unaffected.length) bad.push('floyd ③ 末帧声称有正确点对，可一个都找不到');
+  }
+  /* ⑧ topo：图里真有环时，错误写法那档不许说"根本没有环" */
+  {
+    const f = M.topo.run({ graph: 'cyc', mode: 'nodelete' }).frames.slice(-1)[0];
+    if (/根本没有环/.test(f.msg)) bad.push('topo ③+错误写法自相矛盾：' + f.msg.slice(0, 60));
+    if (!/本来就有环/.test(f.msg)) bad.push('topo ③+错误写法没说明这一档看不出差别');
+    if (!/根本没有环/.test(M.topo.run({ graph: 'text', mode: 'nodelete' }).frames.slice(-1)[0].msg))
+      bad.push('topo ①+错误写法该指出"无环却排不完"');
+  }
+  /* ⑨ topo 顶点名与伪码下标的对应必须画在入度表上 */
+  if (M.topo.render(M.topo.run({ graph: 'text' }).frames.slice(-1)[0].snap).indexOf('C1 = in[0]') < 0)
+    bad.push('topo 入度表没标 C1 = in[0]，学生读伪码会整体错一位');
+  /* ⑩ mst ③：Prim 的候选数必须从数据数出来，不许文案说"每轮只有一条" */
+  {
+    const rs = M.mst.run({ method: 'prim', graph: 'tree' });
+    const cand = Math.max.apply(null, rs.frames.map(f => {
+      const lc = f.snap.lowcost || {};
+      return Object.keys(lc).filter(k => typeof lc[k] === 'number' && lc[k] > 0).length;
+    }));
+    if (cand < 2) bad.push('mst ③ 的 Prim 候选数实测只有 ' + cand + '，那文案可以改回去了');
+    if (rs.frames.some(f => /每轮也只有一条候选/.test(f.msg))) bad.push('mst ③ 又写回"每轮只有一条候选"（实测最多 ' + cand + ' 条）');
+  }
+  /* ⑪ dsConcepts：链式插入"其余 N 个不动"必须由元素个数推出；四条口径不许回退 */
+  {
+    const r = M.dsConcepts.run({ scene: 'store' });
+    const fr = r.frames.find(f => f.snap.mode === 'link' && f.snap.relink);
+    const mm = /其余 (\d+) 个元素/.exec(M.dsConcepts.render(fr.snap));
+    const nEl = Object.keys(fr.snap.lx).length;
+    if (!mm) bad.push('dsConcepts 链式插入帧找不到"其余 N 个元素"');
+    else if (+mm[1] !== nEl - 1) bad.push('dsConcepts 写"其余 ' + mm[1] + ' 个"，实际未触动 ' + (nEl - 1) + ' 个（共 ' + nEl + ' 个元素）');
+    const code = r.code.join('\n');
+    if (/只有两样/.test(code)) bad.push('dsConcepts 又把存储结构说成"只有两样"（大纲列四种）');
+    if (/光有集合/.test(code)) bad.push('dsConcepts 又写"光有集合什么算法都做不了"');
+    if (/走 i 次/.test(code)) bad.push('dsConcepts 的"走 i 次"与面板里的 i−1 步不一致');
+    if (/通篇没有出现/.test(code)) bad.push('dsConcepts 的"通篇"范围过头（同屏 CODE 就写着数组/指针）');
+  }
+  t('内容口径: 核验查出的那批问题没有回退（档数/连通/生成树/源点/出入度/环范围/下标对应）', bad.length === 0, bad.slice(0, 8));
+}
+
 console.log('— 代码行高亮：下标必须合法，且指到正在执行的那条语句 —');
 {
   /* 引擎按 code.map(function (t, i) => line.indexOf(i)) 上色，line 是**下标**不是行号；
@@ -2843,7 +2946,7 @@ console.log('\n— 手机视口（390×844，headless 浏览器实测） —');
   /* 本机起一次 Chrome 就会在 Security 日志记一条 4625，10 条锁账号（见 2026-09-27 结论）。
      纯逻辑核对时用 DSC_NO_BROWSER=1 跳过这一段，别把它当成"回归通过"。 */
   if (process.env.DSC_NO_BROWSER) {
-    console.log('  (跳过: DSC_NO_BROWSER=1，未起浏览器；手机视口 85 项未验)');
+    console.log('  (跳过: DSC_NO_BROWSER=1，未起浏览器；手机视口卡口未验，别当回归通过)');
   } else {
     const r = require('child_process').spawnSync(process.execPath, [path.join(__dirname, 'mobile.js')], { encoding: 'utf8' });
     process.stdout.write(r.stdout || '');

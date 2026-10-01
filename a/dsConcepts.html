@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-b="e3dc1f8937dfd18474d9">
+<html lang="zh-CN" data-b="27c233e80ce67c0ef05b">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="generator" content="dsck/1.0 (e3dc1f8937dfd18474d9)">
-<meta name="description" content="408 大纲 一(一) 数据结构基本概念（数据/数据元素/数据项、四种逻辑结构、两种存储结构、抽象数据类型）（数据结构互动课件·单动画页）">
+<meta name="generator" content="dsck/1.0 (27c233e80ce67c0ef05b)">
+<meta name="description" content="408 大纲 一(一) 数据结构基本概念（数据/数据元素/数据项、四种逻辑结构、存储结构（顺序/链式为主，另有索引/散列）、抽象数据类型）（数据结构互动课件·单动画页）">
 <meta property="og:type" content="website">
 <meta property="og:title" content="1. 数据结构基本概念：术语层级、四种逻辑结构、两种存储结构与 ADT">
 <meta property="og:description" content="覆盖《数据结构（C语言版）》全部 8 章核心算法，教材例题逐帧对拍，在线点开即用，也可下载离线使用。">
@@ -12,7 +12,7 @@
 <meta property="og:image" content="https://ch1209498273.github.io/ds-animations/assets/banner.png">
 <!-- 版权指纹：署名与协议声明 + 本文件自身的 SHA-256（构建时算，改动即可检出）。
      校验：python tests/verify_rights.py 某个副本.html -->
-<meta name="x-rights" content="author=芦老师聊AI;work=数据结构互动课件;kind=原创算法动画课件;license=CC BY-NC-SA 4.0;ver=v3.13;built=2026-10-02 01:27;sha256=fa1ef603f57f4400794e957e24fe4d6775c4649a9d27c1ed84fcb3802f67d9d0">
+<meta name="x-rights" content="author=芦老师聊AI;work=数据结构互动课件;kind=原创算法动画课件;license=CC BY-NC-SA 4.0;ver=v3.14;built=2026-10-02 02:43;sha256=fb2aa07cd138e6279230122cf0ff0b65af913c2e5057b0f777b508b4f443371a">
 <title>1. 数据结构基本概念：术语层级、四种逻辑结构、两种存储结构与 ADT · 数据结构动画</title>
 <style>:root{--bg:#f5f7fa; --panel:#fff; --ink:#1f2933; --muted:#5f6b76;--blue:#2563eb; --line:#d9e2ec; --code-bg:#0f172a; --code-ink:#e2e8f0;}*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:var(--bg);color:var(--ink);overflow:hidden;display:flex;flex-direction:column;font-family:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;}header.top{background:#fff;color:#1e2f44;border-bottom:1px solid #dde6f0;padding:8px 18px 6px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;flex:none}header.top h1{font-size:18px;margin:0;font-weight:700;color:#16283c;white-space:nowrap}header.top .sub{font-size:12px;color:#5b6f88}header.top .ver{font-size:10.5px;color:#4a6383;border:1px solid #c9d6e5;padding:1px 9px;border-radius:10px;white-space:nowrap}nav.chapters{display:flex;gap:8px;background:#fff;border-bottom:1px solid #e7edf5;padding:0 18px 9px;flex-wrap:wrap;flex:none}nav.chapters button{border:1px solid #c3d0e0;background:#f7fafd;color:#33506f;padding:4px 14px;border-radius:6px;font-size:13.5px;cursor:pointer}nav.chapters button:hover{border-color:#2f6fbf;color:#14417a}nav.chapters button.active{background:#dce9f8;border-color:#2f6fbf;color:#14417a;font-weight:700}.modbar{display:flex;gap:8px;padding:8px 18px;background:#fff;border-bottom:1px solid var(--line);align-items:center;flex-wrap:wrap;flex:none}.modbar .pill{border:1px solid var(--line);background:#f8fafc;border-radius:999px;padding:5px 14px;font-size:13.5px;cursor:pointer;color:var(--ink)}.modbar .pill.active{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}.modnote{font-size:12px;color:var(--muted);margin-left:auto}main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(560px,1.3fr) minmax(360px,410px);gap:12px;padding:10px 18px;overflow:hidden;align-items:stretch}.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;min-height:0}main .card{display:flex;flex-direction:column}.modtitle{display:flex;align-items:baseline;gap:10px;padding:8px 14px 4px;flex:none}.modtitle b{font-size:15.5px}.modtitle .modnote{margin-left:auto}.modaim{padding:0 14px 6px;font-size:.86em;line-height:1.5;color:#334155;flex:none}.modaim:empty{display:none}.modaim b{color:var(--ink)}body.mp .modaim{display:none}.guidebox{flex:1 1 auto;min-height:0;order:-1;margin:0;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:10px;padding:13px 15px 16px}.side.guide-on > *:not(.guidebox){display:none}.guidebox .gt{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;font-size:15.5px;font-weight:800;color:var(--ink);margin-bottom:8px}.guidebox .lead{font-size:14.5px;line-height:1.75;color:#1d4ed8;font-weight:700;margin:0 0 10px;padding:8px 10px;background:#eff6ff;border-left:3px solid var(--blue);border-radius:0 6px 6px 0}.guidebox ol{margin:0;padding-left:1.3em}.guidebox li{font-size:14.5px;line-height:1.9;color:#1f2933;margin:8px 0}.guidebox li b{color:var(--ink)}.guidebox code{font-family:Consolas,Menlo,monospace;font-size:.94em;background:#e2e8f0;padding:1px 4px;border-radius:3px}.guidebox #btnGuideX{flex:none;font:inherit;font-size:12.5px;line-height:1;padding:5px 9px;min-width:32px;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:6px;cursor:pointer}.guidebox #btnGuideX:hover{border-color:var(--blue);color:var(--blue)}body.present .guidebox li{font-size:16.5px}body.present .guidebox .lead,body.present .guidebox .gt{font-size:17px}body.mp .guidebox{display:none}#stage{flex:1;min-height:0;min-width:0;overflow:auto;display:flex;padding:4px;cursor:grab}#stage.panning{cursor:grabbing;user-select:none}#canvas{margin:auto;flex:none}#canvas svg{width:100%;height:100%;display:block}.zoomgrp{display:inline-flex;align-items:center;gap:5px;flex:none;padding-left:8px;border-left:1px solid var(--line)}.zoomgrp #zoomLv{min-width:44px;text-align:center;font-variant-numeric:tabular-nums}.controls{display:flex;gap:8px;align-items:center;padding:8px 14px;border-top:1px solid var(--line);flex-wrap:wrap;background:#fbfcfe;flex:none}.controls button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:6px 11px;font-size:13.5px;cursor:pointer;color:var(--ink);white-space:nowrap}.controls button:hover:not(:disabled){border-color:var(--blue);color:var(--blue)}.controls button:disabled{opacity:.4;cursor:default}.inputs{display:flex;gap:9px;align-items:center;flex-wrap:wrap;order:-1;flex-basis:100%;min-width:0}.inp{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted);flex:none;white-space:nowrap;max-width:100%;min-width:0}.inp input[type=text]{width:170px}.inp input[type=number]{width:64px}.inp input,.inp select{border:1px solid var(--line);border-radius:6px;padding:5px 7px;font-size:13.5px;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis}.pos{font-size:12.5px;color:var(--muted);white-space:nowrap}.controls input[type=range]{flex:1;min-width:100px;max-width:200px;accent-color:var(--blue);cursor:pointer}.side{display:flex;flex-direction:column;gap:6px;height:100%;min-height:0;overflow:hidden}.sidehead{font-size:12.5px;color:var(--muted);font-weight:600;flex:none}.codebox{background:var(--code-bg);border-radius:10px;padding:8px 0;overflow:auto;flex:1 1 auto;min-height:90px}.codebox pre{margin:0;font-family:Consolas,"Courier New",monospace;font-size:12.5px;line-height:1.5;color:var(--code-ink)}.codebox .cl{display:block;padding:0 12px;white-space:pre-wrap;word-break:break-all}.codebox .cl.on{background:rgba(37,99,235,.42);color:#fff;box-shadow:inset 3px 0 0 #60a5fa}table.panel{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:10px;font-size:13px;flex:none;display:block;max-height:32%;overflow:auto}table.panel td{border-top:1px solid #eef2f7;padding:5px 11px}table.panel tr:first-child td{border-top:none}table.panel td:first-child{color:var(--muted);width:36%}.msg{background:var(--amber-bg);border:1px solid #f5d48f;border-radius:10px;padding:8px 13px;font-size:13.5px;line-height:1.6;flex:none;max-height:22%;overflow:auto}.msg.err{background:#fdeceb;border-color:#ef7b7b;color:#8c2b22}.msg .ehint{display:block;margin-top:4px;font-size:12.5px;color:var(--muted)}.hl{animation:pulse 1.1s ease-in-out infinite}@keyframes pulse{50%{opacity:.45}}.hbtns{display:inline-flex;gap:6px;margin-left:auto}.hbtns button{border:1px solid #c3d0e0;background:#fff;color:#33506f;border-radius:6px;padding:3px 10px;font-size:12.5px;cursor:pointer;white-space:nowrap}.hbtns button:hover,.hbtns button.on{background:#eaf2fb;border-color:#2f6fbf;color:#14417a}#catalog{position:fixed;inset:0;background:rgba(24,34,50,.36);z-index:60;display:flex;justify-content:flex-start}#catalog .ovbox{width:min(440px,88vw);height:100%;background:#f5f8fc;display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .18s ease;box-shadow:6px 0 28px rgba(24,38,60,.18)}#catalog.in .ovbox{transform:none}#catalog .ovhead{flex:none;padding:14px 16px 12px;background:#eaf1f9;border-bottom:1px solid #d6e0ec}#catalog .ovttl{display:flex;align-items:center;gap:8px;font-size:15px;color:#1e2f44;margin-bottom:10px}#catalog .ovhead .ovcnt{margin-left:auto;color:#5b6f88;font-size:12px;font-weight:400}#catalog .ovbar{display:flex;gap:6px}#catalog .ovhead input{flex:1;min-width:0;height:34px;border:1px solid #c3d0e0;border-radius:8px;background:#fff;color:#1e2f44;padding:0 10px;font:inherit;font-size:13px}#catalog .ovhead input::placeholder{color:#8497ad}#catalog .ovhead input:focus{outline:none;border-color:#2f6fbf;box-shadow:0 0 0 2px rgba(47,111,191,.14)}#catalog .ovhead button{height:34px;border:1px solid #c3d0e0;background:#fff;border-radius:8px;color:#33506f;font:inherit;font-size:12.5px;padding:0 11px;cursor:pointer}#catalog .ovhead button:hover{border-color:#2f6fbf;color:#1d4ed8}#catalog .ovlist{flex:1;overflow-y:auto;padding:10px 0 20px}#catalog .ovgrp{margin:0 10px 7px;border-radius:10px;overflow:hidden;background:#fff;border:1px solid #dde6f0}#catalog .ovch2{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:#f2f7fd;padding:9px 11px;cursor:pointer;color:#1e2f44;font:inherit;font-size:13.5px;font-weight:700}#catalog .ovch2:hover{background:#e7f0fa}#catalog .ovgrp.open .ovch2{background:#e0ecf9}#catalog .ovch2 .tri{display:inline-block;transition:transform .14s;color:#7f93aa;font-size:11px;flex:none}#catalog .ovgrp.open .ovch2 .tri{transform:rotate(90deg)}#catalog .ovch2 i{font-weight:400;color:#5b6f88;font-size:11.5px;font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}#catalog .ovch2 em{margin-left:auto;font-style:normal;font-size:11px;color:#2d5686;background:#dfeaf7;border-radius:999px;padding:1px 7px;flex:none}#catalog .ovrows{display:none}#catalog .ovgrp.open .ovrows{display:block;border-top:1px solid #e2eaf4}#catalog .ovrow{display:flex;align-items:center;gap:8px;padding:9px 12px;min-height:56px;cursor:pointer}#catalog .ovrow:hover{background:#eef4fb}#catalog .ovrow[hidden]{display:none}#catalog .ovrow+.ovrow{border-top:1px solid #eaeff7}#catalog .ovrow.cur{background:#e1ecf8;box-shadow:inset 3px 0 0 #2f6fbf}#catalog .ovtxt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}#catalog .ovrow .nm{font-size:13.5px;color:#1e2f44;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#catalog .ovrow .nt{font-size:11.5px;color:#5b6f88;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#catalog .ovrow .ac{display:none;gap:4px;flex:none}#catalog .ovrow:hover .ac,#catalog.touch .ovrow .ac{display:flex}#catalog .ovrow .ac button{border:1px solid #c3d0e0;background:#fff;border-radius:6px;color:#33506f;font-size:12px;padding:3px 6px;cursor:pointer}#catalog .ovrow .ac button:hover{border-color:#2f6fbf;color:#1d4ed8}#catalog #ovNone{margin:8px 12px;padding:14px;text-align:center;color:#5b6f88;font-size:12.5px}#qrbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;border-radius:14px;padding:14px 18px;z-index:70;box-shadow:0 10px 40px rgba(15,28,50,.35)}#qrbox .qrt{display:flex;align-items:baseline;gap:10px;font-size:14px;margin-bottom:8px}#qrbox .qrt button{margin-left:auto;border:1px solid var(--line);background:#f8fafc;border-radius:6px;padding:2px 10px;cursor:pointer}#qrbox .qrb svg{width:200px;height:200px;display:block}footer.foot{flex:none;background:#f8fafc;border-top:1px solid var(--line);color:var(--muted);text-align:center;padding:4px 10px;font-size:11.5px}footer.foot b{color:#0f2c5c}body.single nav.chapters, body.single .modbar{display:none}.hbtns .backlink{border:none;background:none;color:#2f6fbf;text-decoration:none;font-size:12.5px;padding:3px 6px}.hbtns .backlink:hover{color:#14417a;text-decoration:underline}body.proj{font-size:17px}body.proj header.top{padding:4px 14px 3px}body.proj header.top h1{font-size:20px}body.proj header.top .sub, body.proj header.top .ver{display:none}body.proj nav.chapters, body.proj footer.foot{display:none}body.proj .modbar{padding:3px 14px}body.proj .modbar .pill{font-size:14px;padding:3px 12px}body.proj .modtitle{padding:4px 14px 0}body.proj .modtitle b{font-size:19px}body.proj .controls{padding:4px 10px}body.proj .controls button{font-size:15px;padding:4px 10px}body.proj .codebox pre{font-size:14.5px}body.proj table.panel{font-size:15px}body.proj .msg{font-size:16px}body.proj main{grid-template-columns:minmax(0,1fr) minmax(300px,330px)}body.present header.top, body.present nav.chapters,body.present .modbar, body.present footer.foot{display:none}body.present main{grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:6px;padding:4px 6px}body.present .card .controls{padding:4px 8px}body.present .zoomgrp{border-left:none;padding-left:0}body.present .sidehead{padding:2px 0 0;font-size:14px}body.present .modtitle{padding:6px 14px 2px}body.present .modtitle b{font-size:22px}body.present .modtitle .modnote{font-size:15px}body.present .msg{font-size:19px;line-height:1.7;max-height:32%}body.present table.panel{font-size:17px}body.present .codebox pre{font-size:15.5px}body.present .pos{font-size:15px}#btnMore{display:none}body.present #btnMore{display:block}body.present .hideable{display:none}body.present.present-more .hideable{display:revert}body.present.present-more #btnMore{background:#eef4ff;border-color:#2563eb;color:#2563eb}@media (max-width:1024px){body{overflow:auto;height:auto}main{grid-template-columns:1fr;overflow:visible}.side{height:auto}.codebox{max-height:46vh}table.panel{max-height:none}}@media (max-width:700px){body{touch-action:manipulation}header.top{padding:6px 10px;gap:8px}header.top h1{font-size:16px}header.top .sub, header.top .ver{display:none}.hbtns{margin-left:0;width:100%;justify-content:space-between}.hbtns button{flex:1;min-height:44px;font-size:14px}nav.chapters{padding:0 10px 8px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}nav.chapters button{flex:none;min-height:44px}.modbar{padding:6px 10px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}.modbar .pill{flex:none;min-height:44px}.modbar .modnote{flex:none;white-space:nowrap;margin-left:0}main{padding:8px 10px;gap:8px}.modtitle{padding:6px 10px 2px;flex-wrap:wrap}.modtitle b{font-size:15px}.modtitle .modnote{margin-left:0;flex-basis:100%}#stage{min-height:46vh}.controls{padding:8px 10px;gap:6px}.controls button{min-height:44px;font-size:14px;padding:6px 12px}#btnPrev,#btnNext,#btnPlay{flex:1 1 auto}.zoomgrp{padding-left:6px}.zoomgrp button{min-width:44px}.controls input[type=range]{min-width:120px;max-width:none;flex-basis:100%;height:44px}.inp input,.inp select{min-height:44px}.inp input[type=text]{width:100%;min-width:0;flex:1}.side{gap:4px}.codebox{max-height:170px;min-height:60px}.codebox pre{font-size:12px}table.panel{max-height:220px}.msg{max-height:none;font-size:14px}#catalog .ovbox{width:100%}#catalog .ovhead{padding:12px 14px 10px}#catalog .ovhead input{height:44px;font-size:15px}#catalog .ovhead button{height:44px;font-size:13px;padding:0 12px}#catalog .ovch2{min-height:50px}#catalog .ovrow{min-height:58px}#catalog .ovrow .ac button{min-width:44px;min-height:44px}#toast{left:10px;right:10px;bottom:10px;text-align:center}}.mponly{display:none}body.mp .mponly{display:block}.mp-arrow{display:none}#mpCounter{display:none}body.mp{overflow:hidden}body.mp header.top, body.mp nav.chapters, body.mp .modbar, body.mp footer.foot,body.mp .side, body.mp #guide, body.mp .modnote, body.mp .controls{display:none!important}body.mp main{padding:0;gap:0;overflow:hidden}body.mp .card{border:none;border-radius:0;display:flex;flex-direction:column;position:relative}body.mp .modtitle{padding:4px 10px;align-items:center}body.mp .modtitle b{font-size:14px}body.mp #mpPanel{margin-left:auto}body.mp #mpExit{margin-left:8px}body.mp #mpExit, body.mp #mpPanel, body.mp #mpFit{border:1px solid var(--line);background:rgba(255,255,255,.86);border-radius:6px;padding:6px 12px;font-size:14px;cursor:pointer;color:var(--ink);min-height:44px}body.mp #mpPanel.on{background:var(--blue);color:#fff;border-color:var(--blue)}#mpPane{display:none}body.mp.mpPanel #mpPane{display:block;position:absolute;right:8px;top:52px;z-index:7;max-width:46%;max-height:40%;overflow:auto;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:10px;padding:6px 8px;box-shadow:0 6px 18px rgba(0,0,0,.18)}body.mp.mpPanel #mpPane table.panel{max-height:none;font-size:12px;border:none}body.mp.mpPanel #mpPane table.panel td:first-child{width:auto;white-space:nowrap;padding-right:8px}body.mp.mpPanel .mp-arrow{top:auto;bottom:46px;transform:none}body.mp #stage{min-height:0;padding:2px}body.mp .mp-arrow{display:flex;align-items:center;justify-content:center;position:absolute;top:50%;transform:translateY(-50%);z-index:6;width:52px;height:130px;border:1px solid var(--line);background:rgba(255,255,255,.78);color:var(--blue);font-size:40px;line-height:1;cursor:pointer;border-radius:10px;padding:0 0 6px}body.mp .mp-arrow.prev{left:2px}body.mp .mp-arrow.next{right:2px}body.mp .mp-arrow:active{background:#dbe7ff}body.mp .mp-arrow.dim{opacity:.28}#mpBar{display:none}body.mp #mpBar{display:flex;align-items:center;gap:10px;position:absolute;left:0;right:0;bottom:0;z-index:6;background:rgba(255,255,255,.93);border-top:1px solid var(--line);padding:4px 12px}body.mp #mpMsg{flex:1;font-size:12.5px;line-height:1.35;color:var(--ink);max-height:2.7em;overflow:hidden}body.mp #mpMsg b{color:#0f2c5c}body.mp #mpCounter{display:block;flex:none;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;background:none;padding:0;position:static;transform:none}body.mp #mpCounter.warn{background:#c0392b;color:#fff;padding:2px 10px;border-radius:999px}#mpHintBar{display:none}body.mp #mpHintBar{display:block;position:absolute;left:50%;transform:translateX(-50%);bottom:34px;background:rgba(15,44,92,.82);color:#fff;font-size:12px;padding:4px 12px;border-radius:999px;pointer-events:none;white-space:nowrap}body.mp #mpHintBar[hidden]{display:none}@media (orientation:landscape){body.mp .card{position:fixed;inset:0;z-index:90}}@media (orientation:portrait){body.mp .card{position:fixed;top:0;left:100%;width:100vh;height:100vw;transform-origin:left top;transform:rotate(90deg);z-index:90}}#crash{position:fixed;inset:0;z-index:120;background:rgba(14,19,39,.72);display:flex;align-items:center;justify-content:center;padding:24px}#crash[hidden]{display:none}#crash .cbox{max-width:640px;background:#fff;border-radius:14px;padding:22px 26px;box-shadow:0 24px 60px rgba(0,0,0,.35);font-size:15px;line-height:1.75;color:#1e2f44}#crash .ct{display:block;font-size:18px;margin-bottom:10px}#crash p{margin:0 0 10px}#crash .cerr{font-family:Consolas,Menlo,monospace;font-size:14px;background:#fdeceb;border:1px solid #ef7b7b;color:#8c2b22;border-radius:8px;padding:8px 11px;word-break:break-all}#crash button{border:1px solid var(--line);background:#f5f8fc;color:#1e2f44;border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer;min-height:44px}#errbar{position:fixed;left:0;right:0;bottom:0;z-index:110;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;background:#fffdf5;border-top:1px solid #f5d48f;border-left:4px solid #e9b96b;padding:7px 14px;font-size:14px;line-height:1.5;color:#5a4a22;box-shadow:0 -6px 22px rgba(0,0,0,.12)}#errbar[hidden]{display:none}#errbar b{color:#8c6b1f}#errbar #errmsg{font-family:Consolas,Menlo,monospace;font-size:13px;color:#8c2b22;word-break:break-all}#errbar .ehint{color:#8a7a52;font-size:12.5px}#errbar button{margin-left:auto;border:1px solid var(--line);background:#fff;color:#5a4a22;border-radius:6px;padding:2px 9px;font-size:13px;cursor:pointer;min-height:28px}:root{--ds-ck:"2a6245f3d946"}</style>
 </head>
@@ -25,7 +25,7 @@
     <button id="btnProj" title="投影模式：放大画面文字、收起导航条，适合课堂投屏">🖥 投影</button>
     <button id="btnPresent" title="放映模式：全屏投放，保留翻页/播放/缩放/进度条；⋯ 展开完整操作台，Esc 退出">⛶ 放映</button>
   </span>
-  <span class="ver">v3.13 · 构建 2026-10-02 01:27</span>
+  <span class="ver">v3.14 · 构建 2026-10-02 02:43</span>
 </header>
 <nav class="chapters" id="chapters"></nav>
 <div class="modbar" id="modbar"></div>
@@ -102,21 +102,21 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     '数据元素    DataElement   数据的基本单位，作为一个整体处理',
     '数据项      DataItem      组成数据元素的最小单位，不可分割',
     '/* 包含关系（从外到内）：数据 ⊃ 数据对象 ⊃ 数据元素 ⊃ 数据项 */',
-    '/* 同一概念在不同语境下的别名：数据元素 = 记录 = 结点 = 元素 */',
+    '/* 口语里的别名：数据元素 ≈ 记录 ≈ 结点 ≈ 元素（严格说"结点"还带着指针域） */',
     '',
     '/* 逻辑结构：数据元素之间的抽象关系。与计算机无关，与怎么存无关 */',
     '集合结构      仅有"同属一个集合"这一种关系',
     '线性结构      一对一：除首尾外，每个元素恰有一个前驱、一个后继',
     '树形结构      一对多：一个元素可对应多个后继（根无父，其余恰一父）',
     '图状/网状结构  多对多：任意两个元素之间都可能相关',
-    '/* 四类里，线性结构是"线性"的，树形与图状都算非线性结构 */',
+    '/* 四类里只有"线性结构"是线性的；集合、树形、图状都不算线性 */',
     '',
-    '/* 存储结构（= 物理结构）：逻辑结构在计算机里的落地方式，只有两样 */',
+    '/* 存储结构（= 物理结构）：逻辑结构的落地方式。最基本的是顺序与链式两样；大纲里还列索引、散列，共四种 */',
     '顺序存储  逻辑相邻 ⇒ 物理相邻：一段地址连续的内存',
     '链式存储  物理可散可断：每元素附带"指针"，靠指针串出顺序',
     '/* 顺序：Loc(a_i) = Loc(a_1) + (i−1)×c    // c = 一个元素占的字节数 */',
     '/*   地址能算出来 ⇒ 取第 i 个元素一步到位，这叫随机访问；代价是插入删除要搬家 */',
-    '/* 链式：插入删除只改指针 ⇒ 便宜；但要找第 i 个只能从表头 next 走 i 次 */',
+    '/* 链式：插入删除只改指针 ⇒ 便宜；但要找第 i 个只能从表头 next 走 i−1 步（无头结点，从 a1 数起）*/',
     '',
     '/* 抽象数据类型 ADT = (D, S, P)：把"数据 + 关系 + 操作"打包成一份声明 */',
     'D  数据对象：成员取自哪一类、取值范围是什么',
@@ -126,7 +126,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     '  D：{ ai | ai ∈ 某个同类型元素的集合 }',
     '  S：{ <a(i−1), a(i)> }   // 除首尾外每个元素恰有一前一后',
     '  P：InitStack()  Push(e)  Pop()  GetTop()  StackEmpty()',
-    '}   // 通篇没有出现"数组""指针""地址"——这就是"抽象"两个字的意思',
+    '}   // 上面这五行声明里没有"数组""指针""地址"——这就是"抽象"两个字的意思',
     '/* 同一个 ADT 可有两种实现：顺序栈（数组+top 下标）/ 链栈（结点+next）。换实现不用改声明 */',
     '/* 数据类型是语言内置的（int、float）；ADT 由使用者自己定义，多出来的是"把操作绑在数据上" */'
   ];
@@ -185,8 +185,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   DSC.reg({
     id: 'dsConcepts', ch: 1,
     name: '数据结构基本概念：术语层级、四种逻辑结构、两种存储结构与 ADT',
-    aim: '分类只看**关系**：逻辑结构四类、存储结构两样，最后用 **ADT=(D,S,P)** 把数据和操作打包',
-    note: '408 大纲 一(一) 数据结构基本概念（数据/数据元素/数据项、四种逻辑结构、两种存储结构、抽象数据类型）',
+    aim: '分类只看**关系**：逻辑结构四类、存储结构以顺序、链式为主，最后用 **ADT=(D,S,P)** 把数据和操作打包',
+    note: '408 大纲 一(一) 数据结构基本概念（数据/数据元素/数据项、四种逻辑结构、存储结构（顺序/链式为主，另有索引/散列）、抽象数据类型）',
     keywords: '基本概念 绪论 数据 数据对象 数据元素 数据项 记录 结点 元素 逻辑结构 存储结构 物理结构 四类 两种 集合 线性 树形 图状 网状 非线性 一对多 多对多 前驱 后继 顺序存储 链式存储 随机访问 地址 计算地址 指针 存储密度 抽象数据类型 ADT 三元组 数据类型 定义',
     guide: [
       '绪论里最容易被跳过、考试却最爱抠字的一屏。四个场景各管一件事：**分清单位**、**给逻辑结构分类**、**给存储结构分类**、**把前两者打包成 ADT**',
@@ -229,7 +229,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           { 判据: '元素性质相同 → 才算同一个数据对象', 本例: '这张成绩表 = 一个数据对象' }, { hl: 'object' });
         F([4, 7], '再往里是**数据元素**：数据的**基本单位**，处理时把它当一个整体传来传去。这张表里"一个学生的全部信息"就是一个数据元素。' +
           '同一件事在不同书里叫法不同——数据库叫**记录**，树和图里叫**结点**，口头一般就叫**元素**。',
-          { 地位: '基本单位（整体考虑、整体处理）', 别名: '记录 = 结点 = 元素 = 数据元素' }, { hl: 'element', alias: true });
+          { 地位: '基本单位（整体考虑、整体处理）', 别名: '记录 / 结点 / 元素（口语混用；结点还带指针域）' }, { hl: 'element', alias: true });
         F([5, 6], '最里面这一层是**数据项**：组成数据元素、有独立含义、**不能再拆**的最小单位——学号、姓名、成绩各自是一个数据项。' +
           '选择题就抠这两个词：数据的**最小单位是数据项**，数据讨论和处理的**基本单位是数据元素**。这两个说反了就是错。',
           { 最小单位: '数据项（不可分割）', 基本单位: '数据元素（整体处理）', 本例: '一格 = 一个数据项；一行 = 一个数据元素' },
@@ -246,14 +246,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
       /* ---------- 场景三：两种存储结构 ---------- */
       if (scene === 'store') {
-        F([16], '要存的是同一个线性表 (a1…a6)，就是上面那一行。存进内存只有两样办法，区别浓缩成一句话：' +
+        F([16], '要存的是同一个线性表 (a1…a6)，就是上面那一行。存进内存最基本的有两样办法，区别浓缩成一句话：' +
           '**逻辑上相邻的元素，物理上到底挨不挨着。**',
           { 要存的东西: '线性表，6 个元素，5 条前后继关系', 两种存法: '顺序存储 / 链式存储（即物理结构）' }, { mode: 'list' });
         F([17, 19], '**顺序存储**：从地址 1000 起要一段**连续**的内存，一个挨一个放下去。每个元素占 c=16 字节，' +
           '那么 a3 的地址 = 1000 + (3−1)×16 = **1032**。地址不是查出来的，是**算**出来的。',
           { 存放: '地址连续：1000, 1016, 1032, …', 'a3 的地址': '1000 + (3−1)×16 = 1032', 代价: '必须先有一段够用且连续的地方' },
           { mode: 'seq', hl: 2 });
-        F([19, 20], '因为地址能算，取第 i 个元素就是**一次乘法**——从第 1 个直接跳到第 5 个，和跳到第 2 个一样快。' +
+        F([19, 20], '因为地址能算，取第 i 个元素就是**一次乘法一次加法**——从第 1 个直接跳到第 5 个，和跳到第 2 个一样快。' +
           '这叫**随机访问**（随机 = 任意，不是"随机数"）。这一条是顺序存储最值钱的性质，也是第 2 章顺序表敢把"取值写成 O(1)"的全部理由。',
           { '取第 i 个': 'Loc(a_i) = Loc(a_1) + (i−1)×c → O(1)', 随机访问: '任意下标一步到位，代价与 i 无关' },
           { mode: 'seq', hl: 4, jump: true });
@@ -289,7 +289,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           '除首尾外每个元素恰有一前一后。换成树的 ADT，这一行就得改写成"每个元素至多一个父、零或多个子"。',
           { S: 'D 上的关系集', 本例: '{ <a(i−1), a(i)> } → 一对一，线性结构' }, { hl: 'S' });
         F([26, 31], '**P 基本操作**：每个操作只交代输入、输出、**做什么**。往回看这五行——' +
-          '没有一个字提到数组、指针、地址、下标。这不是简写，**这就是"抽象"两个字的含义**：' +
+          '那五行里没有一个字提到数组、指针、地址、下标。这不是简写，**这就是"抽象"两个字的含义**：' +
           '定义只承诺行为，不承诺实现。第 3 章的栈、第 2 章的线性表，教材都是按这个格式给的。',
           { P: '对 D 的基本操作集', 每个操作写什么: '名字 + 输入 + 输出 + 做什么', 绝对不写什么: '怎么存、怎么找、怎么搬' }, { hl: 'P' });
         F([32], '为什么不写"怎么做"？因为**同一个 ADT 底下可以换实现**：左边用数组 + top 下标（第 3 章顺序栈），' +
@@ -308,7 +308,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       F([9], '屏幕上是同一批数据元素 a1…a6，一条线都不连。逻辑结构问的只有一件事：**它们之间是什么对应关系**。',
         { 元素: 'a1…a6 共 6 个', '关系（还没定）': '——' }, { kind: 'set', ehl: [] });
       F([10], '**① 集合结构**：除了"我们同属一个集合"，彼此再没有任何可说的对应关系。这是最松散的一类，' +
-        '也是教材承认存在、但后面几乎不讲的一类——因为光有集合什么算法都做不了。',
+        '也是教材承认存在、但后面几乎不讲的一类——集合里既没有顺序也没有层次，后续章节的算法用不上它。' +
+        '（少数例外就是本课件的「并查集」：它管的正是"谁和谁同属一堆"。）',
         { 结构: '集合', 关系: '仅"同属一个集合"', 边数: '0 条' }, { kind: 'set', ehl: [] });
       F([11], '**② 线性结构**：把它们排成一行。除第一个和最后一个之外，每个元素**恰有一个前驱、恰有一个后继**；' +
         '首元素无前驱、尾元素无后继，而且**首尾各只有一个**——这一句就是判断"是不是线性结构"的硬指标。',
@@ -320,12 +321,13 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         { kind: 'tree', ehl: [0, 1, 2, 3, 4], ann: true });
       F([13, 14], '**④ 图状（网状）结构**：任意两个元素之间都可能相关，前驱后继都不再唯一。这里是 6 个点连一圈再加两条对角线，' +
         '**多对多**。树形其实是图状的特例（有根、且每个点只有一个父的连通无环图）——但分类时按最一般的口径记：四类。',
-        { 结构: '图状 / 网状', 关系: '多对多（前驱后继都任意）', 边数: cnt.graph + ' 条（最多 n(n−1)/2 = 15）' },
+        { 结构: '图状 / 网状', 关系: '多对多（前驱后继都任意）', 边数: cnt.graph + ' 条（无向简单图最多 n(n−1)/2 = 15；有向可到 n(n−1) = 30）' },
         { kind: 'graph', ehl: [0, 1, 2, 3, 4, 5, 6, 7] });
       F([10, 11, 12, 13, 14], '四张缩略图并排，判据统一成一句话：**看每个元素最多能直接连几个**。' +
         '集合只讲归属；线性 ≤1 前驱且 ≤1 后继；树 1 父多子；图 任意。' +
-        '顺手记住分界——**线性结构是"线性"的，树形和图状都归到非线性结构**，问"下列哪些是非线性结构"时两个都要选。',
-        { '每点最多几个后继': '集合 0 · 线性 1 · 树 多 · 图 多', '每点最多几个前驱': '集合 0 · 线性 1 · 树 1 · 图 多', 非线性的是: '树形结构、图状结构' },
+        '顺手记住分界——四类里**只有线性结构是线性的**，集合、树形、图状都不算线性。' +
+        '考题问"下列哪些是非线性结构"时，最常见的标准答案就是**树形和图状**这两个。',
+        { '每点最多几个后继': '集合 0 · 线性 1 · 树 多 · 图 多', '每点最多几个前驱': '集合 0 · 线性 1 · 树 1 · 图 多', 非线性的是: '树形、图状（集合也不算线性）' },
         { kind: 'all' });
       F([9], '★ 最后拆掉一个错判据：**边数不能用来分类**。看缩略图，4 个点的线性结构和 4 个点的树**都是 3 条边**；' +
         '换成 6 个点，两种结构都正好需要 5 条边。边数相同、关系完全不同——分类依据是**关系的形状**，不是边的根数。',
@@ -455,7 +457,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       g += h.txt(ox + 92, oy + 206, m.s, { size: 11.5, fill: C.muted });
     });
     g += h.txt(W / 2, 380, s.note2 ? '边数不能用来分类：n 个点的线性结构和 n 个点的树都是 n−1 条边'
-      : '线性结构 = 线性；树形 + 图状 = 非线性结构（考试两个都要选上）', { size: 14, w: 700, fill: s.note2 ? C.red : C.blue });
+      : '只有"线性结构"是线性；集合、树形、图状都不算线性（考题最常见答案：树形 + 图状）', { size: 14, w: 700, fill: s.note2 ? C.red : C.blue });
     g += h.txt(W / 2, 412, s.note2 ? '真正的判据是"关系的形状"：一对一 / 一对多 / 多对多'
       : '集合只讲归属 · 线性 ≤1 前驱且 ≤1 后继 · 树 1 父多子 · 图 任意', { size: 13, fill: C.muted });
     return h.svg(W, H, g);
@@ -558,7 +560,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
             B[0] + (R[1] === NEW ? -24 : 14), B[1] + (R[1] === NEW ? 32 : 16),
             { stroke: C.amber, sw: 2.4, head: 8 });
         });
-        g += h.txt(490, 420, '改动只有 ' + RL.length + ' 处：a2 的 next 由「1160」改成「1900」，x 的 next 写「1160」。其余四个元素一个字节都不用动',
+        g += h.txt(490, 420, '改动只有 ' + RL.length + ' 处：a2 的 next 由「1160」改成「1900」，x 的 next 写「1160」。' +
+          '其余 ' + (Object.keys(s.lx || { a: 1 }).length - 1) + ' 个元素一个字节都不用动',
           { size: 12.5, fill: C.amber, w: 600 });
         g += h.txt(490, 444, '代价在另一头：想取第 i 个，只能从 a1 一路 next 走过去，走 i−1 步', { size: 12.5, fill: C.muted });
       }

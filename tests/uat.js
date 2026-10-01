@@ -102,7 +102,15 @@ console.log('\n— C 对外数字一致性 —');
   const rel = rd('gitee-pages/src/build.py');
   const ver = (rel.match(/VER = '([^']+)'/) || [])[1] || '?';
   t('C: README 版本徽标与 build.py 的 VER 一致', readme.includes('版本-' + ver) && readme.includes('ds-animations-' + ver + '.zip'), { ver: ver });
-  t('C: README 声明的断言数与实跑一致（756 + 100）', /756 项正确性断言 \+ 100 项手机视口卡口/.test(readme));
+  /* 断言数不许写死在正则里。上一版这条写的是 /756 项正确性断言/，README 一旦过期它照样绿——
+     名字写着"与实跑一致"，代码里从没跑过。现在真跑一次纯逻辑段拿统计行（DSC_NO_BROWSER=1，不起浏览器）。
+     手机视口那串数字这里跑不到（跑它要 16 次 Chrome，那是 test.js 的活），所以只把它随实跑一起回显出来。 */
+  const logic = cp.spawnSync(process.execPath, [path.join(__dirname, 'test.js')],
+    { encoding: 'utf8', cwd: ROOT, env: Object.assign({}, process.env, { DSC_NO_BROWSER: '1' }) });
+  const real = Number(((logic.stdout || '').match(/结果: 通过 (\d+)/) || [])[1] || -1);
+  const dm = readme.match(/(\d+) 项正确性断言 \+ (\d+) 项手机视口卡口/);
+  t('C: README 声明的正确性断言数取自实跑', !!dm && Number(dm[1]) === real && real > 0,
+    { README: dm && dm[1], 实跑: real, README写的手机段: dm && dm[2] });
   t('C: README 动画数是 59（不是历史值 58）', /算法动画-59个/.test(readme) && /## 59 个动画目录/.test(readme));
   t('C: 使用说明的版本号跟上了', guide.includes(ver) && guide.includes('共 59 个交互动画'), ver);
   t('C: zip 里的版权页版本号跟上了', notice.includes(ver) && notice.includes('59 个动画'), ver);

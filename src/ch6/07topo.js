@@ -25,14 +25,15 @@
       label: '② 一条链：拓扑序列唯一',
       teach: '第 2 张·什么时候唯一：六个活动串成一条链，**合法序列只有 1 个**。' +
         '原因看得见：每一步栈里都恰好只有一个入度为 0 的点，没有可选的余地。' +
-        '"拓扑序列唯一"的充要条件就是每步只有一个候选——反过来，只要某一步栈里有两个，序列就不止一个。'
+        '"拓扑序列唯一"的判据是：**每一步都恰好只有一个入度为 0 的点**（等价说法：唯一的那个序列里，相邻两项之间都有弧，' +
+        '也就是存在一条穿过全部顶点的路径）。反过来，只要某一步栈里有两个，序列就不止一个。'
     },
     cyc: {
       arcs: BASE_ARCS.concat([[5, 1]]), pos: POS, orders: 0,
       label: '③ 加一条 C6→C2：有回路',
       teach: '第 3 张·有回路：在 ① 上加一条 C6→C2，于是 C2→C4→C6→C2 互相等。' +
         '栈空了但只输出 2 个顶点，**剩下 4 个的入度永远降不到 0**——穷举 720 种排列，合法序列 **0 个**。' +
-        '这就是拓扑排序当回路检测用的原理：输出不满 n 个 ⟺ 图里有环。'
+        '这就是拓扑排序当回路检测用的原理：**实现正确时**，有环 ⟹ 一定排不满，排不满 ⟹ 一定有环（两个方向都成立，才敢说 ⟺）。'
     },
     loose: {
       arcs: LOOSE_ARCS, pos: LOOSE_POS, orders: 30,
@@ -66,7 +67,7 @@
   DSC.reg({
     id: 'topo', ch: 6, name: '拓扑排序：AOV 网与回路检测',
     aim: 'AOV 网反复摘**入度为 0** 的点；摘不满 n 个就说明图里有回路',
-    note: '教材 6.6 图的应用（AOV 网、拓扑排序、回路检测）',
+    note: '教材 6.6 图的应用（AOV 网、拓扑排序、回路检测）· 活动名 C1…C6 是教材编号，伪码里的 inDegree[0] 就是 C1',
     keywords: '拓扑排序 AOV网 入度为0 栈 输出序列 回路 环 检测 有向无环图 DAG 先修课程 唯一',
     guide: [
       '只有入度为 0 的顶点才能输出——输出后删除它的所有出弧',
@@ -155,11 +156,16 @@
       } else if (wrong) {
         var restW = [];
         for (var r2 = 0; r2 < N; r2++) if (out.indexOf(r2) < 0) restW.push(NAMES[r2]);
-        F([10], '✗ 栈空了，只输出 ' + out.length + ' 个（' + restW.join('、') + ' 没出来）——**但这张图里根本没有环**：' +
-          '它本来有 ' + pre.orders + ' 个合法拓扑序列。错在第 7 行没执行：不删弧，后继的入度就永远降不到 0，' +
-          '也就永远进不了栈。"输出不满 n 个 ⟹ 有回路"这条判据，**前提是删弧做对了**。',
-          { 输出顶点数: out.length + ' / ' + N, 未输出: restW.join('、'), 结论: '不是有环，是没删弧', 合法序列总数: pre.orders + ' 个' },
-          snap({ err: '没删弧', done: true }));
+        F([10], '✗ 栈空了，只输出 ' + out.length + ' 个（' + restW.join('、') + ' 没出来）。' +
+          (pre.orders > 0
+            ? '**但这张图里根本没有环**——它本来有 ' + pre.orders + ' 个合法拓扑序列。错在第 7 行没执行：' +
+              '不删弧，后继的入度就永远降不到 0，也就永远进不了栈。' +
+              '"输出不满 n 个 ⟹ 有回路"这条判据，**前提是删弧做对了**。'
+            : '这一档的图**本来就有环**（合法拓扑序列 0 个），所以两种写法都排不完，**看不出"不删弧"的害处**——' +
+              '换 ①②④ 任一张无环的图再看这条。'),
+          { 输出顶点数: out.length + ' / ' + N, 未输出: restW.join('、'),
+            结论: pre.orders > 0 ? '不是有环，是没删弧' : '本档有环，不适合看这条', 合法序列总数: pre.orders + ' 个' },
+          snap({ err: pre.orders > 0 ? '没删弧' : '回路', done: true }));
       } else {
         var rest = [];
         for (var r = 0; r < N; r++) if (out.indexOf(r) < 0) rest.push(NAMES[r]);
@@ -206,7 +212,7 @@
         var y = 108 + j * 30;
         var done = s.out.indexOf(j) >= 0;
         g += h.rect(tx, y, 190, 26, { fill: done ? C.greenBg : '#fff', stroke: C.line, sw: 1, rx: 4 });
-        g += h.txt(tx + 34, y + 18, NAMES2[j], { size: 12.5, w: 600, family: 'Consolas,monospace' });
+        g += h.txt(tx + 62, y + 18, NAMES2[j] + ' = in[' + j + ']', { size: 11.5, w: 600, family: 'Consolas,monospace' });
         g += h.txt(tx + 120, y + 18, done ? '已输出' : '入度 ' + s.inDeg[j], { size: 12, family: 'Consolas,monospace', fill: done ? C.green : C.ink });
       }
       var sy = 320;
