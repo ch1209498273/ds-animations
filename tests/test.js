@@ -546,6 +546,104 @@ console.log('— 第6章 最小生成树 —');
   t('两种算法总权值均为 15', sum(last(rp).treeEdges) === 15 && sum(last(rk).treeEdges) === 15);
 }
 
+console.log('— 第6章 最小生成树：五张预置图（每张答一个问题） —');
+{
+  const norm = arr => JSON.stringify(arr.map(e => [Math.min(e[0], e[1]), Math.max(e[0], e[1])]).sort((a, b) => a[0] - b[0] || a[1] - b[1]));
+  const safe = fn => { try { return !!fn(); } catch (e) { return false; } };
+  const KEYS = ['text', 'tie', 'tree', 'k5', 'tiny'];
+  const run = (g, m) => M.mst.run({ method: m || 'prim', graph: g });
+  /* 独立对拍：不重跑 Prim/Kruskal，用并查集验"真的是一棵树"，再按边表把总权值加一遍 */
+  const treeOK = snap => {
+    const par = {};
+    const find = a => { while (par[a] !== a) a = par[a]; return a; };
+    for (let i = 1; i <= snap.N; i++) par[i] = i;
+    let cyc = false;
+    snap.treeEdges.forEach(e => { const x = find(e[0]), y = find(e[1]); if (x === y) cyc = true; else par[x] = y; });
+    const roots = new Set();
+    for (let i = 1; i <= snap.N; i++) roots.add(find(i));
+    return !cyc && snap.treeEdges.length === snap.N - 1 && roots.size === 1;
+  };
+  const totalOf = snap => snap.treeEdges.reduce((s, e) => {
+    const hit = snap.E.filter(x => (x[0] === e[0] && x[1] === e[1]) || (x[0] === e[1] && x[1] === e[0]))[0];
+    return s + (hit ? hit[2] : NaN);
+  }, 0);
+  /* 默认档必须和改造前一字不差——这是"预置图 = 现状"的承诺 */
+  const legacy = M.mst.run({ method: 'prim' });
+  /* 教材图 6.19 那 10 条边的字面值，必须写死在这里：
+     拿 run('text') 和旧调用自比等于用同一份数据比自己，产品里偷偷加一条边也永远"一致" */
+  const TEXT_EDGES = [[1, 2, 6], [1, 3, 1], [1, 4, 5], [2, 3, 5], [2, 5, 3], [3, 4, 5], [3, 5, 6], [3, 6, 4], [4, 6, 2], [5, 6, 6]];
+  t('预置图: 默认档就是教材图 6.19 那 10 条边（字面值钉死，不许悄悄加边）',
+    safe(() => JSON.stringify(last(run('text')).E) === JSON.stringify(TEXT_EDGES)),
+    safe(() => last(run('text')).E));
+  t('预置图: 默认档与改造前的旧调用方式结果一致',
+    safe(() => norm(last(run('text')).treeEdges) === norm(last(legacy).treeEdges)), null);
+  t('预置图: 五张都在下拉里，标签互不重复',
+    safe(() => {
+      const inp = M.mst.inputs.filter(x => x.key === 'graph')[0];
+      return JSON.stringify(inp.options.map(o => o[0])) === JSON.stringify(KEYS) &&
+        new Set(inp.options.map(o => o[1])).size === 5;
+    }), null);
+  /* Kruskal 的 rejected 是"这一帧刚扔掉哪条"的增量，不是累计 → 跨帧去重累加才是真丢弃数 */
+  const rejCount = (g, m) => {
+    const s = new Set();
+    run(g, m || 'kruskal').frames.forEach(f => (f.snap.rejected || []).forEach(e =>
+      s.add(Math.min(e[0], e[1]) + '-' + Math.max(e[0], e[1]))));
+    return s.size;
+  };
+  t('预置图: 每张图首帧都先说清"这张要回答什么问题"',
+    KEYS.every(k => safe(() => { const m = run(k).frames[0].msg; return /^第 [1-5] 张·/.test(m) && m.length > 30; })),
+    KEYS.map(k => safe(() => run(k).frames[0].msg.slice(0, 12))));
+  t('预置图: 首帧不画状态表（那时 lowcost 还是 undefined，画出来会顶出画布）',
+    KEYS.every(k => safe(() => {
+      const svg = M.mst.render(run(k).frames[0].snap);
+      return svg.indexOf('undefined') < 0 && svg.indexOf('lowcost=') < 0;
+    })), KEYS.map(k => safe(() => M.mst.render(run(k).frames[0].snap).indexOf('undefined'))));
+  t('预置图: 五张图 × 两种算法都真的算出一棵树（n−1 条边、连通、无环）',
+    KEYS.every(k => ['prim', 'kruskal'].every(m => safe(() => treeOK(last(run(k, m)))))),
+    KEYS.map(k => [k, safe(() => treeOK(last(run(k)))), safe(() => treeOK(last(run(k, 'kruskal'))))]));
+  t('预置图: 同一张图上 Prim 与 Kruskal 总权值必然相同（贪心最优性，跑不出来就是算错了）',
+    KEYS.every(k => safe(() => totalOf(last(run(k))) === totalOf(last(run(k, 'kruskal'))))),
+    KEYS.map(k => safe(() => [k, totalOf(last(run(k))), totalOf(last(run(k, 'kruskal')))])));
+  /* 第 2 张：全套里最有价值的一张 */
+  t('预置图: 并列权那张 Prim 选 {1-2,1-3,3-4}、Kruskal 选 {1-2,3-4,2-3}——边集不同',
+    safe(() => norm(last(run('tie')).treeEdges) === norm([[1, 2], [1, 3], [3, 4]]) &&
+      norm(last(run('tie', 'kruskal')).treeEdges) === norm([[1, 2], [3, 4], [2, 3]])),
+    safe(() => [last(run('tie')).treeEdges, last(run('tie', 'kruskal')).treeEdges]));
+  t('预置图: 但并列权那张两边总权值都是 4（"不唯一"指的是边集，不是权值和）',
+    safe(() => totalOf(last(run('tie'))) === 4 && totalOf(last(run('tie', 'kruskal'))) === 4),
+    safe(() => [totalOf(last(run('tie'))), totalOf(last(run('tie', 'kruskal')))]));
+  /* 第 3、4 张：丢边数才是这两张的看点 */
+  t('预置图: 稀疏图（边数=n−1）Kruskal 一条都不丢',
+    safe(() => last(run('tree')).E.length === last(run('tree')).N - 1 &&
+      rejCount('tree') === 0 && last(run('tree', 'kruskal')).treeEdges.length === 4),
+    safe(() => rejCount('tree')));
+  t('预置图: 完全图 K5 十选四，且"不成环才要"真的被触发（丢的比教材图多）',
+    safe(() => last(run('k5')).E.length === 10 &&
+      last(run('k5', 'kruskal')).treeEdges.length === 4 &&
+      rejCount('k5') === 2 && rejCount('text') === 1),
+    safe(() => ({ 边数: last(run('k5')).E.length, k5丢: rejCount('k5'), 教材丢: rejCount('text') })));
+  t('预置图: 4 点小图的帧数明显少于教材图（第一遍引入用得上）',
+    safe(() => run('tiny').frames.length < run('text').frames.length * 0.7),
+    safe(() => [run('tiny').frames.length, run('text').frames.length]));
+  /* 几何：五套坐标都得在画布内、点不叠（半径 25） */
+  KEYS.forEach(k => {
+    t(`预置图: ${k} 的顶点都在画布内且互不重叠`,
+      safe(() => {
+        const snap = last(run(k)), p = snap.pos;
+        const arr = Object.keys(p).map(x => p[x]);
+        if (arr.length !== snap.N) return false;
+        for (let i = 0; i < arr.length; i++) {
+          if (arr[i][0] < 40 || arr[i][0] > 700 || arr[i][1] < 80 || arr[i][1] > 520) return false;
+          for (let j = i + 1; j < arr.length; j++) if (Math.hypot(arr[i][0] - arr[j][0], arr[i][1] - arr[j][1]) < 56) return false;
+        }
+        return true;
+      }), safe(() => last(run(k)).pos));
+  });
+  t('预置图: 渲染只认这一帧的图（并列权那张画面里没有 v5）',
+    safe(() => { const svg = M.mst.render(last(run('tie')));
+      return svg.indexOf('>v5<') < 0 && svg.indexOf('cx="330"') >= 0 && M.mst.render(last(run('text'))).indexOf('cx="490"') >= 0; }), null);
+}
+
 console.log('— 第6章 Dijkstra —');
 {
   const r = M.dijkstra.run({ start: '0' });
@@ -1619,7 +1717,12 @@ const CASES = {
     traversal: [['pre', 'GDA##FE###MH##Z##'], ['in', 'GDA##FE###MH##Z##'], ['post', 'GDA##FE###MH##Z##'], ['level', 'GDA##FE###MH##Z##']].map(x => ({ mode: x[0], data: x[1] })),
     huffman: [{ preset: 'a', w: '' }, { preset: 'b', w: '' }, { preset: 'a', w: '', phase: 'decode' }, { preset: 'a', w: '', phase: 'code' }, { preset: 'a', w: '', phase: 'build' }],
     dfsBfs: [{ method: 'dfs', start: '2' }, { method: 'bfs', start: '2' }, { method: 'dfs', start: '2', storage: 'list' }],
-    mst: [{ method: 'prim' }, { method: 'kruskal' }],
+    mst: [{ method: 'prim' }, { method: 'kruskal' },
+      { graph: 'text' }, { graph: 'text', method: 'kruskal' },
+      { graph: 'tie' }, { graph: 'tie', method: 'kruskal' },
+      { graph: 'tree' }, { graph: 'tree', method: 'kruskal' },
+      { graph: 'k5' }, { graph: 'k5', method: 'kruskal' },
+      { graph: 'tiny' }, { graph: 'tiny', method: 'kruskal' }],
     dijkstra: [{ start: '0' }, { start: '1' }, { start: '0', negW: true }, { start: '1', negW: true },
       { start: '4', negW: true }, { start: '2', negW: true }, { start: '5', negW: true }],
     quickSort: [{ preset: 'textbook', w: '', errPivot: true }, { preset: 'ordered', w: '', errPivot: true },

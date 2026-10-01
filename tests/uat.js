@@ -96,7 +96,7 @@ console.log('\n— C 对外数字一致性 —');
   const rel = rd('gitee-pages/src/build.py');
   const ver = (rel.match(/VER = '([^']+)'/) || [])[1] || '?';
   t('C: README 版本徽标与 build.py 的 VER 一致', readme.includes('版本-' + ver) && readme.includes('ds-animations-' + ver + '.zip'), { ver: ver });
-  t('C: README 声明的断言数与实跑一致（697 + 85）', /697 项正确性断言 \+ 85 项手机视口卡口/.test(readme));
+  t('C: README 声明的断言数与实跑一致（715 + 85）', /715 项正确性断言 \+ 85 项手机视口卡口/.test(readme));
   t('C: README 动画数是 59（不是历史值 58）', /算法动画-59个/.test(readme) && /## 59 个动画目录/.test(readme));
   t('C: 使用说明的版本号跟上了', guide.includes(ver) && guide.includes('共 59 个交互动画'), ver);
   t('C: zip 里的版权页版本号跟上了', notice.includes(ver) && notice.includes('59 个动画'), ver);
