@@ -65,6 +65,8 @@
 
 **方式一 · 在线用**：打开 [ch1209498273.github.io/ds-animations](https://ch1209498273.github.io/ds-animations/)，点开即用。
 
+**配套知识点手册**：38 节 · 119 页 A4 · 58 幅与课件同源的插图，正文按教材小节编，每节带定义/方法/手工演算/例题/易错点/习题，答案集中在附录。[⬇ 下载 PDF](https://github.com/ch1209498273/ds-animations/raw/main/ds-handbook-v3.15.pdf)（可独立阅读，不依赖课件；随课件版本一起更新）
+
 **方式二 · 本地用（推荐课堂场景）**：[下载 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.15.zip)，解压双击 `数据结构互动课件.html`——不联网、不装任何环境，教室机也能跑。
 
 **方式三 · 开发者**：
