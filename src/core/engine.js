@@ -371,6 +371,33 @@
     catch (err) { showErr(err.message); return; }
     frames = res.frames; code = res.code; idx = 0;
     draw();
+    buildHandout();
+  }
+
+  /* 打印讲义页：Ctrl+P 出来的不该是"当前一屏的截图"，而是这一节的讲稿。
+     文字一律取自模块自带字段（aim / note / guide / code / 逐帧 msg）与深链函数，
+     这里一个新字都不写——所以它不可能和画面对不上，这正是内容自查最怕的那类漂移。 */
+  function buildHandout() {
+    var h = $('handout');
+    if (!h) return;
+    var i, rows = '';
+    for (i = 0; i < frames.length; i++) {
+      rows += '<tr><td class="hn">' + (i + 1) + '</td><td>' + md(frames[i].msg || '') + '</td></tr>';
+    }
+    var codeRows = '';
+    for (i = 0; i < code.length; i++) codeRows += esc(code[i]) + '\n';
+    var ver = document.querySelector('header.top .ver');
+    h.innerHTML = '<h2>' + esc((cur.disp || cur.name) + '　·　第 ' + cur.ch + ' 章') + '</h2>' +
+      '<p class="haim">' + (cur.aim ? md(cur.aim) : '') + '</p>' +
+      (cur.note ? '<p class="hnote">' + esc(cur.note) + '</p>' : '') +
+      (cur.guide && cur.guide.length
+        ? '<h3>怎么带学生走这一页</h3><ol class="hguide">' +
+          cur.guide.map(function (g) { return '<li>' + md(g) + '</li>'; }).join('') + '</ol>' : '') +
+      '<h3>教材伪代码</h3><pre class="hcode">' + codeRows + '</pre>' +
+      '<h3>逐帧讲稿（共 ' + frames.length + ' 帧）</h3>' +
+      '<table class="hframes"><tbody>' + rows + '</tbody></table>' +
+      '<p class="hlink">在线看这一节：' + esc(moduleURL(cur)) + frameSuffix(cur, idx) +
+      　'　|　' + esc(ver ? ver.textContent : '') + '</p>';
   }
 
   /* 报错不再擦掉画面：打错一个字符就失去参照物，和 v3.1 那次"594 全绿却一片白"

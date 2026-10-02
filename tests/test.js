@@ -887,7 +887,7 @@ console.log('— 第6章 关键路径 —');
       const rs = run('disc'), sn = last(rs), f = lastFrame(rs);
       return sn.D[0][3] === Infinity && sn.D[3][0] === Infinity && sn.D[1][0] === Infinity &&
         rs.frames.every(fr => fr.snap.D[0][3] === Infinity) &&
-        /个 ∞，那是"到不了"，不是"没算到"/.test(f.msg);
+        /个 ∞ 是"到不了"，不是"没算到"/.test(f.msg);
     }), safe(() => last(run('disc')).D));
   /* 循环顺序开关：错误写法必须真的算错，而且要说清错在哪一格 */
   t('预置图: 错误写法（k 挪到最内层）在教材图上真的算错，并点出 D[1][0]',
@@ -1594,7 +1594,11 @@ console.log('— v2.1 深度校验：排列不变量 / 随机数据 / 教材第�
   });
   t('排序帧解说: 全部排序模块每帧 msg 非空', sortIds.every(id => M[id].run({ preset: 'textbook', w: '' }).frames.every(f => (f.msg || '').length > 5)));
   const gq = M.sortGallery.run({ preset: 'reverse', w: '' }).frames[0].snap.stats;
-  t('排序总览: 逆序下快排比较 28 次（与有序同为最坏）', gq[3].cmp === 28, gq[3].cmp);
+  const gqo = M.sortGallery.run({ preset: 'ordered', w: '' }).frames[0].snap.stats;
+  /* 不写死 28/32：以"首元素作基准时，升序与降序都退到平方级"为准，下界 n(n−1)/2 由 n 现算。
+     两个排列的比较数本就不必相等（扫描左右不对称），相等的是"都越过平方级下界"。 */
+  const nq = 8, quad = nq * (nq - 1) / 2;
+  t('排序总览: 快排在有序/逆序两种排列下都越过 n(n−1)/2 下界', gq[3].cmp >= quad && gqo[3].cmp >= quad, { 逆序: gq[3].cmp, 有序: gqo[3].cmp, 下界: quad });
   /* 折半查找极端位置 */
   const rb5 = M.seqBinSearch.run({ mode: 'bin', key: 5, w: '' });
   t('折半查找 5(首元素): 路径 6→3→1', rb5.frames.filter(f => f.snap.mid != null).map(f => f.snap.mid).slice(0, 3).join(',') === '6,3,1');
@@ -2265,7 +2269,7 @@ console.log('— 渲染烟测（每帧 render 不抛异常） —');
     const unaffected = [];
     for (let i = 0; i < f.snap.N; i++) for (let j = 0; j < f.snap.N; j++)
       if (i !== j && D[i][j] < Infinity && D[i][i] === 0 && D[j][j] === 0) unaffected.push([i, j]);
-    if (!/与这个环无关的点对仍然是正确答案/.test(f.msg)) bad.push('floyd ③ 末帧没澄清"与环无关的点对仍正确"');
+    if (!/与环无关的点对仍正确/.test(f.msg)) bad.push('floyd ③ 末帧没澄清"与环无关的点对仍正确"');
     if (!unaffected.length) bad.push('floyd ③ 末帧声称有正确点对，可一个都找不到');
   }
   /* ⑧ topo：图里真有环时，错误写法那档不许说"根本没有环" */
@@ -2304,6 +2308,64 @@ console.log('— 渲染烟测（每帧 render 不抛异常） —');
     if (/通篇没有出现/.test(code)) bad.push('dsConcepts 的"通篇"范围过头（同屏 CODE 就写着数组/指针）');
   }
   t('内容口径: 核验查出的那批问题没有回退（档数/连通/生成树/源点/出入度/环范围/下标对应）', bad.length === 0, bad.slice(0, 8));
+}
+
+/* 放映态解说条是固定三行 + overflow:hidden，14px 下容量约 160 字。
+   样式那边有 mobile.js 量"装得下 150 字"，这边必须有一把同尺的内容上限——
+   否则下一次有人往 teach 里再加两句，字就被裁掉了，而裁掉这件事没人看得见。 */
+console.log('— 内容口径：逐帧解说长度不得超过放映态容量 —');
+{
+  const over = [];
+  DSC.mods.forEach(m => {
+    const def = {};
+    (m.inputs || []).forEach(s => { def[s.key] = s.type === 'checkbox' ? !!s.value : s.value; });
+    const variants = [Object.assign({}, def)];
+    (m.inputs || []).forEach(s => {
+      if (s.type === 'select') s.options.forEach(o => variants.push(Object.assign({}, def, { [s.key]: o[0] })));
+      if (s.type === 'checkbox' && !s.value) variants.push(Object.assign({}, def, { [s.key]: true }));
+    });
+    variants.forEach(v => {
+      let r; try { r = m.run(v); } catch (e) { return; }
+      r.frames.forEach((f, i) => {
+        const t = String(f.msg || '').replace(/\*\*|`/g, '');
+        if (t.length > 150) over.push(m.id + ' 第' + (i + 1) + '帧 ' + t.length + '字');
+      });
+    });
+  });
+  t('内容口径: 逐帧解说都不超过 150 字（放映态三行装得下，超出即裁字）', over.length === 0, over.slice(0, 8));
+  /* 引导里"①…⑤ 各答一个问题"这类枚举，改文案时最容易掉一个号（本轮就掉过一次 ②）。
+     规则：只要提到 ①，从 ① 到文中出现的最大号之间不许有空档。 */
+  /* 圈号一律按码点生成——手写这串字符时我已经漏过一次 ④，正是要防的那类错 */
+  const CIRC = String.fromCodePoint(...Array.from({ length: 9 }, (_, i) => 0x2460 + i));
+  const gaps = [];
+  DSC.mods.forEach(m => {
+    const g = (m.guide || []).join('');
+    if (g.indexOf(CIRC[0]) < 0) return;
+    let hi = 0;
+    for (let i = 0; i < CIRC.length; i++) if (g.indexOf(CIRC[i]) >= 0) hi = i;
+    for (let i = 0; i <= hi; i++) if (g.indexOf(CIRC[i]) < 0) gaps.push(m.id + ' 引导缺 ' + CIRC[i] + '（提到 ' + CIRC[hi] + ' 为止）');
+  });
+  t('内容口径: 引导里的圈号枚举不得断号（①…最大号之间不许有空档）', gaps.length === 0, gaps.slice(0, 6));
+  /* 八大排序总览表用另一套轻量实现重跑同一组数据。两套实现若口径不同，学生看到的是同一算法两个数——
+     本轮就抓到快排在总览表里只数"通过判定"的比较（13），单算法页是 22。
+     插入系两页口径本就不同（单算法页把每趟"先看一眼前驱"和 a[0] 暂存也计入），不参与这条。 */
+  const SAME = { 冒泡排序: 'bubbleSort', 快速排序: 'quickSort', 直接选择: 'selectSort', 堆排序: 'heapSort', 归并排序: 'mergeSort' };
+  const drift = [];
+  ['textbook', 'ordered', 'reverse'].forEach(preset => {
+    const GAL = {};
+    M.sortGallery.run({ preset: preset, w: '' }).frames.forEach(f => {
+      if (f.panel && f.panel.算法) GAL[f.panel.算法] = parseInt(f.panel.比较, 10);
+    });
+    Object.keys(SAME).forEach(name => {
+      const m = M[SAME[name]];
+      const def = {}; (m.inputs || []).forEach(s => { def[s.key] = s.type === 'checkbox' ? !!s.value : s.value; });
+      def.preset = preset;
+      const one = parseInt(m.run(def).frames.slice(-1)[0].panel.比较, 10);
+      if (GAL[name] !== one) drift.push(preset + ' ' + name + ' 总览表 ' + GAL[name] + ' / 单算法页 ' + one);
+    });
+    if (GAL['基数排序'] !== 0) drift.push(preset + ' 基数排序在总览表里比较次数不是 0：' + GAL['基数排序']);
+  });
+  t('内容口径: 总览表与单算法页对同一算法同一数据给出相同的比较次数（插入系口径不同，除外）', drift.length === 0, drift);
 }
 
 console.log('— 代码行高亮：下标必须合法，且指到正在执行的那条语句 —');

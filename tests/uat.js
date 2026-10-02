@@ -1,7 +1,8 @@
 /* UAT：全量功能实测。三段——
    A 输入组合扫描（Node）：每个模块 × 每个下拉选项 × 每个复选框勾上，全部帧 run+render 走一遍
-   B 外壳走查（headless Chrome）：22 项真实交互，按渲染结果判定，不看 DOM 属性
-   C 文档一致性：README/CHANGELOG/使用说明/关于与声明 里的数字与实跑是否对得上
+   B 外壳走查（headless Chrome）：42 项真实交互，按渲染结果判定，不看 DOM 属性
+   C 文档一致性：README / 使用说明 / 关于与声明 里的数字与实跑是否对得上
+     （不读 CHANGELOG——它是历史台账，每版只增不改，没有"当前值"可核）
    运行：node tests/uat.js   （需要 dist 构建产物；找不到 Chrome 时 B 段跳过） */
 'use strict';
 const fs = require('fs'), path = require('path'), os = require('os'), cp = require('child_process');

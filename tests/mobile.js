@@ -27,10 +27,14 @@ fs.copyFileSync(dist, path.join(tmp, 'm.html'));
 /* 配置档固定复用、跑完不删。每次新建 profile 起 Chrome 会在本机留一条 4625 失败登录，
    攒够 10 次就锁本机账户（2026-09-27 用 Windows Security 日志与调用时间线对齐证实；
    2026-10-01 实测复用同一目录起 7 次，4625 归零）。这是独立的临时目录，不碰真实浏览器配置。
-   与 uat.js 各用一个目录，是为了两个脚本同时跑时不抢同一个 Chrome 实例。 */
-const PROFILE = path.join(os.tmpdir(), 'dsc-profile-mobile');
+   与 uat.js 各用一个目录，是为了两个脚本同时跑时不抢同一个 Chrome 实例。
+   ★ 固定档的代价是"谁开着窗口看东西，卡口就整段跑不动"（2026-10-02 实测：一个用该档
+     打开手册 PDF 的可见窗口把 16 项手机卡口全打成"探针无输出"）。所以档名可用
+     DSC_MOBILE_PROFILE 换到另一个固定档——换档仍是一次建、以后一直复用，不是每次新建。 */
+const PROFILE = path.join(os.tmpdir(), process.env.DSC_MOBILE_PROFILE || 'dsc-profile-mobile');
 if (!fs.existsSync(PROFILE)) fs.mkdirSync(PROFILE, { recursive: true });
-const NOOUT = '探针无输出（配置档可能被占用：删掉 ' + PROFILE + ' 再试）';
+const NOOUT = '探针无输出（配置档 ' + path.basename(PROFILE) + ' 被占用；'
+  + '关掉用该档开的窗口，或 DSC_MOBILE_PROFILE=<另一个固定档名> 换档跑）';
 
 /* 越界判定：可点元素的右缘出了视口，就意味着下拉箭头被裁掉。
    注意要放过"本来就横向滚动"的那一排——章节条与模块条在手机上就是 overflow-x:auto 的横条，
@@ -92,6 +96,14 @@ setTimeout(function () {
      （默认 display:none 没被 body.mp 覆盖掉）——只查文本或存在性都会漏 */
   if (d.body.classList.contains('mp')) {
     o.mpEls = {};
+    /* 解说条是固定三行 + overflow:hidden——字号 14px 下到底装得下多少字，只能真的塞进去量。
+       150 个汉字 = tests/test.js 那条"逐帧解说 ≤150 字"内容上限的同一把尺，两头对齐。 */
+    var mm = d.getElementById('mpMsg'), keep = mm ? mm.innerHTML : '';
+    if (mm) {
+      mm.textContent = new Array(151).join('这');
+      o.mpCap = { need: mm.scrollHeight, have: mm.clientHeight };
+      mm.innerHTML = keep;
+    }
     var mpc = d.getElementById('mpCounter');
     o.mpCounterText = mpc ? JSON.stringify(mpc.textContent) + '/' + getComputedStyle(mpc).display : 'missing';
     ['mpPrev', 'mpNext', 'mpBar', 'mpMsg', 'mpCounter', 'mpExit'].forEach(function (id) {
@@ -187,6 +199,8 @@ VIEWS.forEach(function (v) {
   t('手机放映 ' + v[0] + ': 无横向溢出', o.hOverflow === 0, o.hOverflow);
   t('手机放映 ' + v[0] + ': 可点元素 ≥44px', o.smallCount === 0, o.smallSample);
   t('手机放映 ' + v[0] + ': 没有可点元素越出视口（下拉箭头不被裁）', o.offCount === 0, o.offSample);
+  t('手机放映 ' + v[0] + ': 解说条装得下 150 字（三行不被裁）',
+    !!o.mpCap && o.mpCap.need <= o.mpCap.have + 1, o.mpCap);
   const flat = o.mpEls && Object.keys(o.mpEls).filter(k => !o.mpEls[k] || o.mpEls[k][0] < 8 || o.mpEls[k][1] < 8);
   t('手机放映 ' + v[0] + ': 箭头/解说条/帧号/退出 都已布局', flat && flat.length === 0,
     { els: o.mpEls, counter: o.mpCounterText });

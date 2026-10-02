@@ -33,9 +33,10 @@ main .card{display:flex;flex-direction:column}
 .modaim{padding:0 14px 6px;font-size:.86em;line-height:1.5;color:#334155;flex:none}
 .modaim:empty{display:none}
 .modaim b{color:var(--ink)}
-/* 手机放映要"画面就是窗口"，标题下这行必须让位——它会把舞台压矮，
-   画布等比缩得更小（堆排序最小字号会从 5px 掉到 4.9px） */
-body.mp .modaim{display:none}
+/* 放映态以前把这行整个藏掉（怕压矮画布），结果学生最常看的形态里只剩一个标题、
+   不知道这演示在讲什么——v3.2 加它的理由恰恰是"引导层要点 ? 才看得到，多数人不会点"。
+   现在留着，只把行高与内边距压到最紧，代价量在卡口里（画布最小字号 ≥5px 那条）。 */
+body.mp .modaim{padding:0 10px 2px;font-size:14px;line-height:1.3;color:#334155}
 /* 使用引导：默认收起，点「? 引导」才出来。出来时**顶掉右列的伪代码/状态面板**，
    画面一格都不动。之前那张居中大浮层会把图整个盖住、还压暗全屏，
    被使用者判为"太丑、看不清、盖住图片" */
@@ -91,7 +92,7 @@ table.panel{width:100%;border-collapse:collapse;background:#fff;border:1px solid
 table.panel td{border-top:1px solid #eef2f7;padding:5px 11px}
 table.panel tr:first-child td{border-top:none}
 table.panel td:first-child{color:var(--muted);width:36%}
-.msg{background:var(--amber-bg);border:1px solid #f5d48f;border-radius:10px;padding:8px 13px;font-size:13.5px;line-height:1.6;flex:none;max-height:22%;overflow:auto}
+.msg{background:var(--amber-bg);border:1px solid #f5d48f;border-radius:10px;padding:8px 13px;font-size:14px;line-height:1.6;flex:none;max-height:22%;overflow:auto}
 .msg.err{background:#fdeceb;border-color:#ef7b7b;color:#8c2b22}
 .msg .ehint{display:block;margin-top:4px;font-size:12.5px;color:var(--muted)}
 .hl{animation:pulse 1.1s ease-in-out infinite}
@@ -301,8 +302,11 @@ body.mp .mp-arrow.dim{opacity:.28}
 #mpBar{display:none}
 body.mp #mpBar{display:flex;align-items:center;gap:10px;position:absolute;left:0;right:0;bottom:0;z-index:6;
   background:rgba(255,255,255,.93);border-top:1px solid var(--line);padding:4px 12px}
-body.mp #mpMsg{flex:1;font-size:12.5px;line-height:1.35;color:var(--ink);
-  max-height:2.7em;overflow:hidden}
+/* 三行不是拍脑袋：解说条是 overflow:hidden 的固定高度，字号按"正文 ≥14px"提上来之后，
+   两行只装得下约 108 字，而全库有 202 帧超过它（最长 235 字）。三行的容量约 160 字，
+   配合 tests/test.js 里"逐帧解说 ≤150 字"那条内容上限一起守——两头都要在，缺一条就会裁字。 */
+body.mp #mpMsg{flex:1;font-size:14px;line-height:1.35;color:var(--ink);
+  max-height:4.05em;overflow:hidden}
 body.mp #mpMsg b{color:#0f2c5c}
 body.mp #mpCounter{display:block;flex:none;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;
   background:none;padding:0;position:static;transform:none}
@@ -350,3 +354,36 @@ body.mp #mpHintBar[hidden]{display:none}
 #errbar .ehint{color:#8a7a52;font-size:12.5px}
 #errbar button{margin-left:auto;border:1px solid var(--line);background:#fff;color:#5a4a22;
   border-radius:6px;padding:2px 9px;font-size:13px;cursor:pointer;min-height:28px}
+
+/* ---------- 打印 ----------
+   原来一条 @media print 都没有，而 html,body 是 height:100% + overflow:hidden，
+   Ctrl+P 只会出第一屏。现在打印的是 #handout——这一节的讲稿，
+   由 engine 从模块自带字段（aim/note/guide/伪代码/逐帧解说）拼出来，屏幕上不显示。
+   版心按 A4（210−2×15=180mm）排，逐帧表每行允许断开，长伪代码不整块甩到下页。 */
+#handout{display:none}
+@media print{
+  @page{size:A4;margin:14mm 15mm}
+  html,body{height:auto;overflow:visible;background:#fff;font-size:10.5pt}
+  header.top,nav.chapters,.modbar,.controls,.side,#stage,#mpBar,#mpPrev,#mpNext,#mpPane,
+  #mpHintBar,#mpPane,footer.foot,#crash,#errbar,#toast,#catalog,#qrbox{display:none!important}
+  main{display:block;padding:0;gap:0;overflow:visible;min-height:0}
+  .card{border:none;border-radius:0;overflow:visible;min-height:0}
+  .modtitle,#modaim{display:none!important}
+  #handout{display:block}
+  #handout h2{font-size:15pt;margin:0 0 2mm;padding-bottom:1.4mm;border-bottom:1.1pt solid #16283c;color:#16283c}
+  #handout .haim{font-size:10.5pt;line-height:1.6;color:#1d3557;margin:0 0 1.5mm}
+  #handout .hnote{font-size:9pt;line-height:1.5;color:#5b6f88;margin:0 0 3mm}
+  #handout h3{font-size:11pt;margin:4.5mm 0 1.5mm;color:#16283c}
+  #handout .hguide{margin:0;padding-left:5.5mm}
+  #handout .hguide li{font-size:10pt;line-height:1.6;margin:0.8mm 0}
+  #handout .hcode{font-family:Consolas,"Courier New",monospace;font-size:9pt;line-height:1.45;
+    white-space:pre-wrap;word-break:break-all;margin:0;padding:2.4mm 3mm;
+    background:#f6f8fb;border:0.5pt solid #ccd6e0;border-radius:1.6mm}
+  #handout .hframes{width:100%;border-collapse:collapse}
+  #handout .hframes td{font-size:10pt;line-height:1.55;padding:1.1mm 2mm;border-top:0.4pt solid #dde5ee;vertical-align:top}
+  #handout .hframes .hn{width:9mm;text-align:right;color:#5b6f88;font-variant-numeric:tabular-nums;
+    border-right:0.4pt solid #dde5ee}
+  #handout .hlink{font-size:8.5pt;color:#5b6f88;margin-top:4mm;word-break:break-all}
+  #handout code{font-family:Consolas,"Courier New",monospace}
+  #handout b{color:#0f2c5c}
+}

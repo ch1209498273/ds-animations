@@ -34,9 +34,11 @@
       while (m > 0 && flag) { flag = 0; for (var j = 0; j < m; j++) { C2(); if (a[j].v > a[j + 1].v) { var t = a[j]; a[j] = a[j + 1]; a[j + 1] = t; R2(); flag = 1; } } m--; }
     }, true, 'O(n)', 'O(n²)', 'O(1)');
     alg('快速排序', function (a, C2, R2) {
+      /* 每次进入扫描条件都要判一次 a[j]>=p / a[i]<=p，让扫描停下的那次同样是做了的比较。
+         早先只数"通过判定"的那几次，快排在这里比单算法页少 9 次，两页数字对不上。 */
       (function qs(lo, hi) {
         if (lo >= hi) return; var p = a[lo].v, i = lo, j = hi;
-        while (i < j) { while (i < j && a[j].v >= p) { C2(); j--; } if (i < j) { a[i] = a[j]; R2(); } while (i < j && a[i].v <= p) { C2(); i++; } if (i < j) { a[j] = a[i]; R2(); } }
+        while (i < j) { while (i < j) { C2(); if (a[j].v >= p) { j--; } else break; } if (i < j) { a[i] = a[j]; R2(); } while (i < j) { C2(); if (a[i].v <= p) { i++; } else break; } if (i < j) { a[j] = a[i]; R2(); } }
         a[i] = { v: p, id: -1 }; R2(); qs(lo, i - 1); qs(i + 1, hi);
       })(0, a.length - 1);
     }, false, 'O(n log n)', 'O(n²)', 'O(log n)栈');
@@ -95,7 +97,7 @@
         });
       });
       frames.push({
-        line: [2], msg: '★ 汇总：8 种算法结果一致（' + sortedRef.join(' ') + '），代价大不相同。经验法则：基本有序 → 插入/冒泡；要求稳定 + 稳定 O(n log n) → 归并；空间苛刻 + 平均最快 → 快排；最坏也有 O(n log n) 且 O(1) 空间 → 堆排；位数固定的整数/多关键字 → 基数。',
+        line: [2], msg: '★ 汇总：8 种算法结果一致（见右侧表格第一列），代价大不相同。经验法则：基本有序 → 插入/冒泡；要求稳定 + 稳定 O(n log n) → 归并；空间苛刻 + 平均最快 → 快排；最坏也有 O(n log n) 且 O(1) 空间 → 堆排；位数固定的整数/多关键字 → 基数。',
         panel: { 结论: '见表格', 算法数: '8', 数据: a.join(',') },
         snap: { arr: sortedRef.slice(), cur: -1, stats: stats, mark: 'final' }
       });

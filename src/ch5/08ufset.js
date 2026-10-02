@@ -156,7 +156,7 @@
         (mode === 'plain' ? '换成"按集合大小合并"再跑一遍，探测次数会明显下降。'
           : mode === 'size' ? '再换成"路径压缩"，find 途中顺手把链拍平。'
             : '这一次 find 顺手把链拍平：树高 ' + hBefore + ' → ' + height() + '，之后再查同一条链只要 1 步。' +
-            '这就是 Kruskal 判环要用并查集、而不是每次都 DFS 的原因。'),
+            '这就是 Kruskal 判环要用并查集的原因。'),
         { 集合数: sets + ' 个', 最大集合: mx + ' 个元素', 树高: height() + '（find 前 ' + hBefore + '）', "find 探测": probes + ' 次' },
         { done: true, hl: { root: root } });
 

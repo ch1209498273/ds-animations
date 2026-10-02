@@ -92,7 +92,11 @@
         F([5, 6], '第 ② 步前缀和：`count[i] += count[i−1]`。做完之后 `count[v]` 的含义变了——**它是"值 ≤ v 的元素一共有几个"**，也就是 v 该放的最后位置。',
           { 步: '② 前缀和' }, { count: cnt.slice(), hlC: cnt.map(function (_, k) { return k; }) });
         for (i = 1; i <= mx; i++) cnt[i] += cnt[i - 1];
-        F([5, 6], '前缀和结果：' + cnt.join(' ') + '。末项 count[' + mx + '] = ' + cnt[mx] + ' 恰好等于 n = ' + n + '，可以自检。',
+        F([5, 6], '前缀和结果（只在关键字处上跳）：' + (function () {
+            var st = [];
+            for (var q = 0; q <= mx; q++) if (q === 0 || cnt[q] !== cnt[q - 1]) st.push('count[' + q + ']=' + cnt[q]);
+            return st.join(' ');
+          })() + '。末项 count[' + mx + '] = ' + cnt[mx] + ' 恰好等于 n = ' + n + '，可以自检。',
           { 步: '② 前缀和完成', 末项: 'count[' + mx + '] = ' + cnt[mx] }, { count: cnt.slice() });
         var out = new Array(n + 1);
         for (i = n - 1; i >= 0; i--) {
