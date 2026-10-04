@@ -77,6 +77,9 @@
       { key: 'badRear', label: '错误演示：漏掉 rear 特判', type: 'checkbox', value: false }
     ],
 
+    /* 错误演示档的机器可读声明。卡口据此核对"每一档都真演出了差异"——
+       白演的错误演示比不演示更坏：学生以为看到了反例。见 tests/test.js 的误导档卡口 */
+    misleads: [{"key": "badRear", "value": true, "claim": "出队时漏掉\"摘的正是 rear\"的特判，队列只剩空指针"}],
     run: function (v) {
       var scene = v.scene, kind = scene.charAt(0) === 'l' ? 'stack' : 'queue';
       var items = head(v.seq);
@@ -210,7 +213,7 @@
         fly = { v: 'X', link: true };
         F([13], '① rear->next = s：这一句写进了**已经被 free 的内存**。程序不一定立刻崩溃，但 X 根本没有接到头结点后面。',
           { 队列长: '0 个（看起来）', 队尾: '悬空' }, Q({}));
-        F([14], '② rear = s：front->next 依然是 NULL，从队头往后走找不到 X——X 连同那块垃圾内存一起被遗忘了。' +
+        F([14], '✗ ② rear = s：front->next 依然是 NULL，从队头往后走找不到 X——X 连同那块垃圾内存一起被遗忘了。' +
           '这就是那道选择题的答案：**出队时必须判断队列是否只剩一个结点**。',
           { 队列长: '0 个（实际丢了 X）', 队尾: 'X（接在已释放内存后）' }, Q({ done: true, lostX: true }));
       } else {

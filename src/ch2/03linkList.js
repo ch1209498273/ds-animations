@@ -52,6 +52,8 @@
       { key: 'bad', label: '错误演示：颠倒两步顺序', type: 'checkbox', value: false },
       { key: 'data', label: '初始序列', type: 'text', value: '25,12,47,89,36,14' }
     ],
+    /* 错误演示档的机器可读声明：卡口据此核对"每一档都真演出了差异"，见 tests/test.js 的误导档卡口 */
+    misleads: [{"key": "bad", "value": true, "claim": "两步颠倒会让 p 的后继丢失，链断在这里"}],
     run: function (v) {
       var vals = (v.data || '').split(/[,，\s]+/).filter(function (s) { return s !== ''; }).map(Number);
       if (vals.some(function (x) { return Number.isNaN(x); })) throw new Error('初始序列请输入逗号分隔的数字');
@@ -135,7 +137,7 @@
           next[sid] = next[p];                             // ✗ s->next = p->next = s 自环
           F(5, '✗ 错误写法第二步：s->next = p->next，而 p->next 已经是 s 自己——s->next 指向 s，形成自环；' + vals.slice(i - 1).join(', ') + ' 全部丢失！',
             { 's->next': '→ s（自环）' }, snap({ p: p, s: sid, ghost: [sid], selfLoopDone: true }));
-          F(5, '结论：两步顺序绝不能颠倒。必须先执行 s->next = p->next（先连），再执行 p->next = s（后断）。',
+          F(5, '✗ 结论：两步顺序绝不能颠倒。必须先执行 s->next = p->next（先连），再执行 p->next = s（后断）。',
             { 结果: '链已断裂' }, snap({ p: p, s: sid, ghost: [sid], selfLoopDone: true, err: true }));
         }
         return { code: code, frames: frames };

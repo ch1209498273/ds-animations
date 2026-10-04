@@ -99,6 +99,9 @@
         ['outer', ORDERS.outer.label], ['inner', ORDERS.inner.label]
       ], value: 'outer' }
     ],
+    /* 错误演示档的机器可读声明。卡口据此核对"每一档都真演出了差异"——
+       白演的错误演示比不演示更坏：学生以为看到了反例。见 tests/test.js 的误导档卡口 */
+    misleads: [{"key": "order", "value": "inner", "claim": "把 k 挪到最内层，跑满 n³ 次比较结果照样错"}],
     run: function (v) {
       var pre = PRESETS[(v && v.graph) || 'text'] || PRESETS.text;
       var wrong = !!(v && v.order === 'inner');

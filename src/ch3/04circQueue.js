@@ -63,6 +63,9 @@
         ], value: 'fewer'
       }
     ],
+    /* 错误演示档的机器可读声明。卡口据此核对"每一档都真演出了差异"——
+       白演的错误演示比不演示更坏：学生以为看到了反例。见 tests/test.js 的误导档卡口 */
+    misleads: [{"key": "demo", "value": "linear", "claim": "普通顺序队列 front 只进不退，队里有空位也判满——假溢出"}],
     run: function (v) {
       var demo = v.demo || 'linear';
       var frames = [];
@@ -156,7 +159,7 @@
         F([8], 'rear++ → 6，已到达数组末尾。', cond(), snap({ moved: 'rear', op: 'enq', arg: 'f' }));
         F([6], '再想入队 g：判满 rear == M = 6 → 返回 ERROR！可是下标 0、1 明明空着——【前面空着却不能再入队】，这就是【假溢出】。原因：front 之前的空间，单向右移的指针永远回不去。',
           cond(), snap({ err: '假溢出', op: 'enq', arg: 'g' }));
-        F([0], '结论：普通顺序队列的空间利用率太低。解决办法——把数组首尾相连成【环形】，指针取模后移：rear = (rear+1) % M。请切换到"② 循环队列"场景继续。',
+        F([0], '★ 结论：普通顺序队列的空间利用率太低。解决办法——把数组首尾相连成【环形】，指针取模后移：rear = (rear+1) % M。请切换到"② 循环队列"场景继续。',
           cond(), snap({ done: true }));
         return { code: code, frames: frames };
       }

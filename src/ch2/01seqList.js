@@ -21,6 +21,8 @@
       { key: 'errDir', label: '错误演示：从前往后移（会覆盖数据）', type: 'checkbox', value: false },
       { key: 'data', label: '初始序列', type: 'text', value: '25,12,47,89,36,14' }
     ],
+    /* 错误演示档的机器可读声明：卡口据此核对"每一档都真演出了差异"，见 tests/test.js 的误导档卡口 */
+    misleads: [{"key": "errDir", "value": true, "claim": "后移若从前往后做，会把还没搬的元素冲掉"}],
     run: function (v) {
       var a = (v.data || '').split(/[,，\s]+/).filter(function (s) { return s !== ''; }).map(Number);
       var valsOrig = a.slice();

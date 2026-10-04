@@ -36,6 +36,9 @@
     inputs: su.presetInputs([
       { key: 'errPivot', label: '错误演示：划分结束漏掉"基准归位"那一句', type: 'checkbox', value: false }
     ]),
+    /* 错误演示档的机器可读声明。卡口据此核对"每一档都真演出了差异"——
+       白演的错误演示比不演示更坏：学生以为看到了反例。见 tests/test.js 的误导档卡口 */
+    misleads: [{"key": "errPivot", "value": true, "claim": "划分结束漏掉基准归位那一句，基准停在错误位置"}],
     run: function (v) {
       var a = su.getData(v).slice();
       var n = a.length, cmp = 0, mov = 0;

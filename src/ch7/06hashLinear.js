@@ -44,6 +44,9 @@
       { key: 'w', label: '关键码序列', type: 'text', value: '19,14,23,1,68,20,84,27,55,11' },
       { key: 'errDel', label: '错误演示：删除时把格子直接置空（断链）', type: 'checkbox', value: false }
     ],
+    /* 错误演示档的机器可读声明。卡口据此核对"每一档都真演出了差异"——
+       白演的错误演示比不演示更坏：学生以为看到了反例。见 tests/test.js 的误导档卡口 */
+    misleads: [{"key": "errDel", "value": true, "claim": "删除时把格子直接置空，后面同链元素的探测链断在这里"}],
     run: function (v) {
       var keys = h.parse(v.w);
       if (keys.length < 3 || keys.length > M) throw Error('请输入 3~' + M + ' 个非负整数（表长 M=13）');

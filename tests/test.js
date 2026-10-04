@@ -474,6 +474,19 @@ console.log('— 第5章 堆与优先队列 —');
   t('堆: 少于 4 个关键字要报错', /4~12/.test(eb), eb);
 }
 
+console.log('— 冒泡稳定性演示：两条只有冒泡有的判据 —');
+{
+  const m = M.bubbleSort;
+  const def = {}; (m.inputs || []).forEach(s => { def[s.key] = s.type === 'checkbox' ? !!s.value : s.value; });
+  const good = m.run(def), bad = m.run(Object.assign({}, def, { errStable: true }));
+  const fg = good.frames[good.frames.length - 1], fb = bad.frames[bad.frames.length - 1];
+  const mv = f => parseInt(f.panel.交换, 10);
+  t('冒泡稳定性: 改成 ≥ 恰好多一次交换（多出来的就是相等那一对）', mv(fb) - mv(fg) === 1, { 默认: mv(fg), 错误: mv(fb) });
+  t('冒泡稳定性: 比较帧文案跟着运算符走（≥ 档不许还写"≤ …顺序正确"）',
+    good.frames.some(f => /≤ a\[.+，顺序正确/.test(f.msg)) && !bad.frames.some(f => /≤ a\[.+，顺序正确/.test(f.msg)),
+    [good.frames.filter(f => /顺序正确/.test(f.msg)).slice(-1)[0], bad.frames.filter(f => /顺序正确/.test(f.msg)).slice(-1)[0]].map(f => f && f.msg.slice(0, 30)));
+}
+
 console.log('— 第6章 DFS/BFS —');
 {
   const seqOf = (method, start) => last(M.dfsBfs.run({ method, start })).seq;
@@ -2368,6 +2381,48 @@ console.log('— 内容口径：逐帧解说长度不得超过放映态容量 �
   t('内容口径: 总览表与单算法页对同一算法同一数据给出相同的比较次数（插入系口径不同，除外）', drift.length === 0, drift);
 }
 
+console.log('— 错误演示档：每一档都必须真演出了差异 —');
+{
+  /* 模块用 misleads:[{key,value,claim}] 声明自己的错误演示档。三条判据：
+     ① 与默认档相比必须有可观察差异（帧数 / 末态面板 / 末帧文案，至少一项不同）。
+        白演的错误演示比不演示更坏——学生以为看到了反例，其实画面什么都没变。
+        先例是 maze 那条死用例：选项值根本不在下拉里，模块默默退回默认，那个场景从来没被测到。
+     ② 错误档的末帧必须是结论帧（带 ✗ 或 ★），不许默默停在中间态。
+     ③ 标签里写着"错误/漏掉/只筛/不删/置空/颠倒/错位…"却没声明进 misleads 的输入项，一律算漏网——
+        防止以后加了新错误演示而卡口不知道要查它。 */
+  const WRONG = /错误|错法|漏掉|漏了|只弹点|只筛|不删|不判|置空|颠倒|错位|反了|挪到最内层|假溢出|忘记/;
+  const noDiff = [], noConcl = [], undeclared = [];
+  DSC.mods.forEach(m => {
+    const def = {}; (m.inputs || []).forEach(s => { def[s.key] = s.type === 'checkbox' ? !!s.value : s.value; });
+    const declared = new Set((m.misleads || []).map(x => x.key + '=' + x.value));
+    (m.misleads || []).forEach(ms => {
+      const v1 = Object.assign({}, def); v1[ms.key] = ms.value;
+      let a, b;
+      try { a = m.run(def); b = m.run(v1); }
+      catch (e) { noDiff.push(m.id + '.' + ms.key + '=' + ms.value + ' 跑不起来：' + e.message); return; }
+      const fa = a.frames[a.frames.length - 1], fb = b.frames[b.frames.length - 1];
+      if (a.frames.length === b.frames.length && JSON.stringify(fa.panel) === JSON.stringify(fb.panel) && fa.msg === fb.msg)
+        noDiff.push(m.id + '.' + ms.key + '=' + ms.value);
+      if (!/[✗★]/.test(String(fb.msg || '')))
+        noConcl.push(m.id + '.' + ms.key + '=' + ms.value + ' 末帧无结论标记：' + String(fb.msg).slice(0, 26));
+    });
+    (m.inputs || []).forEach(s => {
+      if (WRONG.test(s.label || '')) {
+        if (s.type === 'checkbox' && !declared.has(s.key + '=true'))
+          undeclared.push(m.id + ' 复选框 ' + s.key + '（' + s.label + '）');
+        return;
+      }
+      (s.options || []).forEach(o => {
+        if (WRONG.test(String(o[1])) && !declared.has(s.key + '=' + o[0]))
+          undeclared.push(m.id + ' 选项 ' + s.key + '=' + o[0] + '（' + o[1] + '）');
+      });
+    });
+  });
+  t('错误演示: 每一档都必须与默认档有可观察差异（帧数/面板/末帧文案至少一项不同）', noDiff.length === 0, noDiff.slice(0, 8));
+  t('错误演示: 每一档的末帧必须是结论帧（带 ✗ 或 ★），不许停在中间态', noConcl.length === 0, noConcl.slice(0, 8));
+  t('错误演示: 标签写着错误写法却没声明进 misleads 的输入项，一律抓出来', undeclared.length === 0, undeclared.slice(0, 8));
+}
+
 console.log('— 代码行高亮：下标必须合法，且指到正在执行的那条语句 —');
 {
   /* 引擎按 code.map(function (t, i) => line.indexOf(i)) 上色，line 是**下标**不是行号；
@@ -2406,7 +2461,8 @@ console.log('— 代码行高亮：下标必须合法，且指到正在执行的
     t('双向链表错误演示: ② 帧亮 p->prior->next = s', /^p->prior->next = s;/.test(hiAt(/^②/)), hiAt(/^②/));
     t('双向链表错误演示: ③ 帧亮 s->next = p', /^s->next = p;/.test(hiAt(/^③/)), hiAt(/^③/));
     t('双向链表错误演示: 后果帧不高亮（没有语句在执行）', hiAt(/^后果检查/) === '', hiAt(/^后果检查/));
-    t('双向链表错误演示: 结论帧亮 ①② 两行', hiAt(/^结论/).split(' ⏎ ').length === 2 && /s->prior = p->prior/.test(hiAt(/^结论/)), hiAt(/^结论/));
+    /* 结论帧按内容认，不锚定行首——末帧带 ✗/★ 是错误演示的约定，锚 ^结论 会被标记撞掉 */
+    t('双向链表错误演示: 结论帧亮 ①② 两行', hiAt(/结论：四步/).split(' ⏎ ').length === 2 && /s->prior = p->prior/.test(hiAt(/结论：四步/)), hiAt(/结论：四步/));
   }
 
   const hi = (r, i) => (r.frames[i].line || []).map(k => r.code[k]).join('\n');
@@ -3038,6 +3094,104 @@ console.log('\n— 版权指纹（构建产物自校验） —');
     t('版权指纹: 发布仓库里没有私钥 src/.rights.key',
       !fs.existsSync(path.join(relRoot, 'src', '.rights.key')));
   }
+}
+
+console.log('— 稳定性演示（冒泡 / 直接插入 / 折半插入 / 归并）：同族判据必须同形 —');
+{
+  /* C 族四条演示共用一套判据。默认档与错误档的最终数组必须完全相同——
+     "错的不是结果是性质"这句话只在这种情况下成立。
+     ★ verdict 不能只跟模块自己的说法比：负向对照发现"把 id 跟踪拆掉"照样全绿。
+       所以这里各写一份**带标签的参考实现**独立算一遍，再穷举 12 组带相等元素的数据比极性。 */
+  const tagged = arr => arr.map((v, i) => ({ v: v, i: i }));
+  const flipped = recs => {
+    for (let x = 0; x < recs.length; x++) for (let y = x + 1; y < recs.length; y++)
+      if (recs[x].v === recs[y].v && recs[x].i > recs[y].i) return recs[x].v;
+    return null;
+  };
+  /* ★ 参考实现返回**带标签的最终数组**：既比稳定性极性，也比逐位排列。
+     早先 insert / binInsert 两处的比较方向写反了（排成降序），极性好巧碰对了，
+     但它并没有真的模拟那个算法——现在两边必须连最终序列都对得上。 */
+  const REF = {
+    bubble: (vals, ge) => { const a = tagged(vals);
+      for (let i = 0; i < a.length - 1; i++) for (let j = 0; j < a.length - 1 - i; j++)
+        if (ge ? a[j].v >= a[j + 1].v : a[j].v > a[j + 1].v) { const t = a[j]; a[j] = a[j + 1]; a[j + 1] = t; }
+      return a; },
+    insert: (vals, le) => { const a = tagged(vals);
+      for (let i = 1; i < a.length; i++) { const k = a[i]; let j = i - 1;
+        while (j >= 0 && (le ? a[j].v >= k.v : a[j].v > k.v)) { a[j + 1] = a[j]; j--; } a[j + 1] = k; }
+      return a; },
+    binInsert: (vals, le) => { const a = tagged(vals);
+      for (let i = 1; i < a.length; i++) { const k = a[i]; let lo = 0, hi = i - 1;
+        while (lo <= hi) { const m = (lo + hi) >> 1; if (le ? k.v <= a[m].v : k.v < a[m].v) hi = m - 1; else lo = m + 1; }
+        for (let j = i - 1; j >= lo; j--) a[j + 1] = a[j]; a[lo] = k; }
+      return a; },
+    merge: (vals, strictLeft) => { const a = tagged(vals);
+      const ms = (s, t) => { if (s >= t) return; const m = (s + t) >> 1; ms(s, m); ms(m + 1, t);
+        const b = []; let i = s, j = m + 1;
+        while (i <= m && j <= t) b.push((strictLeft ? a[i].v < a[j].v : a[i].v <= a[j].v) ? a[i++] : a[j++]);
+        while (i <= m) b.push(a[i++]); while (j <= t) b.push(a[j++]);
+        for (let k = 0; k < b.length; k++) a[s + k] = b[k]; };
+      ms(0, a.length - 1); return a; }
+  };
+  const refBad = (kind, vals, flag) => flipped(REF[kind](vals, flag));
+  const refArr = (kind, vals, flag) => REF[kind](vals, flag).map(r => r.v);
+  const CASES = [
+    ['bubbleSort', '冒泡', 'bubble', {}],
+    ['insertSort', '直接插入', 'insert', { mode: 'd' }],
+    ['insertSort', '折半插入', 'binInsert', { mode: 'b' }],
+    ['mergeSort', '归并排序', 'merge', {}]
+  ];
+  const isSorted = a => a.every((x, i) => i === 0 || a[i - 1] <= x);
+  const FUZZ = ['1,1', '1,1,1', '2,1,1', '1,2,1', '1,1,2,2', '1,1,1,1,2,2', '2,2,1,1', '3,1,3,1,2',
+    '5,5,5,1,1', '1,3,3,2,2,1', '49,49,38,49,27,49', '2,2,3,3,1,1'];
+  CASES.forEach(cs => {
+    const m = M[cs[0]], tag = cs[1], ref = REF[cs[2]];
+    const def = {}; (m.inputs || []).forEach(s => { def[s.key] = s.type === 'checkbox' ? !!s.value : s.value; });
+    Object.assign(def, cs[3]);
+    const D = [49, 38, 65, 97, 76, 13, 27, 49];
+    const g = m.run(def).frames.slice(-1)[0];
+    const b = m.run(Object.assign({}, def, { errStable: true })).frames.slice(-1)[0];
+    const nm = tag + '稳定性: ';
+    t(nm + '默认档面板不加"稳定性"行（线上产品的界面一字不动）', !('稳定性' in g.panel), g.panel);
+    t(nm + '两档最终数组完全相同（丢的是性质不是正确性）',
+      g.snap.arr.join(',') === b.snap.arr.join(',') && isSorted(g.snap.arr), [g.snap.arr.join(' '), b.snap.arr.join(' ')]);
+    t(nm + '错误档判"两个 49 先后反了"', /已破坏（两个 49 先后反了）/.test(String(b.panel.稳定性)), b.panel);
+    t(nm + '错误档末帧是 ✗ 结论帧且点名稳定性', /^✗/.test(b.msg) && /稳定性/.test(b.msg), b.msg.slice(0, 40));
+    t(nm + 'verdict 与独立的带标签参考实现一致',
+      DSC.su.stableText(refBad(cs[2], D, false)) === String(g.panel.稳定性 || '未破坏') &&
+      DSC.su.stableText(refBad(cs[2], D, true)) === String(b.panel.稳定性),
+      { 参考_正确: refBad(cs[2], D, false), 参考_错误: refBad(cs[2], D, true), 模块_错误: b.panel.稳定性 });
+    /* 参考实现必须连最终排列都对得上——只比极性会放过"比较方向写反"这种错 */
+    t(nm + '参考实现的最终排列与模块逐位一致（两档都比）',
+      refArr(cs[2], D, false).join(',') === g.snap.arr.join(',') &&
+      refArr(cs[2], D, true).join(',') === b.snap.arr.join(','),
+      { 参考: refArr(cs[2], D, true).join(' '), 模块: b.snap.arr.join(' ') });
+    const nd = m.run(Object.assign({}, def, { errStable: true, preset: 'custom', w: '5,4,3,2,1' })).frames.slice(-1)[0];
+    t(nm + '无相等元素时与参考实现同样判未破坏',
+      /未破坏/.test(String(nd.panel.稳定性)) && refBad(cs[2], [5, 4, 3, 2, 1], true) === null && isSorted(nd.snap.arr),
+      { 参考: refBad(cs[2], [5, 4, 3, 2, 1], true), 模块: nd.panel.稳定性 });
+    /* 穷举比对：只比"破坏/未破坏"这个极性（两边可能先扫到不同的相等对），
+       外加硬约束——错误档不许丢元素、必须仍排完。 */
+    const badCases = [];
+    FUZZ.forEach(w => {
+      const vals = w.split(',').map(Number);
+      const r = m.run(Object.assign({}, def, { preset: 'custom', w: w, errStable: true })).frames.slice(-1)[0];
+      const rb = refBad(cs[2], vals, true) !== null;
+      const modBad = /已破坏/.test(String(r.panel.稳定性));
+      if (rb !== modBad) badCases.push(w + ' 极性不符：参考=' + rb + ' 模块=' + modBad);
+      if (r.snap.arr.length !== vals.length) badCases.push(w + ' 丢了元素：' + r.snap.arr.join(','));
+      if (!isSorted(r.snap.arr)) badCases.push(w + ' 错误档没排完：' + r.snap.arr.join(','));
+    });
+    t(nm + '穷举 12 组带相等元素的数据：极性与参考一致、不丢元素、仍排完', badCases.length === 0, badCases.slice(0, 4));
+    /* 哨兵位不是数据：任何一帧都不许叙述"a[0] 被后移"。
+       这条是实测出来的——去掉 j>=1 守卫后值不丢，但会多画一帧"a[0]=1 与哨兵相等也被后移"，
+       等于对着学生讲一件没发生的事。 */
+    const sentFrames = [];
+    [def, Object.assign({}, def, { errStable: true })].forEach(vv => {
+      m.run(vv).frames.forEach(f => { if (/a\[0\] *=.*后移/.test(f.msg)) sentFrames.push(tag + '：' + f.msg.slice(0, 34)); });
+    });
+    t(nm + '没有任何一帧把哨兵 a[0] 说成被后移的数据元素', sentFrames.length === 0, sentFrames.slice(0, 3));
+  });
 }
 
 console.log('\n结果: 通过 ' + pass + '，失败 ' + fail);

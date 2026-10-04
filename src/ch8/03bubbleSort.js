@@ -28,10 +28,20 @@
       '重点看 flag：若某一趟一次交换都没发生，序列已有序，提前终止',
       '最好情况（已有序）只比较 n−1 次、0 次移动——切到"有序"数据试一试'
     ],
-    inputs: su.presetInputs(),
+    inputs: su.presetInputs([{ key: 'errStable', label: '错误演示：把严格大于改成大于等于', type: 'checkbox', value: false }]),
+    misleads: [{ "key": "errStable", "value": true, "claim": "相等元素也被交换：序列仍然有序，稳定性没了" }],
     run: function (v) {
       var a = su.getData(v).slice();
       var n = a.length, cmp = 0, mov = 0;
+      /* errStable 只改一件事：比较运算符从 > 变成 >=。id[] 跟着数组一起交换，
+         用来现算"相等元素的先后有没有反"——稳定性 verdict 不写死在文案里。 */
+      var id = [], gi; for (gi = 0; gi < n; gi++) id.push(gi);
+      var gt = !!v.errStable;
+      function stableBad() {
+        for (var x = 0; x < n; x++) for (var y = x + 1; y < n; y++)
+          if (a[x] === a[y] && id[x] > id[y]) return a[x];
+        return null;
+      }
       var frames = [];
 
       function colors(hl) {
@@ -45,9 +55,14 @@
       }
       function F(line, msg, extra, mk) {
         extra = extra || {};
+        var pn = { 比较: cmp + ' 次', 交换: mov + ' 次', 已就位: extra.doneFrom != null ? '第 ' + (extra.doneFrom + 1) + '~' + n + ' 个' : '—' };
+        /* 默认档的面板一行不加——加了就等于改线上产品的界面；只有错误档多这一行诊断 */
+        if (gt) {
+          var b = stableBad();
+          pn['稳定性'] = b == null ? '未破坏' : '已破坏（两个 ' + b + ' 先后反了）';
+        }
         frames.push({
-          line: Array.isArray(line) ? line : [line], msg: msg,
-          panel: { 比较: cmp + ' 次', 交换: mov + ' 次', 已就位: extra.doneFrom != null ? '第 ' + (extra.doneFrom + 1) + '~' + n + ' 个' : '—' },
+          line: Array.isArray(line) ? line : [line], msg: msg, panel: pn,
           snap: { arr: a.slice(), colors: colors(extra), mark: mk }
         });
       }
@@ -60,19 +75,25 @@
         F([3], '第 ' + pass + ' 趟开始：flag 清零（假设本趟无交换），无序区为第 1~' + (m + 1) + ' 个。', { doneFrom: m + 1 });
         for (var j = 0; j < m; j++) {
           cmp++;
-          if (a[j] > a[j + 1]) {
-            var t = a[j]; a[j] = a[j + 1]; a[j + 1] = t;
+          if (gt ? a[j] >= a[j + 1] : a[j] > a[j + 1]) {
+            var t = a[j], u = id[j]; a[j] = a[j + 1]; id[j] = id[j + 1]; a[j + 1] = t; id[j + 1] = u;
             mov++; flag = 1;
-            F([6, 7, 8], 'a[' + (j + 1) + ']=' + t + ' > a[' + (j + 2) + ']=' + a[j] + '，逆序 → 交换。', { s1: j, s2: j + 1, doneFrom: m + 1 });
+            F([6, 7, 8], 'a[' + (j + 1) + ']=' + t + (gt ? ' ≥ ' : ' > ') + 'a[' + (j + 2) + ']=' + a[j] +
+              (t === a[j] ? '：相等也被换走了——稳定性就是在这里丢的。' : '，逆序 → 交换。'), { s1: j, s2: j + 1, doneFrom: m + 1 });
           } else {
-            F(5, 'a[' + (j + 1) + ']=' + a[j] + ' ≤ a[' + (j + 2) + ']=' + a[j + 1] + '，顺序正确，不交换。', { c1: j, c2: j + 1, doneFrom: m + 1 });
+            F(5, 'a[' + (j + 1) + ']=' + a[j] + (gt ? ' < ' : ' ≤ ') + 'a[' + (j + 2) + ']=' + a[j + 1] + '，顺序正确，不交换。', { c1: j, c2: j + 1, doneFrom: m + 1 });
           }
         }
         F(9, '第 ' + pass + ' 趟结束：无序区最大值 ' + a[m] + ' 已"冒泡"到第 ' + (m + 1) + ' 个位置。' + (flag ? '' : '本趟一次交换都没有发生 → flag=0！'),
           { doneFrom: m }, pass);
         m--;
       }
-      F(1, '排序完成：' + a.join(' ') + '。共 ' + pass + ' 趟、比较 ' + cmp + ' 次、交换 ' + mov + ' 次。要点：flag 提前终止让"有序/几乎有序"输入达到 O(n)——最好情况；相等的相邻元素不会交换，稳定。', { doneFrom: 0 }, 'final');
+      /* 默认档的末帧与改动前一字不差；只有错误档多说一句"丢的不是正确性，是稳定性" */
+      F(1, gt
+          ? '✗ 跑完仍然有序：' + a.join(' ') + '。共 ' + pass + ' 趟、比较 ' + cmp + ' 次、交换 ' + mov +
+            ' 次——但两个 ' + stableBad() + ' 的先后反了。把 > 写成 ≥，丢的不是正确性，是稳定性。'
+          : '排序完成：' + a.join(' ') + '。共 ' + pass + ' 趟、比较 ' + cmp + ' 次、交换 ' + mov + ' 次。要点：flag 提前终止让"有序/几乎有序"输入达到 O(n)——最好情况；相等的相邻元素不会交换，稳定。',
+        { doneFrom: 0 }, 'final');
       return { code: CODE, frames: frames };
     },
     render: function (s) {

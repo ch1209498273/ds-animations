@@ -84,6 +84,9 @@
         ['ok', MODES.ok.label], ['nodelete', MODES.nodelete.label]
       ], value: 'ok' }
     ],
+    /* 错误演示档的机器可读声明。卡口据此核对"每一档都真演出了差异"——
+       白演的错误演示比不演示更坏：学生以为看到了反例。见 tests/test.js 的误导档卡口 */
+    misleads: [{"key": "mode", "value": "nodelete", "claim": "只弹点不删弧，入度永远降不下来，无环的图也排不完"}],
     run: function (v) {
       var pre = PRESETS[(v && v.graph) || 'text'] || PRESETS.text;
       var wrong = !!(v && v.mode === 'nodelete');

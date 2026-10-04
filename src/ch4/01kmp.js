@@ -65,6 +65,9 @@
       { key: 't', label: '模式 T', type: 'text', value: DEF_T },
       { key: 'errNext', label: '错误演示：next 错位一格', type: 'checkbox', value: false }
     ],
+    /* 错误演示档的机器可读声明。卡口据此核对"每一档都真演出了差异"——
+       白演的错误演示比不演示更坏：学生以为看到了反例。见 tests/test.js 的误导档卡口 */
+    misleads: [{"key": "errNext", "value": true, "claim": "next 整体错位一格，KMP 从\"更快\"变成\"漏匹配\""}],
     run: function (v) {
       var S = String(v.s || DEF_S).replace(/\s+/g, ''), T = String(v.t || DEF_T).replace(/\s+/g, '');
       if (T.length < 2 || T.length > 12) throw Error('模式串长度请取 2~12');

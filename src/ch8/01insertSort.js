@@ -41,12 +41,21 @@
       '注意两个 49：直接插入排序是稳定的（相等元素不跨越）'
     ],
     inputs: su.presetInputs([
-      { key: 'mode', label: '插入方式', type: 'select', options: [['d', '直接插入'], ['b', '折半插入']], value: 'd' }
+      { key: 'mode', label: '插入方式', type: 'select', options: [['d', '直接插入'], ['b', '折半插入']], value: 'd' },
+      { key: 'errStable', label: '错误演示：把严格小于改成小于等于', type: 'checkbox', value: false }
     ]),
+    misleads: [{ "key": "errStable", "value": true, "claim": "相等也后移：结果仍有序，但稳定性丢了" }],
     run: function (v) {
       var a = su.getData(v);
       a.unshift(0);                                  // a[0] 为哨兵位
       var n = a.length - 1, bin = v.mode === 'b';
+      /* errStable 只改运算符：直接插入的 `a[0] < a[j]` 与折半的 `a[0] < a[m]` 都带上等号。
+         id[] 与 a[] 同步搬移，稳定性 verdict 由 su.stableBad 现算，不写死在文案里。
+         ★ 带上等号后哨兵自己会满足条件（a[0] <= a[0] 为真），循环会多走一格到 j=0，
+           画出一帧"a[0] 被后移"——实测元素一个没丢（末数组完整），但那帧在讲一件没发生的事。
+           所以循环带 j >= 1 守卫。默认档加这条完全等价（a[0] < a[0] 本就为假），逐帧输出不变。 */
+      var eq = !!v.errStable;
+      var id = [], ii0; for (ii0 = 0; ii0 <= n; ii0++) id.push(ii0);
       var frames = [], cmp = 0, mov = 0;
       var code = bin ? CODE_B : CODE;
 
@@ -62,7 +71,9 @@
         extra = extra || {};
         frames.push({
           line: Array.isArray(line) ? line : [line], msg: msg,
-          panel: { 比较: cmp + ' 次', 移动: mov + ' 次', 有序区: '第 1 ~ ' + (extra.done || 0) + ' 个', 哨兵: extra.sent != null ? String(extra.sent) : '—' },
+          panel: (function () { var pn = { 比较: cmp + ' 次', 移动: mov + ' 次', 有序区: '第 1 ~ ' + (extra.done || 0) + ' 个', 哨兵: extra.sent != null ? String(extra.sent) : '—' };
+            if (eq) pn['稳定性'] = su.stableText(su.stableBad(a.slice(1), id.slice(1)));   /* 默认档面板一字不动 */
+            return pn; })(),
           snap: { arr: a.slice(1), colors: colors(extra), tags: [], sent: extra.sent, mark: mk }
         });
       }
@@ -73,41 +84,43 @@
         var sent = a[i];
         if (!bin) {
           cmp++;
-          if (a[i - 1] <= sent) { F(1, '第 ' + (i - 1) + ' 趟：a[' + i + ']=' + sent + ' ≥ 前驱 a[' + (i - 1) + ']=' + a[i - 1] + '，位置本就正确，本趟 0 次移动。', { c: i, done: i - 1, sent: sent }); }
+          if (eq ? a[i - 1] < sent : a[i - 1] <= sent) { F(1, '第 ' + (i - 1) + ' 趟：a[' + i + ']=' + sent + ' ≥ 前驱 a[' + (i - 1) + ']=' + a[i - 1] + '，位置本就正确，本趟 0 次移动。', { c: i, done: i - 1, sent: sent }); }
           else {
-            a[0] = a[i]; mov++;
+            a[0] = a[i]; id[0] = id[i]; mov++;
             F([2, 3], '第 ' + (i - 1) + ' 趟：a[' + i + ']=' + sent + ' < 前驱，取出存入哨兵 a[0]，位置 ' + i + ' 腾空。', { p: i, sent: sent });
             var j = i - 1;
-            while (a[0] < a[j]) {
-              cmp++; a[j + 1] = a[j]; mov++;
-              F(5, 'a[' + j + ']=' + a[j] + ' > 哨兵 ' + a[0] + ' → 后移到 a[' + (j + 1) + ']。', { c: j, s: j + 1, sent: a[0] });
+            while (j >= 1 && (eq ? a[0] <= a[j] : a[0] < a[j])) {
+              cmp++; a[j + 1] = a[j]; id[j + 1] = id[j]; mov++;
+              F(5, 'a[' + j + ']=' + a[j] + (a[j] === a[0] ? ' 与哨兵相等也被后移——稳定性就是在这里丢的。' : ' > 哨兵 ' + a[0] + ' → 后移到 a[' + (j + 1) + ']。'), { c: j, s: j + 1, sent: a[0] });
               j--;
             }
             cmp++;
-            a[j + 1] = a[0]; mov++;
-            F(6, 'a[' + j + ']=' + (j >= 1 ? a[j] : '—') + ' ≤ 哨兵，停在这里：a[' + (j + 1) + '] = ' + a[0] + '，插入完成。', { s: j + 1, sent: a[0] });
+            a[j + 1] = a[0]; id[j + 1] = id[0]; mov++;
+            F(6, 'a[' + j + ']=' + (j >= 1 ? a[j] : '—') + (eq ? ' < ' : ' ≤ ') + '哨兵，停在这里：a[' + (j + 1) + '] = ' + a[0] + '，插入完成。', { s: j + 1, sent: a[0] });
           }
           F(1, '第 ' + (i - 1) + ' 趟完成：第 1~' + i + ' 个元素构成有序区。', { done: i, sent: null }, i);
         } else {
-          a[0] = a[i]; mov++;
+          a[0] = a[i]; id[0] = id[i]; mov++;
           F([1, 2], '第 ' + (i - 1) + ' 趟：取出 a[' + i + ']=' + sent + ' 存入哨兵，在有序区 [1..' + (i - 1) + '] 中折半查找插入位置。', { p: i, sent: sent });
           var low = 1, high = i - 1;
           while (low <= high) {
             var m = Math.floor((low + high) / 2);
             cmp++;
-            var goLow = a[0] < a[m];
+            var goLow = eq ? a[0] <= a[m] : a[0] < a[m];
             F([5, 6, 7, 8], 'low=' + low + '，high=' + high + '：m=(low+high)/2 取中 m=' + m + '：a[m]=' + a[m] + (goLow ? ' > 哨兵 ' + a[0] + ' → 插入位置在低半区，high=' + (m - 1) : ' ≤ 哨兵 ' + a[0] + ' → 在高半区，low=' + (m + 1)) + '。',
               { c: m, p: i, sent: sent });
             if (goLow) high = m - 1; else low = m + 1;
           }
           F(4, '折半结束：low=' + low + ' ≤ high=' + high + ' 不再成立，插入位置确定为 low=' + low + '。', { sent: sent });
-          for (var k = i - 1; k >= low; k--) { a[k + 1] = a[k]; mov++; F(9, 'a[' + k + ']=' + a[k] + ' 后移到 a[' + (k + 1) + ']。', { c: k, s: k + 1, sent: sent }); }
-          a[low] = a[0]; mov++;
+          for (var k = i - 1; k >= low; k--) { a[k + 1] = a[k]; id[k + 1] = id[k]; mov++; F(9, 'a[' + k + ']=' + a[k] + ' 后移到 a[' + (k + 1) + ']。', { c: k, s: k + 1, sent: sent }); }
+          a[low] = a[0]; id[low] = id[0]; mov++;
           F(10, 'a[' + low + '] = ' + a[0] + '，插入完成。', { s: low, sent: a[0] });
           F(2, '第 ' + (i - 1) + ' 趟完成：第 1~' + i + ' 个元素构成有序区。', { done: i, sent: null }, i);
         }
       }
-      F(0, '排序完成：' + a.slice(1).join(' ') + '。共比较 ' + cmp + ' 次、移动 ' + mov + ' 次。要点：折半插入把比较次数降到 O(n log n)，但移动次数仍为 O(n²)——移动由序列初始排列决定，比较方式帮不上忙。',
+      F(0, eq
+          ? '✗ 跑完仍然有序：' + a.slice(1).join(' ') + '。共比较 ' + cmp + ' 次、移动 ' + mov + ' 次——稳定性自查：' + su.stableText(su.stableBad(a.slice(1), id.slice(1))) + '。等号加错地方，丢的不是正确性，是稳定性。'
+          : '排序完成：' + a.slice(1).join(' ') + '。共比较 ' + cmp + ' 次、移动 ' + mov + ' 次。要点：折半插入把比较次数降到 O(n log n)，但移动次数仍为 O(n²)——移动由序列初始排列决定，比较方式帮不上忙。',
         { done: n, sent: null }, 'final');
       return { code: code, frames: frames };
     },

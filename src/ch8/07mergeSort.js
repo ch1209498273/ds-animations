@@ -31,10 +31,14 @@
       '看最下面一层：单个元素天然有序，归并从最小单元自底向上长出有序序列',
       '一趟归并 O(n)，共 ⌈log n⌉ 趟，任何输入都是 O(n log n)；代价是需要 O(n) 辅助数组；它也是**外排序**的基础'
     ],
-    inputs: su.presetInputs(),
+    inputs: su.presetInputs([{ key: 'errStable', label: '错误演示：相等时改取右半', type: 'checkbox', value: false }]),
+    misleads: [{ "key": "errStable", "value": true, "claim": "相等时取右半：结果仍有序，但稳定性丢了" }],
     run: function (v) {
       var a = su.getData(v).slice();
       var n = a.length, cmp = 0, mov = 0;
+      /* errStable 只改一个运算符：<= 变 <。wid[] 跟着元素一起搬，用来现算稳定性 */
+      var eq = !!v.errStable;
+      var wid = [], wi; for (wi = 0; wi < n; wi++) wid.push(wi);
       var frames = [];
 
       function colors(hl) {
@@ -53,7 +57,9 @@
         extra = extra || {};
         frames.push({
           line: Array.isArray(line) ? line : [line], msg: msg,
-          panel: { 比较: cmp + ' 次', 写入: mov + ' 次', 当前区间: extra.range || '—' },
+          panel: (function () { var pn = { 比较: cmp + ' 次', 写入: mov + ' 次', 当前区间: extra.range || '—' };
+            if (eq) pn['稳定性'] = su.stableText(su.stableBad(view, wid));   /* 默认档面板一字不动 */
+            return pn; })(),
           snap: { arr: view.slice(), colors: colors(extra), mark: mk, range: extra.range }
         });
       }
@@ -67,16 +73,21 @@
         msort(s, m); msort(m + 1, t);
         var range = '[' + (s + 1) + '..' + (t + 1) + ']（左 [' + (s + 1) + '..' + (m + 1) + '] ＋ 右 [' + (m + 2) + '..' + (t + 1) + ']）';
         F(12, '开始归并区间 ' + range + '：两半各自已有序。', { zl: span(s, m), zr: span(m + 1, t), range: range });
-        var i = s, j = m + 1, buf = [];
+        var i = s, j = m + 1, buf = [], bufW = [];
         while (i <= m && j <= t) {
           cmp++;
-          if (work[i] <= work[j]) { buf.push(work[i]); F([3], '左半 a[' + (i + 1) + ']=' + work[i] + ' ≤ 右半 a[' + (j + 1) + ']=' + work[j] + ' → 取左。', { c1: i, c2: j, zl: span(s, m), zr: span(m + 1, t), range: range }); i++; }
-          else { buf.push(work[j]); F([4], '左半 a[' + (i + 1) + ']=' + work[i] + ' > 右半 a[' + (j + 1) + ']=' + work[j] + ' → 取右。', { c1: i, c2: j, zl: span(s, m), zr: span(m + 1, t), range: range }); j++; }
+          if (eq ? work[i] < work[j] : work[i] <= work[j]) {
+            buf.push(work[i]); bufW.push(wid[i]);
+            F([3], '左半 a[' + (i + 1) + ']=' + work[i] + (eq ? ' < ' : ' ≤ ') + '右半 a[' + (j + 1) + ']=' + work[j] + ' → 取左。', { c1: i, c2: j, zl: span(s, m), zr: span(m + 1, t), range: range }); i++;
+          } else {
+            buf.push(work[j]); bufW.push(wid[j]);
+            F([4], '左半 a[' + (i + 1) + ']=' + work[i] + (work[i] === work[j] ? ' 与右半相等，本该取左却被取了右——稳定性就是在这里丢的。' : ' > 右半 a[' + (j + 1) + ']=' + work[j] + ' → 取右。'), { c1: i, c2: j, zl: span(s, m), zr: span(m + 1, t), range: range }); j++;
+          }
           mov++;
         }
-        while (i <= m) { buf.push(work[i]); mov++; i++; }
-        while (j <= t) { buf.push(work[j]); mov++; j++; }
-        for (var k2 = 0; k2 < buf.length; k2++) work[s + k2] = buf[k2];
+        while (i <= m) { buf.push(work[i]); bufW.push(wid[i]); mov++; i++; }
+        while (j <= t) { buf.push(work[j]); bufW.push(wid[j]); mov++; j++; }
+        for (var k2 = 0; k2 < buf.length; k2++) { work[s + k2] = buf[k2]; wid[s + k2] = bufW[k2]; }
         view = work.slice();
         F([5, 6, 7], '归并完成：区间 ' + range + ' 已整体有序：' + buf.join(' ') + '。', { zl: span(s, m), zr: span(m + 1, t), range: range, done: span(s, t) }, 'm' + s + '_' + t);
       }
@@ -84,7 +95,9 @@
 
       msort(0, n - 1);
       view = work.slice();
-      F(14, '排序完成：' + view.join(' ') + '。n 个元素共归并 ⌈log₂n⌉ 层、每层 O(n)，任何输入都稳定在 O(n log n)；相等时优先取左半保证稳定。空间代价 O(n) 是它的短板——但这个"有序段合并"思想让归并成为磁盘外排序的基石。', {}, 'final');
+      F(14, eq
+          ? '✗ 跑完仍然有序：' + view.join(' ') + '。共比较 ' + cmp + ' 次、写入 ' + mov + ' 次——稳定性自查：' + su.stableText(su.stableBad(view, wid)) + '。相等时取右半，丢的不是正确性，是稳定性。'
+          : '排序完成：' + view.join(' ') + '。n 个元素共归并 ⌈log₂n⌉ 层、每层 O(n)，任何输入都稳定在 O(n log n)；相等时优先取左半保证稳定。空间代价 O(n) 是它的短板——但这个"有序段合并"思想让归并成为磁盘外排序的基石。', {}, 'final');
       return { code: CODE, frames: frames };
     },
     render: function (s) {

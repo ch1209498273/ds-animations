@@ -62,6 +62,9 @@
       }
     ],
 
+    /* 错误演示档的机器可读声明。卡口据此核对"每一档都真演出了差异"——
+       白演的错误演示比不演示更坏：学生以为看到了反例。见 tests/test.js 的误导档卡口 */
+    misleads: [{"key": "scene", "value": "bad", "claim": "建堆只下沉一层就停，父子关系仍有违反"}],
     run: function (v) {
       var scene = v.scene, frames = [];
       var src = String(v.data).split(/[,，\s]+/).filter(Boolean).map(Number);

@@ -31,6 +31,14 @@
       }
       return arr;
     },
+    /* 稳定性自查：有没有一对相等元素的先后次序反了。ids 必须与 vals 同步搬移/交换。
+       返回反了的那个值（没有则 null）——文案里"两个 49 先后反了"是这么算出来的，不写死。 */
+    stableBad: function (vals, ids) {
+      for (var x = 0; x < vals.length; x++) for (var y = x + 1; y < vals.length; y++)
+        if (vals[x] === vals[y] && ids[x] > ids[y]) return vals[x];
+      return null;
+    },
+    stableText: function (b) { return b == null ? '未破坏' : '已破坏（两个 ' + b + ' 先后反了）'; },
     presetInputs: function (extra) {
       return [
         { key: 'preset', label: '数据', type: 'select', options: [
