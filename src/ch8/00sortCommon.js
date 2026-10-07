@@ -39,6 +39,29 @@
       return null;
     },
     stableText: function (b) { return b == null ? '未破坏' : '已破坏（两个 ' + b + ' 先后反了）'; },
+    /* 升序自查与数据守恒自查：后者是"落位差一格"这类错的唯一暴露口径——
+       格子数没变、看着还升序，但里面已经不是原来那批数了。返回值都用于现算文案，不写死。 */
+    asc: function (vals) {
+      for (var i = 1; i < vals.length; i++) if (vals[i] < vals[i - 1]) return false;
+      return true;
+    },
+    diff: function (orig, now) {
+      var cnt = {}, lost = [], extra = [];
+      orig.forEach(function (x) { cnt[x] = (cnt[x] || 0) + 1; });
+      now.forEach(function (x) { cnt[x] = (cnt[x] || 0) - 1; });
+      Object.keys(cnt).forEach(function (k) {
+        if (cnt[k] > 0) lost.push(k + (cnt[k] > 1 ? '×' + cnt[k] : ''));
+        else if (cnt[k] < 0) extra.push(k + (cnt[k] < -1 ? '×' + (-cnt[k]) : ''));
+      });
+      return { lost: lost, extra: extra, ok: lost.length === 0 && extra.length === 0 };
+    },
+    diffText: function (d) {
+      /* 每类最多列 3 个：面板行与解说帧都有 150 字上限，长序列时不截断就会超 */
+      var p = [];
+      if (d.lost.length) p.push('少了 ' + d.lost.slice(0, 3).join(',') + (d.lost.length > 3 ? '等' : ''));
+      if (d.extra.length) p.push('多写了 ' + d.extra.slice(0, 3).join(',') + (d.extra.length > 3 ? '等' : ''));
+      return p.join('、') || '与原序列同一批数';
+    },
     presetInputs: function (extra) {
       return [
         { key: 'preset', label: '数据', type: 'select', options: [

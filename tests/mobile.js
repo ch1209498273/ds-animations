@@ -172,7 +172,12 @@ function t(name, cond, extra) {
 
 const VIEWS = [['目录页', ''], ['堆排序', '#m=heapSort'], ['顺序表', '#m=seqList'],
   ['最小生成树', '#m=mst'], ['链栈与链队列', '#m=linkStackQueue'],
-  ['广义表', '#m=glist'], ['链表三道题', '#m=linkProblems']];
+  ['广义表', '#m=glist'], ['链表三道题', '#m=linkProblems'],
+  /* 错误演示档的面板会多一行诊断（数据守恒/大根堆/稳定性），值还特别长——
+     默认档量不到它，而"面板变高挤舞台"正是它最可能的后果，所以单独量两档。
+     深链直接带输入项与帧号，量的是"勾上错法、走到末帧"这个真实状态。 */
+  ['插入·落位错法档', '#m=insertSort&errLand=1&f=36'],
+  ['堆·少判 j<m 档', '#m=heapSort&errChild=1&f=59']];
 VIEWS.forEach(function (v) {
   const o = measure(v[1]);
   if (!o) { t('手机视口 ' + v[0] + ': 量测成功', false, NOOUT); return; }

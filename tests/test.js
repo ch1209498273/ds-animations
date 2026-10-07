@@ -3194,5 +3194,187 @@ console.log('— 稳定性演示（冒泡 / 直接插入 / 折半插入 / 归并
   });
 }
 
+console.log('— 边界与落位演示（B/D 族）：错在哪条判据上，必须与独立参考实现一致 —');
+{
+  /* C 族（稳定性）的卖点是"结果不变、性质变"；B/D 族相反——结果当场就变。
+     所以这三条卡口盯的是"哪一条判据抓得住它"：
+       · 堆筛选少判 j < m → 数据仍然守恒，只有"有序"这一条能抓到
+       · 插入落位差一格   → 末态仍然非降序，只有"守恒"这一条能抓到
+       · 折半 low<=high   → 漏掉哪些 key 由一张表算出来，跟模块自己算的逐个对
+     预期值一律来自下面三个独立参考实现，不拿模块自己的输出当预期。 */
+  const PRE = {
+    textbook: [49, 38, 65, 97, 76, 13, 27, 49],
+    ordered: [12, 23, 34, 45, 56, 67, 78, 89],
+    reverse: [89, 78, 67, 56, 45, 34, 23, 12],
+    nearly: [12, 23, 34, 45, 67, 56, 78, 89]
+  };
+  const asc = a => a.every((x, i) => i === 0 || a[i - 1] <= x);
+  const ms = a => a.slice().sort((x, y) => x - y).join(',');
+  const defOf = m => { const v = {}; (m.inputs || []).forEach(s => { v[s.key] = s.type === 'checkbox' ? !!s.value : s.value; }); return v; };
+  const lastOf = (m, over) => { const r = m.run(Object.assign({}, defOf(m), over || {})); return r.frames[r.frames.length - 1]; };
+
+  /* 参考①：堆排序，同一份逻辑、单独写一遍，buggy 时删掉 j<m 守卫 */
+  function refHeap(vals, buggy) {
+    const a = [0].concat(vals), n = a.length - 1;
+    const adjust = (s, m) => {
+      const rc = a[s];
+      for (let j = 2 * s; j <= m; j *= 2) {
+        if ((buggy ? true : j < m) && j + 1 <= n && a[j] < a[j + 1]) j++;
+        if (rc >= a[j]) break;
+        a[s] = a[j]; s = j;
+      }
+      a[s] = rc;
+    };
+    for (let i = Math.floor(n / 2); i >= 1; i--) adjust(i, n);
+    for (let i = n; i > 1; i--) { const t = a[1]; a[1] = a[i]; a[i] = t; adjust(1, i - 1); }
+    return a.slice(1);
+  }
+  /* 参考②：插入排序，buggy 时把落位下标往左挪一格 */
+  function refInsert(vals, mode, buggy) {
+    const a = [0].concat(vals), n = a.length - 1;
+    if (mode === 'd') {
+      for (let i = 2; i <= n; i++) {
+        if (a[i] < a[i - 1]) {
+          a[0] = a[i];
+          let j = i - 1;
+          while (j >= 1 && a[0] < a[j]) { a[j + 1] = a[j]; j--; }
+          a[buggy ? j : j + 1] = a[0];
+        }
+      }
+    } else {
+      for (let i = 2; i <= n; i++) {
+        a[0] = a[i];
+        let low = 1, high = i - 1;
+        while (low <= high) { const m = Math.floor((low + high) / 2); if (a[0] < a[m]) high = m - 1; else low = m + 1; }
+        for (let k = i - 1; k >= low; k--) a[k + 1] = a[k];
+        a[buggy ? high : low] = a[0];
+      }
+    }
+    return a.slice(1);
+  }
+  /* 参考③：折半查找，返回"错法找不到的那些位置"；同时自证正确写法一个都不漏 */
+  function refMiss(st, buggy) {
+    const miss = [];
+    st.forEach((k, idx) => {
+      let l = 1, h = st.length, hit = 0;
+      while (buggy ? l < h : l <= h) {
+        const m = Math.floor((l + h) / 2);
+        if (st[m - 1] === k) { hit = m; break; }
+        if (st[m - 1] > k) h = m - 1; else l = m + 1;
+      }
+      if (hit !== idx + 1) miss.push(idx + 1);
+    });
+    return miss;
+  }
+
+  /* ---- B 族其一：堆排序少判 j < m ---- */
+  {
+    const m = M.heapSort, bad = [];
+    Object.keys(PRE).forEach(p => {
+      const g = lastOf(m, { preset: p }), b = lastOf(m, { preset: p, errChild: true });
+      const ref = refHeap(PRE[p], true);
+      if (b.snap.arr.join(',') !== ref.join(',')) bad.push(p + ' 末态与参考不符：模块=' + b.snap.arr.join(' ') + ' 参考=' + ref.join(' '));
+      if (asc(b.snap.arr)) bad.push(p + ' 错法末态居然还是升序（这一族错该被"有序"抓到）');
+      if (ms(b.snap.arr) !== ms(PRE[p])) bad.push(p + ' 错法不该丢数据：' + b.snap.arr.join(' '));
+      if (!/大根堆/.test(String(b.msg))) bad.push(p + ' 末帧没提大根堆被破坏');
+      if ('大根堆' in g.panel) bad.push(p + ' 默认档面板混进了"大根堆"行');
+    });
+    t('堆筛选少判 j<m: 四组预设末态与独立参考逐位一致，且都不升序、数据仍守恒', bad.length === 0, bad.slice(0, 6));
+    const r = m.run(Object.assign({}, defOf(m), { errChild: true }));
+    const brokeRows = r.frames.filter(f => /被破坏/.test(String(f.panel['大根堆'])));
+    const buildRows = r.frames.filter(f => f.panel['大根堆'] === '建堆中，还不要求');
+    t('堆筛选少判 j<m: 诊断行真的亮过——建堆中不评判，建完之后有大根堆被破坏的帧',
+      brokeRows.length > 0 && buildRows.length > 0 && asc(r.frames[0].snap.arr) === false, { 被破坏帧: brokeRows.length, 建堆中帧: buildRows.length });
+    t('堆筛选少判 j<m: 末帧是 ✗ 结论帧并给出被破坏的帧数',
+      /^✗/.test(String(r.frames.slice(-1)[0].msg)) && /有 \d+ 帧大根堆被破坏/.test(String(r.frames.slice(-1)[0].msg)),
+      String(r.frames.slice(-1)[0].msg).slice(0, 50));
+    /* 正确写法必须仍然四组都排对——否则上面那批断言是在拿一个坏参考比坏模块 */
+    const refOK = Object.keys(PRE).every(p => asc(refHeap(PRE[p], false)) && ms(refHeap(PRE[p], false)) === ms(PRE[p]));
+    t('堆筛选少判 j<m: 参考实现自己的正确档四组全排对（参考可信）', refOK && Object.keys(PRE).every(p => lastOf(m, { preset: p }).snap.arr.join(',') === refHeap(PRE[p], false).join(',')));
+  }
+
+  /* ---- D 族：插入落位差一格（直接/折半两条 mode 各一处） ---- */
+  {
+    const m = M.insertSort, FUZZ = ['1,1', '2,1,1', '1,1,2,2', '3,1,3,1,2', '5,4,3,2,1', '1,2,3,4,5',
+      '9,7,7,3,1,1,2', '49,49,38,49,27,49', '12,23,34,45,67,56,78,89', '89,78,67,56,45,34,23,12',
+      '5,13,19,21,37,56,64,75,80,88,92', '1,2,3,4,5,6,7,8,9,10,11,12'];
+    const bad = [], notAsc = [];
+    ['d', 'b'].forEach(mode => {
+      Object.keys(PRE).concat(FUZZ).forEach(p => {
+        const vals = PRE[p] || p.split(',').map(Number);
+        const base = { mode, preset: 'custom', w: vals.join(',') };
+        const g = lastOf(m, base), b = lastOf(m, Object.assign({}, base, { errLand: true }));
+        const ref = refInsert(vals, mode, true);
+        if (b.snap.arr.join(',') !== ref.join(',')) bad.push(mode + ' ' + vals.join(',') + ' 末态与参考不符：模块=' + b.snap.arr.join(' ') + ' 参考=' + ref.join(' '));
+        const refBroken = ms(ref) !== ms(vals);
+        const modBroken = /少了|多写了/.test(String(b.panel['数据守恒']));
+        if (refBroken !== modBroken) bad.push(mode + ' ' + vals.join(',') + ' 守恒判定不符：参考=' + refBroken + ' 模块=' + modBroken);
+        if (!asc(b.snap.arr)) notAsc.push(mode + ' ' + vals.join(',') + ' 错法居然不升序了：' + b.snap.arr.join(' '));
+        if ('数据守恒' in g.panel) bad.push(mode + ' ' + p + ' 默认档面板混进了"数据守恒"行');
+        /* 正确档两 mode 都必须真排对，参考才可信 */
+        if (!asc(g.snap.arr) || ms(g.snap.arr) !== ms(vals)) bad.push(mode + ' ' + vals.join(',') + ' 正确档自己就错了：' + g.snap.arr.join(' '));
+      });
+    });
+    t('插入落位差一格: 26 组数据 × 两种插入方式，末态与独立参考逐位一致、守恒判定相符', bad.length === 0, bad.slice(0, 5));
+    t('插入落位差一格: 错法末态全部仍是非降序——只有"守恒"这条判据抓得住它', notAsc.length === 0, notAsc.slice(0, 4));
+    const tb = lastOf(m, { errLand: true });
+    t('插入落位差一格: 教材数据错法确实丢了数（末帧 ✗ 并点名少了/多写了什么）',
+      /^✗/.test(String(tb.msg)) && /少了/.test(String(tb.msg)) && /多写了/.test(String(tb.msg)) && /不是原来那批数/.test(String(tb.msg)),
+      String(tb.msg).slice(0, 60));
+    const bb = lastOf(m, { mode: 'b', errLand: true });
+    t('插入落位差一格: 折半档的错法是"把 low 写成 high"，末帧同样抓到不守恒',
+      /^✗/.test(String(bb.msg)) && /少了/.test(String(bb.msg)) && /多写了/.test(String(bb.msg)), String(bb.msg).slice(0, 60));
+    /* 落位这一族不许把哨兵位说成数据元素（沿用稳定性那条的尺子） */
+    const sentFrames = [];
+    [{}, { errLand: true }, { mode: 'b', errLand: true }].forEach(o => {
+      m.run(Object.assign({}, defOf(m), o)).frames.forEach(f => { if (/a\[0\] *=.*后移/.test(f.msg)) sentFrames.push(f.msg.slice(0, 34)); });
+    });
+    t('插入落位差一格: 没有任何一帧把哨兵 a[0] 说成被后移的数据元素', sentFrames.length === 0, sentFrames.slice(0, 3));
+  }
+
+  /* ---- B 族其二：折半查找 low<=high 写成 low<high ---- */
+  {
+    const m = M.seqBinSearch;
+    const TABLES = ['1,2,3', '1,2,3,4', '1,2,3,4,5', '10,20,30,40,50,60,70', '5,13,19,21,37,56,64,75,80,88,92',
+      '1,2,3,4,5,6,7,8,9,10,11,12'];
+    const bad = [];
+    TABLES.forEach(w => {
+      const st = w.split(',').map(Number);
+      const miss = refMiss(st, false), missBuggy = refMiss(st, true);
+      if (miss.length) bad.push(w + ' 正确写法不该漏，却漏了 ' + miss.join(','));
+      if (!missBuggy.length) bad.push(w + ' 错法一个都不漏，这条演示在该表上没内容');
+      st.forEach((k, idx) => {
+        const r = m.run({ mode: 'bin', key: k, w, errBound: true });
+        const found = r.frames.some(f => /查找成功/.test(f.msg));
+        if (found === missBuggy.includes(idx + 1)) bad.push(w + ' key=' + k + ' 错法表现与参考不符：found=' + found);
+        const g = m.run({ mode: 'bin', key: k, w });
+        if (!g.frames.some(f => /查找成功/.test(f.msg))) bad.push(w + ' key=' + k + ' 正确档反而找不到');
+      });
+      const one = m.run({ mode: 'bin', key: st[0], w, errBound: true }).frames.slice(-1)[0];
+      if (String(one.panel['这张表会漏']).indexOf(missBuggy.length + ' 个') !== 0)
+        bad.push(w + ' 面板漏查计数与参考不符：' + one.panel['这张表会漏'] + ' vs 参考 ' + missBuggy.length);
+    });
+    t('折半边界 low<high: 6 张表 × 每个 key，漏查集合与独立参考实现逐个相符（正确写法零漏）', bad.length === 0, bad.slice(0, 5));
+    const d = m.run(Object.assign({}, defOf(m))).frames.slice(-1)[0];
+    const e = m.run(Object.assign({}, defOf(m), { errBound: true }));
+    t('折半边界 low<high: 默认档（key=21 中途命中）面板不加漏查行', !('这张表会漏' in d.panel), d.panel);
+    /* 关键一条：当前 key 看不出问题时，演示必须自己补一个会漏的 key，不许白演 */
+    const el = e.frames.slice(-1)[0];
+    t('折半边界 low<high: 当前 key 没暴露时自动补反例（帧数变多、末帧点名被漏的 key）',
+      e.frames.length > m.run(Object.assign({}, defOf(m))).frames.length &&
+      /^✗/.test(String(el.msg)) && /明明在表里/.test(String(el.msg)) && /13/.test(String(el.msg)),
+      String(el.msg).slice(0, 60));
+    const bitten = m.run(Object.assign({}, defOf(m), { key: 13, errBound: true }));
+    t('折半边界 low<high: key 取被漏的那个时，演出现"偏偏就是 key"并判为失败',
+      bitten.frames.some(f => /偏偏就是 key/.test(f.msg)) && /判为失败——可 key 就在表里/.test(String(bitten.frames.slice(-2)[0].panel.结果 || '')),
+      bitten.frames.map(f => f.panel.结果).slice(-3));
+    const sq = m.run({ mode: 'seq', key: 21, w: '5,13,19,21,37,56,64,75,80,88,92', errBound: true });
+    const sq0 = m.run({ mode: 'seq', key: 21, w: '5,13,19,21,37,56,64,75,80,88,92' });
+    t('折半边界 low<high: 顺序查找勾上错法时如实说"这条错在它身上无从发生"，不多画一帧',
+      /^✗/.test(String(sq.frames.slice(-1)[0].msg)) && /无从发生/.test(String(sq.frames.slice(-1)[0].msg)) && sq.frames.length === sq0.frames.length,
+      String(sq.frames.slice(-1)[0].msg).slice(0, 40));
+  }
+}
+
 console.log('\n结果: 通过 ' + pass + '，失败 ' + fail);
 process.exit(fail ? 1 : 0);

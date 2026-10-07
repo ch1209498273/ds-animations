@@ -38,22 +38,40 @@
     inputs: [
       { key: 'mode', label: '算法', type: 'select', options: [['seq', '顺序查找（带哨兵）'], ['bin', '折半查找（判定树）']], value: 'bin' },
       { key: 'key', label: '查找 key', type: 'number', value: 21, min: 0, max: 999 },
-      { key: 'w', label: '自定义有序表', type: 'text', value: '5,13,19,21,37,56,64,75,80,88,92' }
+      { key: 'w', label: '自定义有序表', type: 'text', value: '5,13,19,21,37,56,64,75,80,88,92' },
+      { key: 'errBound', label: '错误演示：low<=high 写成 low<high', type: 'checkbox', value: false }
     ],
+    misleads: [{ "key": "errBound", "value": true, "claim": '区间缩到最后一格就不再比较：表里有些 key 明明在，却被判为查找失败' }],
     run: function (v) {
       var mode = v.mode || 'bin';
       var st = v.w && v.w.trim() ? h.parse(v.w) : DEF.slice();
       if (st.length < 3 || st.length > 12) throw Error('表长请取 3~12');
       for (var i0 = 1; i0 < st.length; i0++) if (st[i0] <= st[i0 - 1]) throw Error('折半查找要求表严格递增（自定义表请有序）');
       var n = st.length, key = +v.key || 0;
+      /* errBound 只改循环条件。它的杀伤力不在"当前这个 key"上：中途命中的 key 一切正常，
+         只有那些要走到区间缩成一格才比得到的 key 会漏。所以这一档把整张表都拿错法跑一遍，
+         漏了哪些 key 现算出来（面板行与结论文案都由它生成），而不是写死"会失败"。 */
+      var eb = !!v.errBound;
+      function buggyPos(k) {
+        var l = 1, g = n;
+        while (l < g) { var m = Math.floor((l + g) / 2); if (st[m - 1] === k) return m; if (st[m - 1] > k) g = m - 1; else l = m + 1; }
+        return 0;
+      }
+      var missed = [];
+      if (eb) for (var q = 1; q <= n; q++) if (buggyPos(st[q - 1]) !== q) missed.push(q);
+      var missedKeys = missed.slice(0, 4).map(function (p) { return st[p - 1]; }).join(',') + (missed.length > 4 ? '等' : '');
       var frames = [], cmp = 0, visit = [];
 
       function F(line, msg, extra, mk) {
         extra = extra || {};
         frames.push({
           line: Array.isArray(line) ? line : [line], msg: msg,
-          panel: { 比较: cmp + ' 次', 区间: extra.range || (mode === 'bin' ? '—' : '全表'), 结果: extra.res || '查找中…' },
-          snap: { st: st.slice(), mode: mode, key: key, cur: extra.cur, low: extra.low, high: extra.high, mid: extra.mid, visit: visit.slice(), res: extra.res || null, mark: mk }
+          panel: (function () {
+            var pn = { 比较: cmp + ' 次', 区间: extra.range || (mode === 'bin' ? '—' : '全表'), 结果: extra.res || '查找中…' };
+            if (eb && mode === 'bin') pn['这张表会漏'] = missed.length ? missed.length + ' 个（' + missedKeys + '）' : '一个都不漏';
+            return pn;
+          })(),
+          snap: { st: st.slice(), mode: mode, key: extra.key == null ? key : extra.key, cur: extra.cur, low: extra.low, high: extra.high, mid: extra.mid, visit: (extra.vis || visit).slice(), res: extra.res || null, mark: mk }
         });
       }
 
@@ -73,11 +91,14 @@
         } else {
           F([2, 3], '扫到 ST[0] 命中哨兵——说明 key 不在表中，查找失败（i=0）。共比较 ' + (n + 1) + ' 次 = n+1（最坏情形）。', { cur: 0, res: '失败：key 不在表中' }, 'fail');
         }
-        F(0, '小结：顺序查找 ASL(成功) = (n+1)/2 = ' + ((n + 1) / 2).toFixed(1) + '（等概率）。哨兵的价值：循环体内不用每次判断 i 是否越界，程序更简洁也更快一点。', { cur: found, res: found ? '成功' : '失败' });
+        F(0, eb
+          ? '✗ 顺序查找里没有 low/high 这一对边界，这个错法在它身上无从发生——切到"折半查找"再看这条。'
+          : '小结：顺序查找 ASL(成功) = (n+1)/2 = ' + ((n + 1) / 2).toFixed(1) + '（等概率）。哨兵的价值：循环体内不用每次判断 i 是否越界，程序更简洁也更快一点。',
+          { cur: found, res: found ? '成功' : '失败' }, eb ? 'final' : undefined);
       } else {
-        F(0, '折半查找：表必须有序。low=1、high=' + n + '，mid=(low+high)/2 取整。', {});
-        var low = 1, high = n, found2 = 0;
-        while (low <= high) {
+        F(0, '折半查找：表必须有序。low=1、high=' + n + '，mid=(low+high)/2 取整。' + (eb ? '本档把循环条件写成 low < high。' : ''), {});
+        var low = 1, high = n, found2 = 0, bite = false;
+        while (eb ? low < high : low <= high) {
           var mid = Math.floor((low + high) / 2);
           cmp++; visit.push(mid);
           F([3, 4], 'mid=(low+high)/2=' + mid + '：ST[' + mid + ']=' + st[mid - 1] + (st[mid - 1] === key ? ' = key，命中！' : st[mid - 1] > key ? ' > key=' + key + ' → 目标在左半区，high=' + (mid - 1) : ' < key=' + key + ' → 目标在右半区，low=' + (mid + 1)) + '。',
@@ -86,8 +107,44 @@
           else if (st[mid - 1] > key) high = mid - 1; else low = mid + 1;
         }
         if (found2) F(5, '查找成功：key=' + key + ' 位于第 ' + found2 + ' 个。判定树上走过的路径（黄色）长度 = 比较次数 ' + cmp + '。', { mid: found2, res: '成功：第 ' + found2 + ' 个' }, 'found');
+        else if (eb && low === high) {
+          bite = st[low - 1] === key;
+          F(9, 'low=high=' + low + '，条件 low < high 不成立 → 循环结束。ST[' + low + ']=' + st[low - 1] +
+            (bite ? ' 偏偏就是 key，可它一次都没被比过 → 返回 0，明明在表里却判为失败。' : ' 不是 key → 返回 0。'),
+            { res: bite ? '判为失败——可 key 就在表里' : '失败：key 不在表中' }, 'fail');
+        }
         else F(9, 'low > high，区间为空——查找失败。走过 ' + cmp + ' 次比较，路径与"判定树"外部结点对应。', { res: '失败：key 不在表中' }, 'fail');
-        F(0, '小结：折半查找 ASL ≈ log₂(n+1) − 1 ≈ ' + (Math.log2(n + 1) - 1).toFixed(1) + '，远优于顺序查找的 (n+1)/2 = ' + ((n + 1) / 2).toFixed(1) + '。前提：顺序存储 + 有序——链表不能随机存取，无法折半。', { res: found2 ? '成功' : '失败' });
+        /* 当前这一遍没暴露问题（中途命中，或 key 本来就不在表里）时，自动补一个会被漏掉的 key 再走一遍 */
+        var shown = null, shownVis = null;
+        if (eb && missed.length && !bite) {
+          var k2 = st[missed[0] - 1], vis2 = [], l2 = 1, h2 = n;
+          cmp = 0;                       /* 补的这两遍各自重新计数，否则"比较次数"这一行会累到看不出 ASL */
+          F(1, (found2 ? '这个 key 中途就命中，看不出边界的问题' : '这个 key 本来就不在表里，判失败是对的') +
+            '。换表里第 ' + missed[0] + ' 位的 ' + k2 + '（下面两遍各自重新计数）：错法照样找不到它。', { key: k2, vis: vis2, res: null });
+          while (l2 < h2) {
+            var m2 = Math.floor((l2 + h2) / 2);
+            cmp++; vis2.push(m2);
+            F([3, 4], 'mid=' + m2 + '：ST[' + m2 + ']=' + st[m2 - 1] + (st[m2 - 1] > k2 ? ' > ' + k2 + ' → high=' + (m2 - 1) : ' < ' + k2 + ' → low=' + (m2 + 1)) + '。',
+              { low: l2, high: h2, mid: m2, range: '[' + l2 + '..' + h2 + ']', vis: vis2, key: k2 });
+            if (st[m2 - 1] > k2) h2 = m2 - 1; else l2 = m2 + 1;
+          }
+          F(9, '错法停在 low=high=' + l2 + '：ST[' + l2 + ']=' + st[l2 - 1] + ' 从没被比过就出局了 → 返回 0。', { vis: vis2, key: k2, res: '错法：判为失败' }, 'fail');
+          var vis3 = [], l3 = 1, h3 = n, hit3 = 0;
+          cmp = 0;
+          while (l3 <= h3) {
+            var m3 = Math.floor((l3 + h3) / 2);
+            cmp++; vis3.push(m3);
+            if (st[m3 - 1] === k2) { hit3 = m3; break; }
+            if (st[m3 - 1] > k2) h3 = m3 - 1; else l3 = m3 + 1;
+          }
+          F(5, '同一张表、同一个 key，把条件写回 low <= high：多走的那一步正好落在 mid=' + hit3 + ' → 命中第 ' + hit3 + ' 个（这一遍比了 ' + cmp + ' 次）。',
+            { mid: hit3, vis: vis3, key: k2, res: '正确写法：成功' }, 'found');
+          shown = k2; shownVis = vis3;
+        }
+        F(0, eb
+          ? '✗ 把 low <= high 写成 low < high：这张表 ' + n + ' 个 key 里有 ' + missed.length + ' 个（' + (missed.length ? missedKeys : '无') + '）明明在表里却会被判为查找失败——区间缩到最后一格时那个元素从没被比过。'
+          : '小结：折半查找 ASL ≈ log₂(n+1) − 1 ≈ ' + (Math.log2(n + 1) - 1).toFixed(1) + '，远优于顺序查找的 (n+1)/2 = ' + ((n + 1) / 2).toFixed(1) + '。前提：顺序存储 + 有序——链表不能随机存取，无法折半。',
+          { res: eb ? '这张表会漏 ' + missed.length + ' 个 key' : (found2 ? '成功' : '失败'), key: shown, vis: shownVis }, eb ? 'final' : undefined);
       }
       return { code: mode === 'seq' ? CODE_SEQ : CODE_BIN, frames: frames };
     },
