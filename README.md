@@ -75,7 +75,7 @@
 git clone https://github.com/ch1209498273/ds-animations.git
 # 双击 index.html 即可使用；改源码后运行 python src/build.py 重新构建
 node tests/test.js   # 823 项正确性断言 + 119 项手机视口卡口
-node tests/uat.js    # 53 项全量功能实测：286 组输入、6260 帧（排序模块带随机数据，逐次略有出入） + 浏览器里真点 42 项 + 对外数字核对（需 Chrome）
+node tests/uat.js    # 59 项全量功能实测：286 组输入、6,216 帧（排序模块带随机数据，逐次略有出入） + 浏览器里真点 42 项 + 对外数字核对（需 Chrome）
 ```
 
 ## 架构与实现
@@ -124,7 +124,7 @@ iframe 引用在线地址即可，目录页可一键复制任意动画的深链�
 
 - 发现演示错误、文字错误 → [提 Issue](../../issues/new?template=bug_report.md)
 - 想要新动画（红黑树、B 树删除、串的其他算法等）→ [动画许愿](../../issues/new?template=feature_request.md)
-- PR 欢迎：改完跑 `node tests/test.js` 保证 823 项全绿；动到外壳交互再加跑 `node tests/uat.js`（53 项）
+- PR 欢迎：改完跑 `node tests/test.js` 保证 823 项全绿；动到外壳交互再加跑 `node tests/uat.js`（59 项）
 
 ## 声明
 
