@@ -1,9 +1,9 @@
 <div align="center">
   <img src="assets/banner.png" alt="《数据结构》互动课件" width="100%">
 
-  ![版本](https://img.shields.io/badge/版本-v3.22-2b6cb0) ![动画](https://img.shields.io/badge/算法动画-60个-2f855a) ![覆盖](https://img.shields.io/badge/覆盖-全部8章·对齐408考纲-c05621) ![测试](https://img.shields.io/badge/正确性断言-834项通过-553c9a) ![依赖](https://img.shields.io/badge/依赖-零·单文件-4a5568)
+  ![版本](https://img.shields.io/badge/版本-v3.23-2b6cb0) ![动画](https://img.shields.io/badge/算法动画-60个-2f855a) ![覆盖](https://img.shields.io/badge/覆盖-全部8章·对齐408考纲-c05621) ![测试](https://img.shields.io/badge/正确性断言-876项通过-553c9a) ![依赖](https://img.shields.io/badge/依赖-零·单文件-4a5568)
 
-  **[▶ 在线打开（点开就用）](https://ch1209498273.github.io/ds-animations/) ｜ [⬇ 下载单文件 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.22.zip)**
+  **[▶ 在线打开（点开就用）](https://ch1209498273.github.io/ds-animations/) ｜ [⬇ 下载单文件 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.23.zip)**
 
   © 2026 **芦老师聊AI** · 版权归芦老师聊AI所有，未经授权不得商用
 
@@ -67,15 +67,15 @@
 
 **配套知识点手册**：38 节 · 121 页 A4 · 59 幅与课件同源的插图，正文按教材小节编，每节带定义/方法/手工演算/例题/易错点/习题，答案集中在附录。[⬇ 下载 PDF](https://github.com/ch1209498273/ds-animations/raw/main/ds-handbook-v3.22.pdf)（可独立阅读，不依赖课件；手册版本与课件版本对齐——**v3.22 这版的 59 幅插图逐字取自课件 v3.22 构建的 `render()`，且每幅都显式钉住了宿主场景**，不随默认档改动而换画面。正文含课件 v3.17 那三条错误演示"错在哪"的具体后果，以及新增的「队列的应用：打印机任务排队」一节。旧版仍保留原地址，不破坏已有链接）
 
-**方式二 · 本地用（推荐课堂场景）**：[下载 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.22.zip)，解压双击 `数据结构互动课件.html`——不联网、不装任何环境，教室机也能跑。
+**方式二 · 本地用（推荐课堂场景）**：[下载 zip](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.23.zip)，解压双击 `数据结构互动课件.html`——不联网、不装任何环境，教室机也能跑。
 
 **方式三 · 开发者**：
 
 ```bash
 git clone https://github.com/ch1209498273/ds-animations.git
 # 双击 index.html 即可使用；改源码后运行 python src/build.py 重新构建
-node tests/test.js   # 834 项正确性断言 + 119 项手机视口卡口
-node tests/uat.js    # 60 项全量功能实测：289 组输入、6,270 帧（排序模块带随机数据，逐次略有出入） + 浏览器里真点 42 项 + 对外数字核对（需 Chrome）
+node tests/test.js   # 876 项正确性断言 + 119 项手机视口卡口
+node tests/uat.js    # 62 项全量功能实测：348 组输入、8,320 帧（排序模块带随机数据，逐次略有出入） + 浏览器里真点 42 项 + 对外数字核对（需 Chrome）
 ```
 
 ## 架构与实现
@@ -91,7 +91,7 @@ node tests/uat.js    # 60 项全量功能实测：289 组输入、6,270 帧（�
 
 ## 正确性保障
 
-`tests/test.js` 内置 **834 项断言**（外加 119 项手机视口/放映实测）（GitHub Actions 每次推送自动执行），与教材/PPT 例题逐一对拍，例如：
+`tests/test.js` 内置 **876 项断言**（外加 119 项手机视口/放映实测）（GitHub Actions 每次推送自动执行），与教材/PPT 例题逐一对拍，例如：
 
 - 排序：教材例 `{49,38,65,97,76,13,27,49*}` 每一趟结果（插入/希尔/冒泡/快排/选择/堆/归并逐趟对拍），基数排序三趟收集结果与教材一致
 - 查找：折半判定树路径 `6→3→4`；哈希线性探测终表与教材一致、ASL=1.80；链地址 ASL=1.50
@@ -108,7 +108,7 @@ node tests/uat.js    # 60 项全量功能实测：289 组输入、6,270 帧（�
 ## 常见问题
 
 **Q：github.io 打不开 / 很慢？**
-国内访问 GitHub Pages 不稳定。下载 zip（[仓库内直链](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.22.zip)），解压双击打开，体验完全一致。
+国内访问 GitHub Pages 不稳定。下载 zip（[仓库内直链](https://github.com/ch1209498273/ds-animations/raw/main/ds-animations-v3.23.zip)），解压双击打开，体验完全一致。
 
 **Q：手机上能用吗？**
 能用，推荐 **⛶ 手机放映**（v2.6）：只留画面，左右缘 ‹ › 箭头翻页，画面严格铺满窗口不用拖动，竖屏进入自动转成横屏，右上角 ✕ 退出，`&mp=1` 深链可分享。
@@ -124,7 +124,7 @@ iframe 引用在线地址即可，目录页可一键复制任意动画的深链�
 
 - 发现演示错误、文字错误 → [提 Issue](../../issues/new?template=bug_report.md)
 - 想要新动画（红黑树、B 树删除、串的其他算法等）→ [动画许愿](../../issues/new?template=feature_request.md)
-- PR 欢迎：改完跑 `node tests/test.js` 保证 834 项全绿；动到外壳交互再加跑 `node tests/uat.js`（60 项）
+- PR 欢迎：改完跑 `node tests/test.js` 保证 876 项全绿；动到外壳交互再加跑 `node tests/uat.js`（62 项）
 
 ## 声明
 
