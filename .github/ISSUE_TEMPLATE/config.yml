@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 在线使用 / 下载
+    url: https://ch1209498273.github.io/ds-animations/
+    about: 先打开在线版；GitHub Pages 慢时可用 README 里的 zip 直链。
+  - name: 常见问题（手机、嵌入、离线）
+    url: https://github.com/ch1209498273/ds-animations#常见问题
+    about: 手机字号、iframe 嵌入、GitHub 访问慢等问题先看这里。
+  - name: 安全问题（请走私密报告）
+    url: https://github.com/ch1209498273/ds-animations/security/policy
+    about: 不要在公开 Issue 里贴可利用细节、学生数据或攻击代码。

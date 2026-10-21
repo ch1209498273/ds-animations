@@ -1,0 +1,17 @@
+# 仓库内统一 LF：构建指纹与台账按 LF 记录，Windows 工作树也不要把 CRLF 带进来
+* text=auto eol=lf
+
+# 二进制产物不做换行转换
+*.zip   binary
+*.pdf   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+
+# 构建产物不计入手写源码统计
+a/**       linguist-generated=true
+index.html linguist-generated=true

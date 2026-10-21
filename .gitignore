@@ -1,0 +1,17 @@
+# 构建暗记的私钥：一旦进公开仓库，"证明这份是我的"就作废
+.rights.key
+src/.rights.key
+__pycache__/
+*.pyc
+
+# 构建中间产物：发布仓库只需要根目录的 index.html 与 a/
+dist/
+node_modules/
+.venv/
+venv/
+
+# 本机与编辑器杂项
+.DS_Store
+Thumbs.db
+*.log
+*.bak
